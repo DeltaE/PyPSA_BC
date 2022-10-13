@@ -1,0 +1,7 @@
+# exclude these files
+results/*
+resources/*
+
+# include these from hidden partially ignored folders
+!results/.gitkeep
+!resources/.gitkeep
