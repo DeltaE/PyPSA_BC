@@ -543,6 +543,5 @@ def check_head_reservoir(rid, cascade_sites):
 
 # Code below this point is used for formatting of the hydroelectric data
 
-
 if __name__ == '__main__':
     print('This module contains all preprocessing functions used for creating all features needed to model Hydroelectric facilities in PyPSA_BC')
