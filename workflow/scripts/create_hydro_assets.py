@@ -1,4 +1,4 @@
-from bc_power import utils
+from bc_power import utils, hydro
 import pandas as pd
 
 
@@ -194,6 +194,57 @@ def create_df_hydro_gen(component_dict):
 
     return df_hydro_gen
 
+
+def add_hydro_type(hydro_sites, res_wup_data, cfg):
+    '''
+    This function is used to add a column type to the hydro generation dataframe.
+    This column can then be used to split the hydro generatio assets into ones needing
+    inflow series calculations and those needing power availability series calculated.
+    Currently the following situations are supported for each type:
+    hydro_sites: Dataframe of hydroelectric generation assets.
+    res_wup_data: Dataframe of hydroelectric reservoir assets.
+    Inflow Series (Reservoir type):
+    i) Reservoirs with WUP statistics.
+    ii) Reservoirs downstream in a cascade w/o WUP statistics.
+    Availability Series (RoR type):
+    i) RoR assets.
+    ii) Reservoirs w/o WUP statistics and are not downstream of other modelled reservoirs.
+    Tags of "reservoir" and "ror" will be used respectively
+    '''
+    
+    new_hydro_col = "hydro_type"
+
+    # a) Split into cascade and non-cascade
+    rid_list = res_wup_data["asset_id"].tolist()
+    mask_cascade = hydro_sites['upper_reservoir_id'].apply(lambda x: x in rid_list)
+    cascade_sites = hydro_sites[mask_cascade]
+    ror_index = hydro_sites[~mask_cascade].index
+    hydro_sites.loc[ror_index,new_hydro_col] = "ror"
+
+    # b) Get mask of cascaded reservoirs with WUP statistics
+    mask_res_wup = cascade_sites['upper_reservoir_id'].apply(lambda x: hydro.check_wup_exists(x,
+                                        cfg['bc_hydro']['inflow_tables']))
+    mask_res_wup_index = cascade_sites[mask_res_wup].index
+
+    hydro_sites.loc[mask_res_wup_index,new_hydro_col] = "reservoir"
+
+    # c) Items in cascade_sites[~mask_res_wup] need to be checked for upstream or downstream
+    # Upstream head reservoirs (no reservoirs upstream of these) with no WUP statistics
+    mask_res_up_no_wup = cascade_sites['upper_reservoir_id'].apply(lambda x: 
+                        hydro.check_head_reservoir(x, cascade_sites)) & (~mask_res_wup)
+    mask_res_up_no_wup_index = cascade_sites[mask_res_up_no_wup].index # BEWARE
+
+    hydro_sites.loc[mask_res_up_no_wup_index,new_hydro_col] = "ror"
+
+    # Downstream reservoirs with no WUP statistics
+    mask_res_down_no_wup = (~cascade_sites['upper_reservoir_id'].apply(lambda x: 
+                        hydro.check_head_reservoir(x, cascade_sites))) & (~mask_res_wup)
+    mask_res_down_no_wup_index = cascade_sites[mask_res_down_no_wup].index
+
+    hydro_sites.loc[mask_res_down_no_wup_index,new_hydro_col] = "reservoir-impute"
+
+    return hydro_sites
+
 def main():
     '''
     Description: This script is for creating a single csv file with all
@@ -245,14 +296,17 @@ def main():
     # b) create csv of hydro generation assets
     for ind,row in gen_wup_data.iterrows():
         temp_mask = df_hydro_gen["asset_id"] == row["asset_id"]
-        for ser_ind,ser_val in row[row.notnull()].iteritems():
+        for ser_ind,ser_val in row[row.notnull()].items():
             df_hydro_gen.loc[temp_mask,ser_ind] = ser_val # Use non-empty values from the generation WUP extacted data
     
-    df_hydro_gen.to_csv(df_hydro_path, index=False)
+    # (vii)
+    # a) code determines what type of time-series and modelling structure is required for each asset
+    # Type 1) Hydro reservoirs apart of cascades with WUP data or those w/o WUP data and are downstream. (Need Inflow)
+    # Type 2) RoR or smaller reservoirs which feed into cascades (these do not have WUP data) (Need power availability)
+    hydro.add_hydro_type(df_hydro_gen, res_wup_data, cfg)
 
-    # (vii) 
-    # a) create csv of hydro reservoirs
-    # NEED to add ability to add reservoirs which are not in cascades
+    # Write files
+    df_hydro_gen.to_csv(df_hydro_path, index=False)
     res_wup_data.to_csv(df_res_path, index=False)
 
     

@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix
 import xarray as xr
 from bc_power import utils
 import os
+from shapely.validation import make_valid
 
 
 Basins = namedtuple("Basins", ["plants", "meta", "shapes"])
@@ -165,7 +166,7 @@ def prepare_basins(sites, basin_data):
     '''
     # seperate components of the basin_data
     meta = basin_data[basin_data.columns.difference(("geometry",))]
-    shapes = basin_data["geometry"]
+    shapes = basin_data["geometry"].apply(lambda x: make_valid(x))
 
     # get dataframe of the hid and upstream hids for each plant/site
     plant_basins = get_site_basins(sites, meta, shapes)
@@ -381,7 +382,7 @@ def create_ror_power(sites_prep, basin_data, cutout, cfg):
     power_series.to_csv(cfg['ror_inflows']['ror_outfile'])
 
 
-def normalize_reservoir_inflow(site_inflows, fpath, method="mean_inflow_normalize"):
+def calibrate_reservoir_inflow(site_inflows, fpath, method="mean_inflow_calibrate"):
     '''
     fpath: Path to location of the inflow tables with statistics of historical inflows
            for BC reservoirs.
@@ -392,8 +393,8 @@ def normalize_reservoir_inflow(site_inflows, fpath, method="mean_inflow_normaliz
     inflows_adjusted = pd.DataFrame(index=pd.to_datetime([]))
     for rid in site_inflows.columns: # loop over reservoirs
 
-        if method == "mean_inflow_normalize":
-            inflows_adjusted[rid] = mean_inflow_normalize(site_inflows[rid], rid, fpath)
+        if method == "mean_inflow_calibrate":
+            inflows_adjusted[rid] = mean_inflow_calibration(site_inflows[rid], rid, fpath)
 
         elif method == "mean_inflow_constant":
             inflows_adjusted[rid] = mean_inflow_constant(site_inflows[rid], rid, fpath)
@@ -403,7 +404,7 @@ def normalize_reservoir_inflow(site_inflows, fpath, method="mean_inflow_normaliz
 
     return inflows_adjusted
 
-def mean_inflow_normalize(site_inflows, rid, fpath):
+def mean_inflow_calibration(site_inflows, rid, fpath):
     '''
     This function is designed to take in a unnormalized inflow series and normalize it.
     The normalize is done for each month based on the mean monthly inflow in (cms).
@@ -432,13 +433,13 @@ def mean_inflow_normalize(site_inflows, rid, fpath):
         const = inflow_seg.sum() / (3600 * num_hours * row['Mean Monthly Inflow'])
         norm_inflow_seg = inflow_seg / const
 
-        # store results
+        # store results (month-by-month)
         temp_series = pd.concat([temp_series, norm_inflow_seg])
         
     return temp_series.sort_index()
 
 
-def mean_inflow_constant(site_inflows, fpath):
+def mean_inflow_constant(site_inflows, rid, fpath):
     '''
     This function is designed to return a constant monthly inflow equal to
     that reservoirs historical mean inflow for each month.
@@ -471,7 +472,7 @@ def mean_inflow_constant(site_inflows, fpath):
     return temp_series.sort_index()
 
 
-def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, rid_dict, cfg, method = "mean_inflow_normalize"):
+def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg, method = "mean_inflow_calibrate"):
     '''
     This function creates the file containing the inflows for each reservoir apart of the cascades.
     There are 2 approaches used for calculating the inflows based on following conditions
@@ -483,13 +484,9 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, rid_
     basin_data: GeoDataFrame of all the hydrobasin data.
     cutout: Cutout used by Atlite for merging inflows into basins.
     hydro_sites: GeoDataFrame of hydro generation sites.
-    rid_dict: Contains 2 keys. (Normalize) which provides a list of all reservoir which approach (1) applies to
-                and (Impute) which approach (2) applies to.
     cfg: Dictionary with all configuration options.
     method: Method used to normalize the data.
     '''
-    # NEED to decide how to handle ones with normalized inflows and ones with 0 inflow 
-    # all_hydro_sites = gpd.GeoDataFrame(pd.concat([hydro_sites_wup, hydro_sites_no_wup]))
 
     basins = prepare_cascade_basins(reservoir_sites, basin_data, hydro_sites)
 
@@ -501,10 +498,14 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, rid_
     
     # File path + name for reading in inflow tables
     fpath = cfg['bc_hydro']['inflow_tables']
+
     # 1) normalize inflow time series for selected reservoirs
-    
-    final_inflows = normalize_reservoir_inflow(site_inflows[rid_dict['Normalize']], fpath, method)
-    for rid in rid_dict['Impute']:
+    reservoirs = hydro_sites[hydro_sites['hydro_type'] == "reservoir"]['upper_reservoir_id'].unique().tolist() # TRY Unique it
+    final_inflows = calibrate_reservoir_inflow(site_inflows[reservoirs], fpath, method)
+
+    # 2) Currently impute with for for reservoirs downstream with no WUP statistics.
+    reservoirs_impute = hydro_sites[hydro_sites['hydro_type'] == "reservoir-impute"]['upper_reservoir_id'].tolist()
+    for rid in reservoirs_impute:
         final_inflows[rid] = pd.Series([0]*final_inflows.shape[0],
                                      dtype='float64', index=final_inflows.index)
         
@@ -525,7 +526,7 @@ def check_wup_exists(rid, fpath):
 
 def check_head_reservoir(rid, cascade_sites):
     '''
-    This function deteremined if a particular rid is a downstream_reservoir_id for any other sites.
+    This function deteremines if a particular rid is a downstream_reservoir_id for any other sites.
     If it is not then that means the rid is an head upstream reservoir (i.e. not inflows caused by other reservoirs)
 
     rid: upper_reservoir_id.
@@ -533,6 +534,8 @@ def check_head_reservoir(rid, cascade_sites):
     return: boolean. Indicating whether the particular reservoir is a head reservoir (True) otherwise (False).
     '''
     return not (cascade_sites['lower_reservoir_id'] == rid).any()
+
+# Code below this point is used for formatting of the hydroelectric data
 
 
 if __name__ == '__main__':
