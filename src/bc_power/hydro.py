@@ -132,11 +132,14 @@ def create_cutout(cutout_file,bounds,dx,dy,time_horizon,features=['height','runo
 
     cutout.prepare()
 
-def merge_assets(df):
+def merge_assets(df,subset,sum_list):
     '''
     Function used to reduce hydroelectric datasets from turbines to an aggregate asset.
     This aggregation operator is currently applied only to the installed capacities for the units and
     the annual_avg_energy.
+    df: Dataframe which is passed via a groupby operation.
+    subset: Name of columns to use for deduplication
+    sum_list: Name of parameters/columns to aggegtate using the sum operation.
     Example:
     Input dataframe has following entries below:
     component_id | asset_id | capacity | annual_avg_energy
@@ -153,9 +156,9 @@ def merge_assets(df):
 
     '''
     # Other columns don't matter here for calcualting inflow and associated power production.
-    df_out = df.drop_duplicates(subset=["asset_id","lat","lon"]).set_index("asset_id").copy()
-    df_out['capacity'] = df['capacity'].sum()
-    df_out['annual_avg_energy'] = df['annual_avg_energy'].sum()
+    df_out = df.drop_duplicates(subset=subset).set_index("asset_id").copy()
+    for param in sum_list:
+        df_out[param] = df[param].sum()
     return df_out
 
 def prepare_basins(sites, basin_data):
@@ -369,7 +372,10 @@ def create_ror_power(sites_prep, basin_data, cutout, cfg):
     This function is used to calculate RoR power based on the potential energy approach.
     '''
     # Reduce assets to only asset_id since asset_id is 1-to-1 with inflows
-    sites = sites_prep.groupby(by="asset_id", group_keys=False).apply(merge_assets)
+    subset =["asset_id", "lat", "lon"]
+    sum_list = ["capacity", "annual_avg_energy"]
+    sites = sites_prep.groupby(by="asset_id", group_keys=False).apply(lambda x:
+                                                                     merge_assets(x, subset, sum_list))
 
     # (i) Calculated the inflows for each site
     basins = prepare_basins(sites, basin_data)
