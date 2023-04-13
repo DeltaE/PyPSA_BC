@@ -303,7 +303,7 @@ def main():
     # a) code determines what type of time-series and modelling structure is required for each asset
     # Type 1) Hydro reservoirs apart of cascades with WUP data or those w/o WUP data and are downstream. (Need Inflow)
     # Type 2) RoR or smaller reservoirs which feed into cascades (these do not have WUP data) (Need power availability)
-    hydro.add_hydro_type(df_hydro_gen, res_wup_data, cfg)
+    add_hydro_type(df_hydro_gen, res_wup_data, cfg)
 
     # Write files
     df_hydro_gen.to_csv(df_hydro_path, index=False)
