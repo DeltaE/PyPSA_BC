@@ -2,28 +2,7 @@ import sys
 from pathlib import Path
 import pandas as pd
 import json
-import atlite
-
-'''
-====================================================================================================
-
-    HELPER FUNCTIONS BELOW HERE, TO BE MOVED TO A MODULE EVENTUALLY
-
-====================================================================================================
-'''
-#Get power capacity P for a wind turbine model, which is required for calculating the install capacity for a wind farm
-#Used in generate_wind_assets()
-#config_oedb = config_oedb in unique_models data frame
-def get_power_cap(config_oedb):
-    config = config_oedb.split('*')
-    #ID used when there are multiple turbines with the same name, else just leave it blank
-    if int(config[1]) >= 0:
-        add = atlite.resource.get_oedb_windturbineconfig(config[0], id=int(config[1]))
-    else:
-        add = atlite.resource.get_oedb_windturbineconfig(config[0])
-
-    return add['P']
-
+from bc_power import wind
 
 '''
 ====================================================================================================
@@ -65,7 +44,7 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
     unique_models = unique_models.merge(counts)
 
     #Calculate install capacity using (turbine's rated power capacity) * (# of turbines at a location)
-    unique_models['Install capacity'] = unique_models.apply(lambda x: get_power_cap(x['config_oedb']) * x['Counts'], axis=1)
+    unique_models['Install capacity'] = unique_models.apply(lambda x: wind.get_power_cap(x['config_oedb']) * x['Counts'], axis=1)
 
 
     #Filter to wind generators in BC for now
