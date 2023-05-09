@@ -3,6 +3,8 @@ import os
 import atlite
 import shapely
 import geopandas as gpd
+import pandas as pd
+import json
 from shapely.ops import unary_union
 
 def load_config(config_file):
@@ -113,3 +115,20 @@ def convert_cid_2_aid(cid,old_aid):
         exit(3)
     new_aid= "_".join([aid_start, cid_2_aid, aid_end])
     return new_aid 
+
+def write_pickle(data_dict, filepath):
+    '''
+    Write a pickle file based on a dictionary.
+    '''
+    with open(filepath,"wb") as f:
+        pd.to_pickle(data_dict, f)
+    f.close()
+    print(f'Wrote pickle file {filepath}')
+
+def read_pickle(filepath):
+    '''
+    Read a json file based on a dictionary.
+    '''
+    with open(filepath, 'rb') as f:
+        data_dict = pd.read_pickle(f) 
+    return data_dict
