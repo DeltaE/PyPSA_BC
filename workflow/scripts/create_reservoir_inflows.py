@@ -10,7 +10,7 @@ def main():
     # and each basins upstream basins.
 
     # (i) get configuration
-    config_file = r"/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
     cfg = utils.load_config(config_file)
 
 

@@ -15,6 +15,15 @@ cutout:
   source: "era5"
   # file: "/mnt"
 
+# Used to specify scope for running PyPSA_BC
+# 1) Temporal
+# 2) Spatial
+# 3) Technical
+scope:
+  temporal:
+    start: '2021-01-01 00:00:00'
+    end: '2021-01-01 23:00:00'
+
 # read-only files
 # hydro data for the basins hardcoded for NA and Artic this would
 # need to be modified to be used internationally
@@ -28,6 +37,16 @@ coders:
   hydro_existing: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/hydro_existing.csv"
   generators: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/generators.csv"
   hydro_cascade: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/hydro_cascade.csv"
+  lines: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/network/transmission_lines.csv"
+  substations: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/network/substations.csv"
+
+# network configuration
+network:
+  folder: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network"
+
+# Custom datasets
+custom:
+  line_table: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/custom/electric_power_generation_table_13_3a.xlsx"
 
 # BC Hydro derived files (inputs)
 bc_hydro:
@@ -60,5 +79,7 @@ reservoir_inflows:
 
 # PyPSA 
 pypsa_dict:
-  hydro_res: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-comp/hydro_reservoirs.pickle"
-  hydro_ror: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-comp/hydro_ror.pickle"
+  hydro_comp: /home/pmcwhannel/repos/PyPSA_BC/results/pypsa-components/
+  hydro_net: /home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network/
+  hydro_res: "hydro_reservoirs.pickle"
+  hydro_ror: "hydro_ror.pickle"
