@@ -2,7 +2,9 @@ README.md
 pyproject.toml
 src/bc_power/__init__.py
 src/bc_power/hydro.py
+src/bc_power/solar_wind.py
 src/bc_power/utils.py
+src/bc_power/wind.py
 src/bc_power.egg-info/PKG-INFO
 src/bc_power.egg-info/SOURCES.txt
 src/bc_power.egg-info/dependency_links.txt

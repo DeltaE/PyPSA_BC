@@ -3,6 +3,10 @@ import os
 import atlite
 import shapely
 import geopandas as gpd
+import pypsa
+import numpy as np
+import pandas as pd
+import json
 from shapely.ops import unary_union
 
 def load_config(config_file):
@@ -113,3 +117,82 @@ def convert_cid_2_aid(cid,old_aid):
         exit(3)
     new_aid= "_".join([aid_start, cid_2_aid, aid_end])
     return new_aid 
+
+def write_pickle(data_dict, filepath):
+    '''
+    Write a pickle file based on a dictionary.
+    '''
+    with open(filepath,"wb") as f:
+        pd.to_pickle(data_dict, f)
+    f.close()
+    print(f'Wrote pickle file {filepath}')
+
+def read_pickle(filepath):
+    '''
+    Read a json file based on a dictionary.
+    '''
+    with open(filepath, 'rb') as f:
+        data_dict = pd.read_pickle(f) 
+    return data_dict
+
+def create_standard_gen_bus_map(buses):
+    '''
+    This function accepts a list a buses and returns a mapping from the buses to the lowest voltage
+    bus for each unique node code. The underlying assumption used in selecting a bus to connect a generator to is that
+    generators are connected the lowest voltage bus at their given node location.
+    Example:
+    Buses = ["230_ABN_GSS", "138_ABN_GSS","500_MCA_GSS", "63_MCA_GSS"] -> bus_dict = {ABN_GSS:138, MCA_GSS:63}
+    '''
+    bus_dict = {}
+    # Assume generators are connected to lowest voltage bus at their given node_code
+    for bus in buses:
+        node = "_".join(bus.split('_')[1:])
+        voltage = int(bus.split('_')[0])
+        if node not in bus_dict.keys():
+            bus_dict[node] = voltage
+        else:
+            bus_dict[node] = min(voltage,bus_dict[node])
+
+    return bus_dict
+
+def get_gen_bus(node_code, bus_dict):
+    '''
+    This function returns the correct standardized electric bus for a generator.
+    Example:
+    node_code = "BC_ABS_GSS" 
+    bus_dict = {"ABS_GSS":230, "MCA_GSS":63}
+    return -> "230_ABS_GSS"
+    '''
+    node_code_suffix = "_".join(node_code.split('_')[1:]) # i.e.  BC_ABN_GSS -> ABN_GSS
+    return "_".join([str(bus_dict[node_code_suffix]), node_code_suffix])
+
+def get_multi_link_override():
+    '''
+    Gets the multi-link override. Needed for cascaded hydroelectric.
+    '''
+    # From PyPSA CHP Example: This ensures we can add 2 outputs for a single link i.e bus0 -> bus_1 AND bus_2
+    override_component_attrs = pypsa.descriptors.Dict(
+        {k: v.copy() for k, v in pypsa.components.component_attrs.items()}
+    )
+    override_component_attrs["Link"].loc["bus2"] = [
+        "string",
+        np.nan,
+        np.nan,
+        "2nd bus",
+        "Input (optional)",
+    ]
+    override_component_attrs["Link"].loc["efficiency2"] = [
+        "static or series",
+        "per unit",
+        1.0,
+        "2nd bus efficiency",
+        "Input (optional)",
+    ]
+    override_component_attrs["Link"].loc["p2"] = [
+        "series",
+        "MW",
+        0.0,
+        "2nd bus output",
+        "Output",
+    ]
+    return override_component_attrs

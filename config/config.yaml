@@ -15,6 +15,15 @@ cutout:
   source: "era5"
   # file: "/mnt"
 
+# Used to specify scope for running PyPSA_BC
+# 1) Temporal
+# 2) Spatial
+# 3) Technical
+scope:
+  temporal:
+    start: '2021-01-01 00:00:00'
+    end: '2021-01-01 23:00:00'
+
 # read-only files
 # hydro data for the basins hardcoded for NA and Artic this would
 # need to be modified to be used internationally
@@ -22,14 +31,24 @@ basin_files:
   na_file: '/mnt/c/Users/pmcw9/Delta-E/PICS/Data/hydroBASINS/hybas_na_lev12_v1c.shp'
   artic_file: '/mnt/c/Users/pmcw9/Delta-E/PICS/Data/hydroBASINS_artic/hybas_ar_lev12_v1c.shp'
 
-# CODERS file locations
+# CODERS file locations (inputs)
 coders:
   gen_generic: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/generation_generic.csv"
   hydro_existing: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/hydro_existing.csv"
   generators: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/generators.csv"
   hydro_cascade: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/supply/hydro_cascade.csv"
+  lines: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/network/transmission_lines.csv"
+  substations: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/SESIT/CODERS/data-pull/network/substations.csv"
 
-# BC Hydro derived files
+# network configuration
+network:
+  folder: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network"
+
+# Custom datasets
+custom:
+  line_table: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/custom/electric_power_generation_table_13_3a.xlsx"
+
+# BC Hydro derived files (inputs)
 bc_hydro:
   generation_wup: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/custom/hydro_gen_wup_features.csv"
   reservoir_wup: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/custom/hydro_res_wup_features.csv"
@@ -38,23 +57,29 @@ bc_hydro:
 # read & write files hydro assets
 # renamed: hydro_assets.csv -> hydro_generation.csv
 hydro_prep:
-  hydro_generation: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/hydro_generation.csv'
-  hydro_reservoir: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/hydro_reservoirs.csv'
+  hydro_generation: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/hydro_generation.csv'
+  hydro_reservoir: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/hydro_reservoirs.csv'
   cutout: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/cutout/BC_2021.nc"
 
 # parameters for inflow of RoR
 ror_inflows:
   height: True
   flowspeed: 1
-  ror_outfile: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/bc_ror_power_series.csv'
-  ror_assets: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/hydro_generation.csv'
+  ror_outfile: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/bc_ror_power_series.csv'
+  ror_assets: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/hydro_generation.csv'
 
 # parameters for inflow of reservoirs
 reservoir_inflows:
   height: False
   flowspeed: 1
-  folder: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/reservoir_inflows'
-  reservoir_assets: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/hydro_reservoirs.csv'
-  hydro_assets:  '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/hydro_generation.csv'
-  output: '/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/results/interim/reservoir_inflows.csv'
-  
+  folder: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/reservoir_inflows'
+  reservoir_assets: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/hydro_reservoirs.csv'
+  hydro_assets:  '/home/pmcwhannel/repos/PyPSA_BC/results/interim/hydro_generation.csv'
+  output: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/reservoir_inflows.csv'
+
+# PyPSA 
+pypsa_dict:
+  hydro_comp: /home/pmcwhannel/repos/PyPSA_BC/results/pypsa-components/
+  hydro_net: /home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network/
+  hydro_res: "hydro_reservoirs.pickle"
+  hydro_ror: "hydro_ror.pickle"
