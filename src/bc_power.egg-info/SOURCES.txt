@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 src/bc_power/__init__.py
+src/bc_power/disaggregation_utils.py
 src/bc_power/hydro.py
 src/bc_power/solar_wind.py
 src/bc_power/utils.py
