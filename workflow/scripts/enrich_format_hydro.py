@@ -23,6 +23,10 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
     '''
     This function is used to return a dictionary with 7 components to be used to build
     a hydroelectric reservoirs in PyPSA.
+    Unit descriptions:
+    i) Flow units always in m^3 / hr for now.
+    ii)
+
     site: hydroelectric site (contains metadata) as a pd.series.
     reservoir: reservoir for the current hydroelectric site (contains metadata) as a pd.series.
     inflow: Timeseries of the inflow for the current hydroelectric site.
@@ -89,31 +93,33 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
                                     "bus1": res_dict['water bus']['name'],
                                     "efficiency":1., # mass_balance
                                     "p_nom":max_storage + max_inflow,
-                                    } 
+                                    }
     
 
     # 5) get reservoir store
     # name: {UPPER_RESERVOIR_ID} Store {CLASS_NAME}
+    # UPDATE NEEDED: Need to add a starting state for the reservoirs
     class_name = "Store"
     res_dict['reservoir store'] = {"class_name":class_name,
-                                        "name":" ".join([up_rid,"Reservoir",class_name]),
-                                        "bus":res_dict['reservoir bus']['name'],
-                                        "e_nom":max_storage # units of m^3
-                                        }
+                                    "name":" ".join([up_rid,"Reservoir",class_name]),
+                                    "bus":res_dict['reservoir bus']['name'],
+                                    "e_nom":max_storage, # units of m^3
+                                    "e_initial":max_storage * 0.8 # Assumed 80% filled
+                                    }
     
     # 6) add inflow generator
     # name: {UPPER_RESERVOIR_ID} Inflow {CLASS_NAME}
     class_name = "Generator"
     res_dict['inflow generator'] = {"class_name":class_name,
-                                        "name": " ".join([up_rid,"Inflow",class_name]),
-                                        "bus": res_dict['reservoir bus']['name'],
-                                        "carrier": "inflow",
-                                        "efficiency":1., # mass_balance
-                                        "p_nom":max_inflow, # max(inflow series)
-                                        "p_set":inflow,
-                                        "p_max_pu":[flow / max_inflow if flow != 0 else 0 for flow in inflow],
-                                        "p_min_pu":[flow / max_inflow if flow != 0 else 0 for flow in inflow],
-                                        }
+                                    "name": " ".join([up_rid,"Inflow",class_name]),
+                                    "bus": res_dict['reservoir bus']['name'],
+                                    "carrier": "inflow",
+                                    "efficiency":1., # mass_balance
+                                    "p_nom":max_inflow, # max(inflow series)
+                                    "p_set":inflow,
+                                    "p_max_pu":[flow / max_inflow if flow != 0 else 0 for flow in inflow],
+                                    "p_min_pu":[flow / max_inflow if flow != 0 else 0 for flow in inflow],
+                                    }
     
 
     # Terminal check
@@ -141,15 +147,13 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
 
     # 7) get discharge link
     ## ADD code here to grab ELC bus based on the connecting_node_code
-    # elc_bus_name = utils.grab_standard_elc_bus(connecting_node_code, buses)
-    
     elc_bus_name = utils.get_gen_bus(site["connecting_node_code"], bus_dict)
     ###
     q_rated = float(site['max_water_discharge']) * 3600 # Units of m^3 / hr
     eff_m3_to_mwhr =  site['capacity'] / q_rated
-    marginal_cost = site["variable_om_cost_USD_per_MWh"] * eff_m3_to_mwhr
+    marginal_cost = (site["variable_om_cost_USD_per_MWh"] + 2) * eff_m3_to_mwhr
     res_dict['discharge link'] = {"class_name":"Link",
-                                    "name": " ".join([aid,"discharge link"]),
+                                    "name": " ".join([aid,"Discharge Link"]),
                                     "bus0": res_dict['water bus']['name'],
                                     "bus1": elc_bus_name, # NEED TO CREATE connection to ELC (ELC bus name?)
                                     "bus2": downstream_bus,
@@ -162,13 +166,13 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
     if site['max_spill'] == "DEFAULT":
         spill = 9999*3600 # Fill a value
     else:
-        spill = float(site['max_spill'])*3600
+        spill = float(site['max_spill'])*3600 # Units of m^3 / hr
 
     if spill == 0: # Later this should be replaced to allow 0 spill
         spill = 9999*3600 # Fill a value
 
     res_dict['spill link'] = {"class_name":"Link",
-                                "name": " ".join([aid,"spill link"]),
+                                "name": " ".join([aid,"Spill Link"]),
                                 "bus0": res_dict['water bus']['name'],
                                 "bus1": downstream_bus,
                                 "efficiency":1., # mass_balance
@@ -197,7 +201,7 @@ def get_ror_dict(site, ror_ts, bus_dict):
             "marginal_cost":site["variable_om_cost_USD_per_MWh"],
             "p_nom_extendable":False, # Site already built
             # "capital_cost":site[], # no applicable since built
-            "p_max_pu":ror_ts}
+            "p_max_pu":ror_ts.apply(lambda x: min(x / site['capacity'],1))}
 
 
 
@@ -229,7 +233,7 @@ def write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg):
         res_dict[aid] = get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict)
 
     # write pickle
-    out_file = cfg["pypsa_dict"]["hydro_comp"] + cfg["pypsa_dict"]["hydro_res"]
+    out_file = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_res"]
     utils.write_pickle(res_dict, out_file)
 
 def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
@@ -245,7 +249,7 @@ def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
         ror_dict[aid] = get_ror_dict(site, ror_ts, bus_dict)
 
     # write pickle
-    out_file = cfg["pypsa_dict"]["hydro_comp"] + cfg["pypsa_dict"]["hydro_ror"]
+    out_file = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_ror"]
     utils.write_pickle(ror_dict, out_file)
 
 def main():
@@ -282,7 +286,7 @@ def main():
 
 
     # (0A) Create folders if they have not been created already
-    utils.create_folder(cfg["pypsa_dict"]['hydro_comp'])
+    utils.create_folder(cfg["pypsa_dict"]['components'])
 
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)

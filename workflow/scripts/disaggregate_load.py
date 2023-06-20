@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import pandas as pd
+from bc_power import utils
 
 
 #Format the hourly load data to account for inconsistencies with how BC Hydro handles daylight savings
@@ -91,46 +92,34 @@ def disaggregate(ceei, hourly):
     
 '''
 def main():
-    try:
-        #Try reading the arguments passed in the terminal
-        ceei_path = Path(sys.argv[1])
-        hourly_path = Path(sys.argv[2] + '/BalancingAuthorityLoad' + sys.argv[3] + '.xls')
-        year = int(sys.argv[3])
-        output_path_res = Path(sys.argv[4] + '/hourly_res_' + sys.argv[3] + '.csv')
-        output_path_csmi = Path(sys.argv[4] + '/hourly_csmi_' + sys.argv[3] + '.csv')
 
-    except Exception as e:
-        #Less than 4 arguments, return error code 1
-        print('There are inputs missing')
-        print(e)
-        return 1
+    # Read in configuration file
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    cfg = utils.load_config(config_file)
+
+    #Note year selection should be redesigned
+    ceei_path =  cfg["load"]["ceei"] # Path(sys.argv[1])
+    hourly_path = cfg["load"]["bch"] # Path(sys.argv[2] + '/BalancingAuthorityLoad' + sys.argv[3] + '.xls') # 
+    year =  cfg["load"]["year"] # int(sys.argv[3])
+    output_path_res = cfg["load"]["res_path"] # Path(sys.argv[4] + '/hourly_res_' + sys.argv[3] + '.csv')
+    output_path_csmi = cfg["load"]["csmi_path"] # Path(sys.argv[4] + '/hourly_csmi_' + sys.argv[3] + '.csv')
+
+    # Try loading in the data
+    ceei = pd.read_excel(ceei_path, sheet_name='BC Hydro')
+    ceei = ceei.loc[ceei.YEAR == min(2020, year)] #CEEI data only goes up to 2020, use 2020 if looking at hourly loads 2020 or later
+
+    # Hourly load data needs some fixing
+    hourly = fix_hourly_load(pd.read_excel(hourly_path), year)
+
+    # All is good, start hourly_res_{year}.csv and hourly_csmi_{year}.csv
+    hourly_res, hourly_csmi = disaggregate(ceei, hourly)
+
+    # Write to files to the output folder path
+    hourly_res.to_csv(output_path_res)
+    hourly_csmi.to_csv(output_path_csmi)
     
-    else:
-        #Correct number of arguments
-        try:
-            #Try loading in the data
-            ceei = pd.read_excel(ceei_path, sheet_name='BC Hydro')
-            ceei = ceei.loc[ceei.YEAR == min(2020, year)] #CEEI data only goes up to 2020, use 2020 if looking at hourly loads 2020 or later
-
-            #Hourly load data needs some fixing
-            hourly = fix_hourly_load(pd.read_excel(hourly_path), year)
-
-        except Exception as e:
-            #An input may be spelled incorrectly, return error code 2
-            print('One or more inputs are in the wrong format')
-            print(e)
-            return 2
-        else:
-            #All is good, start hourly_res_{year}.csv and hourly_csmi_{year}.csv
-            hourly_res, hourly_csmi = disaggregate(ceei, hourly)
-
-            #Write to files to the output folder path
-            hourly_res.to_csv(output_path_res)
-            hourly_csmi.to_csv(output_path_csmi)
-            
-            #Return code 0 is for when everything runs without a problem
-            return 0
-        
-
+    #Return code 0 is for when everything runs without a problem
+    return 0
+    
 if __name__ == '__main__':
     main()

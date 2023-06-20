@@ -26,7 +26,9 @@ def main():
     # Sites/plants which need inflow data. Reduce assets to only asset_id since asset_id is 1-to-1 with inflows
     sites_prep = hydro.load_hydro_sites(cfg["ror_inflows"]["ror_assets"])
     # hydro.rename_duplicate_asset_id(sites_prep)
-    sites = sites_prep.groupby(by="asset_id", group_keys=False).apply(hydro.merge_assets)
+    subset = ["asset_id","latitude","longitude",] 
+    sum_list = ["capacity", "annual_avg_energy", "ramp_up", "ramp_down"] 
+    sites = sites_prep.groupby(by="asset_id", group_keys=False).apply(lambda x: hydro.merge_assets(x, subset, sum_list))
 
     # (ii) Calculated the inflows for each site
     basins = hydro.prepare_basins(sites, basin_data)

@@ -9,6 +9,36 @@ import pandas as pd
 import json
 from shapely.ops import unary_union
 
+
+def merge_assets(df,subset,sum_list):
+    '''
+    Function used to reduce hydroelectric datasets from turbines to an aggregate asset.
+    This aggregation operator is currently applied only to the installed capacities for the units and
+    the annual_avg_energy.
+    df: Dataframe which is passed via a groupby operation.
+    subset: Name of columns to use for deduplication
+    sum_list: Name of parameters/columns to aggegtate using the sum operation.
+    Example:
+    Input dataframe has following entries below:
+    component_id | asset_id | capacity | annual_avg_energy
+    BC_MCA01_GEN | BC_MCA_GSS | 492 | 1936.79
+    BC_MCA02_GEN | BC_MCA_GSS | 492 | 1936.79
+    BC_MCA03_GEN | BC_MCA_GSS | 494 | 1942.7
+    BC_MCA04_GEN | BC_MCA_GSS | 494 | 1942.7
+    BC_MCA05_GEN | BC_MCA_GSS | 500 | 1968.45
+    BC_MCA06_GEN | BC_MCA_GSS | 500 | 1968.45
+
+    Output dataframe will have the following:
+    asset_id | capacity | annual_avg_energy
+    BC_MCA_GSS | 2972 | 11695.88
+
+    '''
+    # Other columns don't matter here for calcualting inflow and associated power production.
+    df_out = df.drop_duplicates(subset=subset).set_index("connecting_node_code").copy()
+    for param in sum_list:
+        df_out[param] = df[param].sum()
+    return df_out
+
 def load_config(config_file):
     '''
     This function loads the configuration file for PyPSA_BC
@@ -59,15 +89,13 @@ def get_bounds(polygon_list):
     
     return bounds
 
-def create_era5_cutout(bounds, cfg):
+def get_cutout_path(cfg):
     '''
-    This function creates a cutout based on data for era5.
+    This function return the unique name based on the region and start/end year
+    for a cutout. 
+    return: file path + name for the cutout described by selections in the
+    cutout configuration.
     '''
-    # Extract parameters from configuration file
-    dx,dy = cfg["cutout"]["dx"], cfg["cutout"]['dy']
-    time_horizon = slice(cfg["cutout"]["snapshots"]['start'][0],
-                        cfg["cutout"]["snapshots"]['end'][0])
-
     # Create file_path name with custom year_date
     start_year = cfg['cutout']["snapshots"]["start"][0][:4]
     end_year = cfg['cutout']["snapshots"]["end"][0][:4]
@@ -79,6 +107,20 @@ def create_era5_cutout(bounds, cfg):
     else: # multi_year_file
         suffix = "_".join([start_year, end_year])
         file = "_".join([prefix, suffix + ".nc"])
+
+    return file
+
+def create_era5_cutout(bounds, cfg):
+    '''
+    This function creates a cutout based on data for era5.
+    '''
+    # Extract parameters from configuration file
+    dx,dy = cfg["cutout"]["dx"], cfg["cutout"]['dy']
+    time_horizon = slice(cfg["cutout"]["snapshots"]['start'][0],
+                        cfg["cutout"]["snapshots"]['end'][0])
+
+    # get path + filename for the cutout
+    file = get_cutout_path(cfg)
 
     # Create the cutout based on bounds found from above
     cutout = atlite.Cutout(path=file,

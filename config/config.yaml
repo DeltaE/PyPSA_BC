@@ -9,9 +9,9 @@ cutout:
     file: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_1.json"
   snapshots:
     start: # Other usages assume this is in format of 'YYYY-MM-DD'
-      - '2021-01-01'
+      - '2021-01-01' # YYYY-MM-DD
     end:
-      - '2021-12-31'
+      - '2021-12-31' # YYYY-MM-DD
   source: "era5"
   # file: "/mnt"
 
@@ -21,8 +21,8 @@ cutout:
 # 3) Technical
 scope:
   temporal:
-    start: '2021-01-01 00:00:00'
-    end: '2021-01-01 23:00:00'
+    start: '2021-10-30 00:00:00' # YYYY-MM-DD HH-MM-##
+    end: '2021-10-30 23:00:00' # YYYY-MM-DD HH-MM-##
 
 # read-only files
 # hydro data for the basins hardcoded for NA and Artic this would
@@ -77,9 +77,51 @@ reservoir_inflows:
   hydro_assets:  '/home/pmcwhannel/repos/PyPSA_BC/results/interim/hydro_generation.csv'
   output: '/home/pmcwhannel/repos/PyPSA_BC/results/interim/reservoir_inflows.csv'
 
-# PyPSA 
+# wind
+wind:
+  can_turbines: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/wind/canada_turbines.xlsx"
+  turbine_dict: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/wind/turbine_dict.json"
+  asset_path: "/home/pmcwhannel/repos/PyPSA_BC/results/bc_wind_assets.csv"
+  atlas_speed: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/wind/british_columbia_wspd_100m.tif"
+  atlas_geojson: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/wind/british_columbia.geojson"
+  calibration: 0
+  ts_path: "/home/pmcwhannel/repos/PyPSA_BC/results/wind_ts.csv"
+
+#
+solar:
+  asset_path: "/home/pmcwhannel/repos/PyPSA_BC/results/bc_pv_assets.csv"
+  calibration: 0
+  ts_path: "/home/pmcwhannel/repos/PyPSA_BC/results/pv_ts.csv"
+
+# parameters for the vre enrichment
+# These are shared for solar and wind 
+vre:
+  asset_path: "/home/pmcwhannel/repos/PyPSA_BC/results/bc_wind_assets.csv"
+  ts_path: "/home/pmcwhannel/repos/PyPSA_BC/results/wind_ts.csv"
+  type: "wind" # "wind" or "solar"
+
+# thermal power plant setups and grid related settings.
+tpp:
+  gas_grid: False # True means the thermal generators will have unique gas bus at each of their nodes.
+  UC: False # unit commitment for thermal PPs
+
+
+# load related configuration (i.e. Paths to data files)
+load:
+  ceei: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/load/CEEI_2020.xlsx"
+  municipality: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/load/municipality.csv"
+  bch: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/load/bc_hydro_load/BalancingAuthorityLoad2021.xls"
+  year: 2021 # temporary parameter for the BC Hydro load year selection
+  res_path: "/home/pmcwhannel/repos/PyPSA_BC/results/hourly_res.csv" # output path
+  csmi_path: "/home/pmcwhannel/repos/PyPSA_BC/results/hourly_csmi.csv" # output path
+  # "C:\Users\pmcw9\Delta-E\PICS\Data\load\bc_hydro_load\BalancingAuthorityLoad2015.xls"
+
+# PyPSA : path and file names for creating dictionary used to instantiate assets in PyPSA
 pypsa_dict:
-  hydro_comp: /home/pmcwhannel/repos/PyPSA_BC/results/pypsa-components/
-  hydro_net: /home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network/
+  components: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-components/"
+  hydro_net: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network/"
   hydro_res: "hydro_reservoirs.pickle"
   hydro_ror: "hydro_ror.pickle"
+  wind: "wind_farms.pickle"
+  solar: "pv.pickle"
+  tpp: "tpp.pickle"

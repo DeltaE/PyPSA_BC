@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import pandas as pd
 import json
-from bc_power import wind
+from bc_power import wind, utils
 
 '''
 ====================================================================================================
@@ -48,7 +48,7 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
 
 
     #Filter to wind generators in BC for now
-    wind_bc = coders.loc[coders.province.eq('BC') & coders.gen_type_copper.eq('wind')][['gen_node_code', 'project_name', 'location', 'latitude', 'longitude', 'annual_avg_energy_unit_in_gwh/y']]
+    wind_bc = coders.loc[coders.province.eq('BC') & coders.gen_type_copper.eq('wind')]# [['gen_node_code', 'project_name', 'location', 'latitude', 'longitude', 'annual_avg_energy_unit_in_gwh/y']]
     wind_bc = wind_bc.rename(columns={'annual_avg_energy_unit_in_gwh/y': 'CODERS AAG (GWh/y)'})
 
     #Rename some projects for the merge later below
@@ -59,7 +59,6 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
 
     #Create a combined data frame that is nearly in the final state to be written to wind_assets.csv
     wind_assets = unique_models.merge(wind_bc.rename(columns={'project_name': 'Project name'}))
-
 
     #Generating unique component_id and asset_id columns, as well as a 'Flag' column to be used in create_wind_ts.py later
     #Empty frame to hold the component_id and asset_id columns
@@ -72,20 +71,20 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
 
         #Empty lists to contain data for to_id_frame
         component_id = []
-        asset_id = []
+        # asset_id = []
         flag = []
 
         #Fill the component_id and asset_id lists
         for index in asset_indexer:
             component_id.append(code[3:6])
-            asset_id.append(code[3:7] + str(index))
+            # asset_id.append(code[3:7] + str(index))
             if index == 1:
                 flag.append(1)
             else:
                 flag.append(0)
         
         #Data frame to concatenate to id_frame above
-        to_id_frame = pd.DataFrame(data={'component_id': component_id, 'asset_id': asset_id, 'Flag': flag})
+        to_id_frame = pd.DataFrame(data={'component_id': component_id, 'Flag': flag})
 
         #Concatenate into id_frame
         id_frame = pd.concat([id_frame, to_id_frame])
@@ -94,46 +93,42 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
     id_frame = id_frame.reset_index().drop(columns=['index'])
     wind_assets = pd.concat([id_frame, wind_assets], axis=1)
 
+    # temp fix: asset_id set based on connecting_node_code
+    wind_assets["asset_id"] = wind_assets["connecting_node_code"]
+
 
     #Return the finalized wind_assets data frame to be written into a csv file
     return wind_assets
 
-#Does some input verification before generating the assets
+# Does some input verification before generating the assets
 def main():
-    try:
-        #Try reading the arguments passed in the terminal
-        coders_path = Path(sys.argv[1])
-        canada_turbine_path = Path(sys.argv[2])
-        turbine_dict_path = Path(sys.argv[3])
-        output_path = Path(sys.argv[4])
-    except:
-        #Less than 4 arguments, return error code 1
-        print('There are inputs missing')
-        return 1
-    else:
-        #Correct number of arguments
-        try:
-            #Try loading in the CSV file and XLSX file into Pandas data frames
-            coders = pd.read_csv(coders_path)
-            canada_turbine = pd.read_excel(canada_turbine_path)
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    cfg = utils.load_config(config_file)
 
-            #Try loading in the JSON file as a dictionary
-            with open(turbine_dict_path) as f:
-                turbine_dict = json.load(f)
-                f.close()
-        except:
-            #An input may be spelled incorrectly, return error code 2
-            print('One or more inputs are in the wrong format')
-            return 2
-        else:
-            #All is good, start generating wind_assets.csv
-            to_wind_assets_csv = generate_wind_assets(coders, canada_turbine, turbine_dict)
+    #Try reading the arguments passed in the terminal
+    coders_path = cfg['coders']['generators']
+    canada_turbine_path = cfg['wind']['can_turbines'] 
+    turbine_dict_path = cfg['wind']['turbine_dict'] 
+    output_path = cfg['wind']['asset_path'] 
 
-            #Write wind_assets.csv
-            to_wind_assets_csv.to_csv(output_path, index=False)
 
-            #Return code 0 is for when everything runs without a problem
-            return 0
+    #Try loading in the CSV file and XLSX file into Pandas data frames
+    coders = pd.read_csv(coders_path)
+    canada_turbine = pd.read_excel(canada_turbine_path)
+
+    #Try loading in the JSON file as a dictionary
+    with open(turbine_dict_path) as f:
+        turbine_dict = json.load(f)
+        f.close()
+
+    #All is good, start generating wind_assets.csv
+    to_wind_assets_csv = generate_wind_assets(coders, canada_turbine, turbine_dict)
+
+    #Write wind_assets.csv
+    to_wind_assets_csv.to_csv(output_path, index=False)
+
+    #Return code 0 is for when everything runs without a problem
+    return 0
 
 if __name__ == '__main__':
     main()

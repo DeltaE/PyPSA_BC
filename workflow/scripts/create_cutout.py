@@ -24,7 +24,7 @@ def main():
     hydro_polygon = hydro.get_hydro_cutout_polygon(hydro_sites, basin_data)
 
     # Determine true largest bounds based on max/min of hydro_bounds and the regional bounds
-    gdf = gpd.read_file("/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_1.json")
+    gdf = gpd.read_file(cfg['region']['file'])
     mask = gdf['NAME_1'] == "BritishColumbia"
     region_polygon = utils.get_region_polygon(gdf[mask].geometry)
 
