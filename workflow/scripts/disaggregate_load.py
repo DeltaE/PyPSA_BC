@@ -97,7 +97,7 @@ def main():
     config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
     cfg = utils.load_config(config_file)
 
-    #Note year selection should be redesigned
+    # Note year selection should be redesigned
     ceei_path =  cfg["load"]["ceei"] # Path(sys.argv[1])
     hourly_path = cfg["load"]["bch"] # Path(sys.argv[2] + '/BalancingAuthorityLoad' + sys.argv[3] + '.xls') # 
     year =  cfg["load"]["year"] # int(sys.argv[3])
@@ -113,6 +113,8 @@ def main():
 
     # All is good, start hourly_res_{year}.csv and hourly_csmi_{year}.csv
     hourly_res, hourly_csmi = disaggregate(ceei, hourly)
+    hourly_res = hourly_res / 1000 # convert from KW-hr to MW-hr
+    hourly_csmi = hourly_csmi / 1000 # convert from KW-hr to MW-hr
 
     # Write to files to the output folder path
     hourly_res.to_csv(output_path_res)

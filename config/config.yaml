@@ -21,8 +21,8 @@ cutout:
 # 3) Technical
 scope:
   temporal:
-    start: '2021-10-30 00:00:00' # YYYY-MM-DD HH-MM-##
-    end: '2021-10-30 23:00:00' # YYYY-MM-DD HH-MM-##
+    start: '2021-01-01 00:00:00' # YYYY-MM-DD HH-MM-##
+    end: '2021-12-31 23:00:00' # YYYY-MM-DD HH-MM-##
 
 # read-only files
 # hydro data for the basins hardcoded for NA and Artic this would
@@ -96,9 +96,9 @@ solar:
 # parameters for the vre enrichment
 # These are shared for solar and wind 
 vre:
-  asset_path: "/home/pmcwhannel/repos/PyPSA_BC/results/bc_wind_assets.csv"
-  ts_path: "/home/pmcwhannel/repos/PyPSA_BC/results/wind_ts.csv"
-  type: "wind" # "wind" or "solar"
+  asset_path: "/home/pmcwhannel/repos/PyPSA_BC/results/bc_pv_assets.csv" # wind/pv
+  ts_path: "/home/pmcwhannel/repos/PyPSA_BC/results/pv_ts.csv" # wind/pv
+  type: "solar" # "wind" or "solar"
 
 # thermal power plant setups and grid related settings.
 tpp:
@@ -125,3 +125,6 @@ pypsa_dict:
   wind: "wind_farms.pickle"
   solar: "pv.pickle"
   tpp: "tpp.pickle"
+
+pypsa:
+  results: "/home/pmcwhannel/repos/PyPSA_BC/results/network_results.nc"
