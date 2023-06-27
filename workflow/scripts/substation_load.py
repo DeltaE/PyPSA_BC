@@ -174,6 +174,8 @@ def main():
         else:
             #All is good, start distributing to substations
 
+            print(centers)
+
             substations_res, substations_csmi = disaggregate(bc, hourly_res, hourly_csmi, bc_stations, centers)
 
             #Write to files to the output folder path
