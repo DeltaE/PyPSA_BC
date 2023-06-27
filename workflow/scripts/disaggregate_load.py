@@ -24,27 +24,24 @@ def fix_hourly_load(load, year):
 
 #This part disaggregates the hourly load data from BC Hydro into 27 subdivisions of BC
 def disaggregate(ceei, hourly):
-    #Get all the regions of BC (order is retained)
-    regions = ceei.loc[ceei['ORG_PART'] == 9000000]['ORG_NAME'].unique()
+    #Get all the regions of BC to loop through
+    regions = ceei['ORG_NAME'].unique()
 
     #Total load for all of BC (Res + CSMI)
-    ceei_total = ceei.loc[(ceei.ORG_NAME == 'British Columbia')]['CONSUMPTION_TOTAL'].sum()
+    ceei_total = ceei['CONSUMPTION_TOTAL'].sum()
 
     #Get proportion of annual loads per region
     proportions = pd.DataFrame(columns=['REGION', 'PROPORTION_RES', 'PROPORTION_CSMI'])
 
-    #Create proportions dataframe
-    for r in regions:
-        #Skip the region for all of BC
-        if r == 'British Columbia':
-            break
-
+    #Create proportions dataframe, do in sorted alphabetical order so that it's easier to look through manually if needed
+    for r in sorted(regions.tolist()):
         #Obtain proportion for residential and industrial separately
-        proportion_res = ceei.loc[(ceei['ORG_NAME'] == r) & (ceei['ORG_PART'] == 9000000) & (ceei['SUB_SECTOR'] == 'Res')]['CONSUMPTION_TOTAL'].values[0] / ceei_total
-        proportion_csmi = ceei.loc[(ceei['ORG_NAME'] == r) & (ceei['ORG_PART'] == 9000000) & (ceei['SUB_SECTOR'] == 'CSMI')]['CONSUMPTION_TOTAL'].values[0] / ceei_total
+        proportion_res = ceei.loc[(ceei['ORG_NAME'] == r) & (ceei['SUB_SECTOR'] == 'Res')]['CONSUMPTION_TOTAL'].sum() / ceei_total
+        proportion_csmi = ceei.loc[(ceei['ORG_NAME'] == r) & (ceei['SUB_SECTOR'] == 'CSMI')]['CONSUMPTION_TOTAL'].sum() / ceei_total
 
         #Append to final proportions dataframe
         to_proportions = pd.DataFrame(data={'REGION': [r], 'PROPORTION_RES': [proportion_res], 'PROPORTION_CSMI': [proportion_csmi]})
+
         proportions = pd.concat([proportions, to_proportions])
     
     proportions = proportions.set_index('REGION')
@@ -54,10 +51,7 @@ def disaggregate(ceei, hourly):
     proportions = proportions.drop('Strathcona')
     proportions = proportions.rename(index={'Comox Valley': 'Comox-Strathcona', 'Metro-Vancouver': 'GreaterVancouver'})
 
-    #Quick fix for when proportions don't sum to 1 (currently it sums to ~0.993200, or 99.32%)
-    proportions /= (proportions['PROPORTION_RES'].sum() + proportions['PROPORTION_CSMI'].sum())
-
-    #Construct dataframes for hourly load. 27 subdivisions, each with residential and industrial loads
+    #Construct dataframes for hourly load. 28 subdivisions, each with residential and industrial loads
     regional_res = pd.DataFrame()
     regional_csmi = pd.DataFrame()
 
@@ -104,9 +98,11 @@ def main():
     output_path_res = cfg["load"]["res_path"] # Path(sys.argv[4] + '/hourly_res_' + sys.argv[3] + '.csv')
     output_path_csmi = cfg["load"]["csmi_path"] # Path(sys.argv[4] + '/hourly_csmi_' + sys.argv[3] + '.csv')
 
-    # Try loading in the data
-    ceei = pd.read_excel(ceei_path, sheet_name='BC Hydro')
-    ceei = ceei.loc[ceei.YEAR == min(2020, year)] #CEEI data only goes up to 2020, use 2020 if looking at hourly loads 2020 or later
+    #Try loading in the data
+    ceei = pd.read_excel(ceei_path, sheet_name='Combined')
+    #CEEI data only goes up to 2020, use 2020 if looking at hourly loads 2020 or later
+    #We only need data for electricity usage from regional districts for this disaggregation step
+    ceei = ceei.loc[(ceei.YEAR == min(2020, year)) & (ceei.ENERGY_TYPE == 'ELEC') & (ceei.ORG_TYPE == 'Regional District')]
 
     # Hourly load data needs some fixing
     hourly = fix_hourly_load(pd.read_excel(hourly_path), year)
