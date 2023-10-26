@@ -25,7 +25,7 @@ def main():
     hydro_sites = hydro.load_hydro_sites(cfg["reservoir_inflows"]["hydro_assets"])
     reservoir_sites = hydro.load_reservoir_sites(cfg["reservoir_inflows"]["reservoir_assets"])
 
-    # save create and save reservoir inflows
+    # Create and save reservoir inflows
     hydro.create_cascade_inflow(reservoir_sites, basin_data, cutout,
                     hydro_sites, cfg, method = "mean_inflow_calibrate")
 

@@ -6,13 +6,13 @@ import pandas as pd
 
 def get_vre_params(gen_generic, cfg):
     '''
-    This function gets generic wind/solar parameters. Currently, it only pull form CODERS
-    and return the onshore wind information (currently only costs are used). Will be updated in the future.
+    This function gets generic wind/solar parameters. Currently, it only pull fromm CODERS
+    and return the onshore wind information (currently only costs are used). Can be updated in the future.
     '''
 
     if cfg['vre']['type'] == 'wind':
         return gen_generic[gen_generic["generation_type"] == "Wind_onshore"]
-    elif cfg['vre']['type'] == 'solar':
+    elif cfg['vre']['type'] == 'pv':
         return gen_generic[gen_generic["generation_type"] == "Solar_PV"]
     else:
         vre_type = cfg['vre']['type'] 
@@ -23,7 +23,11 @@ def get_vre_params(gen_generic, cfg):
 
 def get_vre_dict(site, site_ts, vre_params, bus_dict, cfg): # site, site_ts, vre_params, bus_dict, cfg
     '''
-    This function cre
+    This function takes in a VRE site (wind or pv) and creates a dictionary which can be used in PyPSA
+    to add a generator which represents the corresponding VRE asset.
+    site: Row of a Dataframe containing most of the parameters relevant to the asset of interest.
+    site_ts: Timeseries of the generation of the wind asset 
+    vre_params: This can be passed and would contain financial information for the asset.
     '''
     # name: {ASSET_ID} Wind Generator
     # bus" {CONNECTING_NODE_CODE} ELC Bus
@@ -32,14 +36,17 @@ def get_vre_dict(site, site_ts, vre_params, bus_dict, cfg): # site, site_ts, vre
     
     p_nom = site['Install capacity']
     
+     # NOTE: Updated "marginal_cost" from hard coded to a value from gen generic
+     # for onsshore wind (i.e. 0.0001 -> 0.00). Sometimes 0 marginal cost can cause error in Optimization.
+
     return {"class_name":"Generator",
             "name":name,
             "bus":elc_bus,
             "p_nom":p_nom,
-            "marginal_cost":0.000001, # vre_params["variable_om_cost_USD_per_MWh"] -> not right type
+            "marginal_cost":vre_params["variable_om_cost_USD_per_MWh"],
             "p_nom_extendable":False, # Site already built
-            # "capital_cost":site[], # no applicable since built
-            "p_max_pu":site_ts.apply(lambda x: min(x/ site['Install capacity'],1))} # Needs to be renormalized to p_nom
+            # "capital_cost":site[], # not applicable since built
+            "p_max_pu":site_ts.apply(lambda x: min(x / p_nom,1))} # Needs to be renormalized to p_nom
 
 def write_vre_dict(vre_assets, vre_ts, vre_params, bus_dict, cfg):
     '''
@@ -48,7 +55,12 @@ def write_vre_dict(vre_assets, vre_ts, vre_params, bus_dict, cfg):
     '''
     vre_dict = {}
     # reduce to single assets
-    vre_unique = vre_assets.drop_duplicates(subset=['asset_id', 'latitude','longitude'],keep='first')
+    # NOTE: 2023-10-05 Updated this to aggregate common asset_id rather than retain first
+    # Retaining the first was not the correct approach since capacity was lost and unaccounted for.
+    # vre_unique = vre_assets.drop_duplicates(subset=['asset_id', 'latitude','longitude'], keep='first')
+    vre_unique = vre_assets.groupby(by="asset_id").agg({
+        'Install capacity':'sum', **{col: 'first' for col in vre_assets.columns if col != 'Install capacity'}
+        }).reset_index(drop=True)
 
     for _,site in vre_unique.iterrows():
         aid = site["asset_id"]

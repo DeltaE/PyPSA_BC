@@ -1,9 +1,9 @@
 # create cutout params
 # specify region and resolution
 cutout:
-  dx: 0.25
-  dy: 0.25
-  path: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/cutout/" # fname: name + _ + year + .nc
+  dx: 0.25 # Arc Length for cutout grids cells in Degrees
+  dy: 0.25 # Arc Length for cutout grids cells in Degrees
+  path: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/cutout/" # fname: [REGION] + _ + [YEAR] + ".nc"
   region: # Data currently pulled from GADM for canada
     name: "BC"
     file: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_1.json"
@@ -98,7 +98,7 @@ solar:
 vre:
   asset_path: "/home/pmcwhannel/repos/PyPSA_BC/results/bc_pv_assets.csv" # wind/pv
   ts_path: "/home/pmcwhannel/repos/PyPSA_BC/results/pv_ts.csv" # wind/pv
-  type: "solar" # "wind" or "solar"
+  type: "pv" # "wind" or "pv"
 
 # thermal power plant setups and grid related settings.
 tpp:
@@ -116,15 +116,21 @@ load:
   csmi_path: "/home/pmcwhannel/repos/PyPSA_BC/results/hourly_csmi.csv" # output path
   # "C:\Users\pmcw9\Delta-E\PICS\Data\load\bc_hydro_load\BalancingAuthorityLoad2015.xls"
 
+# trade
+trade:
+  path: "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/trade/HourlyTielineData2021.xls"
+  year: 2021
+
 # PyPSA : path and file names for creating dictionary used to instantiate assets in PyPSA
 pypsa_dict:
   components: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-components/"
   hydro_net: "/home/pmcwhannel/repos/PyPSA_BC/results/pypsa-network/"
   hydro_res: "hydro_reservoirs.pickle"
   hydro_ror: "hydro_ror.pickle"
-  wind: "wind_farms.pickle"
-  solar: "pv.pickle"
+  hydro_ror_water: "hydro_ror_water.pickle"
+  wind: "wind.pickle"
+  pv: "pv.pickle"
   tpp: "tpp.pickle"
 
 pypsa:
-  results: "/home/pmcwhannel/repos/PyPSA_BC/results/network_results.nc"
+  results: "/home/pmcwhannel/repos/PyPSA_BC/results/network_debug_cyclic2.nc"

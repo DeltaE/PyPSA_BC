@@ -262,9 +262,10 @@ def calculate_basin_inflows(basins, cutout, height=True):
     if height:
         # This is done for a potential energy approach for calculate power availability
         # In this case the inflow is not a true inflow.
-        runoff = cutout.data['runoff'] * cutout.data['height'] 
+        # NOTE: Should adjust this for the height different if possible to the reference.
+        runoff = cutout.data['runoff'] * cutout.data['height']
     else:
-        runoff = cutout.data['runoff'] 
+        runoff = cutout.data['runoff']
 
     # Normalzied matrix...
     matrix_normalized = csr_matrix(matrix_normalized)
@@ -287,7 +288,7 @@ def calculate_basin_inflows(basins, cutout, height=True):
         exit(1)
         # da = runoff.stack(spatial=("y", "x")).transpose("spatial", "time")
         # result = xr.DataArray(matrix_normalized * da, [index, da.coords["time"]])
-    result *= xr.DataArray(basins.shapes.to_crs(dict(proj="cea")).area)
+    result *= xr.DataArray(basins.shapes.to_crs(dict(proj="cea")).area) # result = (average runoff) * (basin area)
     result.load()
     return result
 
@@ -415,6 +416,7 @@ def mean_inflow_calibration(site_inflows, rid, fpath):
     This function is designed to take in a unnormalized inflow series and normalize it.
     The normalize is done for each month based on the mean monthly inflow in (cms).
     This function is applied to a single month segment at a time.
+    return: Output is the calibrated inflow for a given site. (cms) Units come from the WUP statistics.
     '''
     month_2_num = {"January":1, "February":2, "March":3, "April":4, "May":5,
                         "June":6, "July":7, "August":8, "September":9,
@@ -509,7 +511,7 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg,
     reservoirs = hydro_sites[hydro_sites['hydro_type'] == "reservoir"]['upper_reservoir_id'].unique().tolist() # TRY Unique it
     final_inflows = calibrate_reservoir_inflow(site_inflows[reservoirs], fpath, method)
 
-    # 2) Currently impute with for for reservoirs downstream with no WUP statistics.
+    # 2) Currently impute for reservoirs downstream with no WUP statistics. (Imputing with zeros.. i.e. local inflows assumed to be small/insignificant)
     reservoirs_impute = hydro_sites[hydro_sites['hydro_type'] == "reservoir-impute"]['upper_reservoir_id'].tolist()
     for rid in reservoirs_impute:
         final_inflows[rid] = pd.Series([0]*final_inflows.shape[0],

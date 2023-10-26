@@ -62,13 +62,13 @@ def get_wind_coords(assets, wind_atlas, wind_geojson):
     return wind_coords
 
 
-
-
-#Function to get INDEX values of the square in the ERA5 data array is
-#Used in generate_wind_ts()
-#row = Some row in the wind_assets.csv data frame
-#wnd = cutout.wnd100m.data
 def get_XY(row, wnd):
+    '''
+    Function to get INDEX values of the square in the ERA5 data array is
+    Used in generate_wind_ts()
+    row = Some row in the wind_assets.csv data frame
+    wnd = cutout.wnd100m.data
+    '''
     x = 0
     y = 0
     for i in range(wnd.x.size):
@@ -83,19 +83,21 @@ def get_XY(row, wnd):
 
     return [x, y]
 
-#Function to scale the wind speeds on the ERA5 data array
-#Used in generate_wind_ts()
-#row = Some row in the wind_assets.csv data frame
-#wind = cutout.data.wnd100m
+
 def scale_wind(row, wnd):
-    if row['Flag'] == 1:
-        #Scale the wind speeds at this location on the ERA5 data array
-        wind_at_location = wnd.sel(x=row['x'], y=row['y']).values
-        scaled = wind_at_location * row['GWA wind speed'] / np.mean(wind_at_location)
-        return scaled
-    else:
-        #Do nothing
-        return None
+    '''
+    Function to scale the wind speeds on the ERA5 data array
+    Used in generate_wind_ts()
+    row: Some row in the wind_assets.csv data frame
+    wind: cutout.data.wnd100m
+    NOTE: Modications made here 2023-10-25, since the flag parameter should not be used to dicate
+          whether scaling occurs. Now the GWA scaling is used by default.
+    '''
+
+    wind_at_location = wnd.sel(x=row['x'], y=row['y']).values
+    scaled = wind_at_location * row['GWA wind speed'] / np.mean(wind_at_location)
+    return scaled
+
     
 #Function for obtaining the wind turbine config from the wind_assets data frame
 #Used in generate_wind_ts()

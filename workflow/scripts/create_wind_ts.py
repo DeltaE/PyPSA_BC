@@ -54,6 +54,8 @@ def generate_wind_ts(wind_assets, cutout_path):
     #     # Right here create a dictionary with key as asset_id and pd
     #     wind_generation[str(wind_assets.index[i])] = solar_wind.calculate_MW(cutout, wind_assets.loc[wind_assets.index[i]], 'wind')
 
+    # The power is now calculated and wind turbine farms with different types of turbines will have their production
+    # aggregated.
     for _,row in wind_assets.iterrows():
         if row['asset_id'] not in wind_gen_dict.keys(): 
             wind_gen_dict[row['asset_id']] = solar_wind.calculate_MW(cutout, row, 'wind').squeeze()

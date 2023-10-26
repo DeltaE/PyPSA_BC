@@ -13,11 +13,19 @@ GENERATING POWER TIME SERIES HERE
 #cutout = Cutout object
 #cluster = Generator cluster, these are rows from X_assets.csv
 def calculate_MW(cutout, cluster, type):
+    '''
+    This function calculates a timeseries of power production in MW.
+    cutout: Atlite cutout object
+    cluster: A specific VRE asset (wind farm or solar-pv farm), row of a dataframe.
+    type: Type of VRE, "wind" or "pv" are the only solutions supported right now.
+    '''
     if type == 'wind':
         cap_factors = cutout.wind(turbine=wind.get_config(cluster['config_oedb'], cluster['Hub height (m)']), capacity_factor=True)
-    elif type == 'solar':
+    elif type == 'pv':
         cap_factors = cutout.pv(panel='CdTe', orientation='latitude_optimal', capacity_factor=True)
-
+    else:
+        print(f"error in the calculate_MW function type:{type} not implemented yet!")
+        exit(0)
     # This code calculates the cells/grids for where generation exists
     # Cells of the cutout
     cells = cutout.grid 
@@ -52,7 +60,7 @@ def calculate_MW(cutout, cluster, type):
                                         layout = layout,
                                         shapes = cells_generation.geometry,
                                         per_unit = False) # currently using per-unit
-    elif type == 'solar':
+    elif type == 'pv':
         power_generation = cutout.pv(panel='CdTe', 
                                         orientation='latitude_optimal',
                                         layout = layout,

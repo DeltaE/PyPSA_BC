@@ -38,9 +38,9 @@ def main():
     cfg = utils.load_config(config_file)
 
 
-    #Try reading the arguments passed in the terminal
-    assets_path = cfg['solar']['asset_path']
-    cutout_path = utils.get_cutout_path(cfg) # Path(sys.argv[2])
+    # Try reading the arguments passed in the terminal
+    assets_path = cfg['solar']['asset_path'] # Path to solar assets
+    cutout_path = utils.get_cutout_path(cfg) # Path to cutout
     calibration_flag = cfg['solar']['calibration'] # 0 for no calibration, 1 for calibration
     output_path = cfg['solar']['ts_path']
 

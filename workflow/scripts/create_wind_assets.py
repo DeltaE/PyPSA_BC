@@ -18,6 +18,11 @@ from bc_power import wind, utils
 #canada_turbines = Canadian wind turbine data frame from the .xlsx file
 #turbine_dict = Dictionary for OEDB configs from a manually written .json file
 def generate_wind_assets(coders, canada_turbines, turbine_dict):
+    '''
+    This function creates the wind ...
+
+    NOTE: Grouse turbine removed since it is not operated.
+    '''
     #Filter down to just the turbines in BC
     bc_turbines = canada_turbines.loc[canada_turbines['Province/Territory'] == 'British Columbia']
 
@@ -25,7 +30,8 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
     bc_turbines = bc_turbines.drop(bc_turbines[bc_turbines['Project name'] == 'Grouse Mountain'].index)
 
     #Set up data frame containing all the turbines to search for in the turbine database
-    important_cols = ['Project name', 'Model', 'Manufacturer', 'Turbine rated capacity (kW)', 'Rotor diameter (m)', 'Hub height (m)'] #Columns to use for search
+    important_cols = ['Project name', 'Model', 'Manufacturer', 'Turbine rated capacity (kW)',
+                       'Rotor diameter (m)', 'Hub height (m)'] #Columns to use for search
     model_names = bc_turbines['Model'].unique() #Models of turbines (most important)
 
 
@@ -62,7 +68,7 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
 
     #Generating unique component_id and asset_id columns, as well as a 'Flag' column to be used in create_wind_ts.py later
     #Empty frame to hold the component_id and asset_id columns
-    id_frame = pd.DataFrame(columns=['component_id', 'asset_id', 'Flag'])
+    id_frame = pd.DataFrame(columns=['component_id', 'asset_id'])
 
     #Loop through unique generator codes
     for code in wind_assets['gen_node_code'].unique():
@@ -72,19 +78,19 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
         #Empty lists to contain data for to_id_frame
         component_id = []
         # asset_id = []
-        flag = []
+        # flag = []
 
         #Fill the component_id and asset_id lists
         for index in asset_indexer:
             component_id.append(code[3:6])
             # asset_id.append(code[3:7] + str(index))
-            if index == 1:
-                flag.append(1)
-            else:
-                flag.append(0)
+            # if index == 1:
+            #     flag.append(1)
+            # else:
+            #     flag.append(0)
         
         #Data frame to concatenate to id_frame above
-        to_id_frame = pd.DataFrame(data={'component_id': component_id, 'Flag': flag})
+        to_id_frame = pd.DataFrame(data={'component_id': component_id})
 
         #Concatenate into id_frame
         id_frame = pd.concat([id_frame, to_id_frame])

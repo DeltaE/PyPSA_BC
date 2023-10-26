@@ -238,3 +238,32 @@ def get_multi_link_override():
         "Output",
     ]
     return override_component_attrs
+
+def get_multi_gen_override():
+    '''
+
+    '''
+    override_component_attrs = pypsa.descriptors.Dict(
+        {k: v.copy() for k, v in pypsa.components.component_attrs.items()}
+    )
+    override_component_attrs["Link"].loc["bus2"] = [
+        "string",
+        np.nan,
+        np.nan,
+        "2nd bus",
+        "Input (optional)",
+    ]
+    override_component_attrs["Link"].loc["efficiency2"] = [
+        "static or series",
+        "per unit",
+        1.0,
+        "2nd bus efficiency",
+        "Input (optional)",
+    ]
+    override_component_attrs["Link"].loc["p2"] = [
+        "series",
+        "MW",
+        0.0,
+        "2nd bus output",
+        "Output",
+    ]

@@ -21,7 +21,13 @@ def get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg):
     elc_bus = utils.get_gen_bus(site.name, bus_dict)
 
     name = " ".join([site.name, site["gen_type"], "Link"])
-    marginal_cost = gen_params["average_fuel_price_USD_per_MMBtu"]
+
+    # Efficiency inverse of the heat rate
+    eff_hr = 1. / gen_params["heat_rate_MMBtu_per_MWh"]
+
+    # fuel_cost + variable_cost_MWH * conversion in terms of MMBtu (var_cost * efficiency + fuel_cost)
+    # NOTE: Cost for the fuel could be listed here or assigned to production method on the NG bus. 
+    marginal_cost = gen_params["average_fuel_price_USD_per_MMBtu"] + gen_params["variable_om_cost_CAD_per_MWh"] * eff_hr
     
     # Create link + store representation of generator
     # bus_name = " ".join([fuel_type, "Bus"])
@@ -30,9 +36,9 @@ def get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg):
                     "bus0": fuel_bus,
                     "bus1": elc_bus,
                     "carrier": fuel_type,
-                    "efficiency":1. / gen_params["heat_rate_MMBtu_per_MWh"], # Output = (1 / (heat_rate)) * (fuel in mmBTU)
-                    "ramp_limit_up":min(gen_params["ramp_rate_percent_per_min"]*60, 1) * site["install_capacity_in_mw"], # Aggregated units needs adjustments
-                    "ramp_limit_down":min(gen_params["ramp_rate_percent_per_min"]*60, 1) * site["install_capacity_in_mw"], # Aggregated units needs adjustments
+                    "efficiency":eff_hr,
+                    "ramp_limit_up":min(gen_params["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
+                    "ramp_limit_down":min(gen_params["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "p_nom_extendable":False,
                     "committable":cfg['tpp']["UC"],
                     "min_up_time":gen_params["min_up_time_hours"],
@@ -40,7 +46,7 @@ def get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg):
                     # "ramp_limit_start_up":row["ramp_limit_start_up"], # no data atm
                     # "ramp_limit_shut_down":row["ramp_limit_shut_down"], # no data atm
                     "p_nom":site["install_capacity_in_mw"] * gen_params["heat_rate_MMBtu_per_MWh"],
-                    "marginal_cost":marginal_cost, # cost per input unit (Need to be careful when combining fuel cost and variable cost)
+                    "marginal_cost":marginal_cost,
                     "p_min_pu":gen_params["min_plant_load"] # watch out for the forced run condition when UC is off.
                     }
 
@@ -96,7 +102,6 @@ def main():
 
     gen_generic = pd.read_csv(cfg["coders"]["gen_generic"])
     gens = pd.read_csv(cfg["coders"]["generators"])
-
     buses = pd.read_csv(cfg["network"]["folder"] + "/buses.csv")['name'].tolist()
 
     # All generation types which are thermal PP in the CODERS dataset.
@@ -117,10 +122,8 @@ def main():
 
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)
-
-    # (0C) Get vre cost information
     
-                                
+                              
     # (1) Write pickle dictionaries for the vre assets.
     write_tpp_dict(tpp_gens, gen_generic, bus_dict, tpp_gen_types, cfg)
 

@@ -20,11 +20,12 @@ def main():
     ar_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["artic_file"])
     basin_data = gpd.GeoDataFrame(pd.concat([na_basin_data, ar_basin_data]))
     hydro_sites = hydro.load_hydro_sites(cfg["hydro_prep"]["hydro_generation"])
-    # Get bounds needs for hydro cutout
+    # Get bounds needed for hydro cutout: Polygon containing smallest bounds to contain all hydro basins which 
+    # provide water to the hydro assets of interest.
     hydro_polygon = hydro.get_hydro_cutout_polygon(hydro_sites, basin_data)
 
     # Determine true largest bounds based on max/min of hydro_bounds and the regional bounds
-    gdf = gpd.read_file(cfg['region']['file'])
+    gdf = gpd.read_file(cfg['cutout']['region']['file'])
     mask = gdf['NAME_1'] == "BritishColumbia"
     region_polygon = utils.get_region_polygon(gdf[mask].geometry)
 

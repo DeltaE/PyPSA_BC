@@ -132,7 +132,7 @@ def get_features_generators(generators, component_dict, data_dict, hydro_types):
     This function gets all features from the CODERS generators.csv file for only hydro assets.
     '''
     mask = (generators['province'] == "BC") & (generators['gen_type'].apply(lambda x: x.lower() in hydro_types))
-    generators[mask]
+    
     for idx,row in generators[mask].iterrows():
         cid = row["gen_node_code"]
         if cid in component_dict:
@@ -229,19 +229,33 @@ def add_hydro_type(hydro_sites, res_wup_data, cfg):
     hydro_sites.loc[mask_res_wup_index,new_hydro_col] = "reservoir"
 
     # c) Items in cascade_sites[~mask_res_wup] need to be checked for upstream or downstream
-    # Upstream head reservoirs (no reservoirs upstream of these) with no WUP statistics
+    # i) Upstream head reservoirs (no reservoirs upstream of these) with no WUP statistics
     mask_res_up_no_wup = cascade_sites['upper_reservoir_id'].apply(lambda x: 
                         hydro.check_head_reservoir(x, cascade_sites)) & (~mask_res_wup)
     mask_res_up_no_wup_index = cascade_sites[mask_res_up_no_wup].index # BEWARE
 
     hydro_sites.loc[mask_res_up_no_wup_index,new_hydro_col] = "ror"
 
-    # Downstream reservoirs with no WUP statistics
+    # ii) Downstream reservoirs with no WUP statistics
     mask_res_down_no_wup = (~cascade_sites['upper_reservoir_id'].apply(lambda x: 
                         hydro.check_head_reservoir(x, cascade_sites))) & (~mask_res_wup)
     mask_res_down_no_wup_index = cascade_sites[mask_res_down_no_wup].index
 
     hydro_sites.loc[mask_res_down_no_wup_index,new_hydro_col] = "reservoir-impute"
+
+    # d) Custom sites which require potential ror inflow series but also
+    # will be modelled in such a way to account for their water discharges.
+    # WHN and WDN both need modifications
+    asset_list = ['WHN','WDN']
+    for aid in asset_list:
+        aid_mask = hydro_sites["asset_id"].apply(lambda x: x.split("_")[1] == aid)
+        aid_mask_index = hydro_sites[aid_mask].index
+        hydro_sites.loc[aid_mask_index, new_hydro_col] = "ror-water"
+
+    # Waneta (WAN) will be modelled as a RoR asset (Same as the expansion which is already captured in above code.)
+    aid_mask = hydro_sites["asset_id"].apply(lambda x: x.split("_")[1] == "WAN")
+    aid_mask_index = hydro_sites[aid_mask].index
+    hydro_sites.loc[aid_mask_index, new_hydro_col] = "ror"
 
     return hydro_sites
 
@@ -288,7 +302,7 @@ def main():
     # (iv) generic hydro dataset
     get_feature_generic(gen_generic,component_dict)
 
-    # (v)Create df and customzied imputation of select areas
+    # (v) Create df and customzied imputation of select areas
     df_hydro_gen = create_df_hydro_gen(component_dict)
 
     # (vi) 
@@ -305,8 +319,17 @@ def main():
     # Type 2) RoR or smaller reservoirs which feed into cascades (these do not have WUP data) (Need power availability)
     add_hydro_type(df_hydro_gen, res_wup_data, cfg)
 
+
+    # (viii)
+    # Aggregate hydro turbines into singular assets.
+    # NOTE: Some functionality in create_ror_ps and create_reservoir_inflows will now become redundant.
+
+    subset =["asset_id", "latitude", "longitude"]
+    sum_list = ["capacity", "annual_avg_energy"]
+    df_hydro_gen_final = df_hydro_gen.groupby(by="asset_id", group_keys=False).apply(lambda x: hydro.merge_assets(x, subset, sum_list))
+
     # Write files
-    df_hydro_gen.to_csv(df_hydro_path, index=False)
+    df_hydro_gen_final.to_csv(df_hydro_path)
     res_wup_data.to_csv(df_res_path, index=False)
 
     
