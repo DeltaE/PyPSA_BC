@@ -92,6 +92,34 @@ def get_busmap_dict(network, gadm_bc):
             print("Error: Found multiple matches for the bus named: {}".format(bus))
             exit(3)
 
+    return busmap_dict
+
+
+def get_single_region_busmap_dict(network, gadm_canada):
+    '''
+    (1) Determine mapping between buses and GADM_region
+    Determine which buses line within which gadm regions
+    output: {bus:GADM_region, ...} 
+    '''
+    
+    busmap_dict = {}
+    special_buses = ["69_LB1_DFS", "69_LB2_GSS", "69_JRI_JCT", "69_JRI_DSS"]
+    for bus,row_bus in network.buses.iterrows(): # Loop over buses
+        point = Point((row_bus['x'], row_bus['y']))
+        row_match = gadm_canada['geometry'].apply(lambda x: x.contains(point))
+
+        if row_match.sum() == 1:
+            busmap_dict[bus] = "BC"
+        elif row_match.sum() == 0: # Case of LB1 and JR1
+            if bus in special_buses:
+                busmap_dict[bus] = "BC"
+            else:
+                # water, discharge, release buses...
+                continue
+            # print("Warning: {} is not containited within any of the administrative regions!".format(bus))
+        else: # Multiple matches
+            print("Error: Found multiple matches for the bus named: {}".format(bus))
+            exit(3)
 
 
 
@@ -150,7 +178,7 @@ def replace_bus_refs(component, col, busmap_dict):
     '''
     Replaces bus reference in PyPSA components.
     Any component with a matching component is mapped to new component name.
-    Example: bus = 69_JRI_DSS -> ADMINISTRAIVE_REGIOn
+    Example: bus = 69_JRI_DSS -> ADMINISTRAIVE_REGION
     '''
     mask = component[col].isin(busmap_dict.keys())
     component.loc[mask,col] = component.loc[mask,col].map(busmap_dict)
@@ -173,8 +201,8 @@ def remove_old_components(network, busmap_dict):
 
     # (ii) Remove old buses
     for bus_name in busmap_dict.keys():
-        # if bus_name in network.buses.index:
-        network.remove(class_name='Bus',name=bus_name)
+        if bus_name in network.buses.index:
+            network.remove(class_name='Bus',name=bus_name)
 
     # (iii) remove transformers
     trans_to_remove = []
@@ -186,7 +214,9 @@ def remove_old_components(network, busmap_dict):
 
     # NOTE: Custom revmoval of Site C
     # Will need to be updated
-    network.remove(class_name='Link', name='BC_STC_GSS Discharge Link')
+    stc_link = 'BC_STC_GSS Discharge Link'
+    if stc_link in network.links.index:
+        network.remove(class_name='Link', name=stc_link)
 
 def add_trade(network, cfg):
     '''
@@ -208,6 +238,16 @@ def add_trade(network, cfg):
         network.add("Load", "{} ELC Load".format(col), bus=col, p_set=load_ts)
 
 
+# def add_pypsa_dict(network, comp_list):
+#     for comp_dict in comp_list:
+#         if comp_dict['bus'] == 'CentralCoast':
+#             continue
+#         if comp_dict['bus'] == 'Stikine':
+#             continue
+#         if comp_dict['bus'] == "NorthernRockies":
+#             continue
+#         network.add(**comp_dict)
+
 
 def main():
     '''
@@ -226,20 +266,20 @@ def main():
 
     '''
     # (0) Load config file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # (1) Load files
     network = pypsa.Network(override_component_attrs=utils.get_multi_link_override())
-    network_path = cfg['network']['folder'] 
-    hydro_ror_path = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_ror"]
-    hydro_res_path = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_res"]
-    hydro_ror_water_path = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_ror_water"]
-    wind_path = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["wind"]
-    pv_path = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["solar"]
-    tpp_path = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["tpp"]
+    network_path = cfg['output']['prepare_base_network']['folder'] 
+    hydro_ror_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["ror"]
+    hydro_res_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["res"]
+    hydro_ror_water_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["ror_water"]
+    wind_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["wind"]
+    pv_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["solar"]
+    tpp_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["tpp"]
 
-    bus_path = cfg['network']['folder'] + "/buses.csv" # buses.csv should never be changed 
+    bus_path = cfg['output']['prepare_base_network']['folder'] + "/buses.csv" # buses.csv should never be changed 
 
 
     network.import_from_csv_folder(network_path)
@@ -262,24 +302,49 @@ def main():
     add_tpp_assets(network, tpp_dict)
 
     # (4) add carriers outside of default ELC
-    network.add("Carrier","NG", co2_emissions=1.0)
-
-    # (5) Clustering
-    # NOTE: Centroid calculation will need an update and validation.
     
+    network.add("Carrier","NG", co2_emissions=1.0)
+    network.add(class_name = 'Store',
+                name ="Global NG Store",
+                bus = "Global NG Bus",
+                e_nom = 1e10)
+    
+    # (5) Clustering
+    
+    # (6)  get busmap dictionary
+    # NOTE: Centroid calculation will need an update and validation.
     # bus_dict = {name:0 for name in pd.read_csv(bus_path)['name'].tolist()}
-    geojson_file = "/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
-    gdf = gpd.read_file(geojson_file)
+    # NOTE: GADM switching to BC entire province here just for time being
+    region =  "single" # "single": BC as a single region, "multiple": BC split into 28 regional districts 
 
-    # Get GeoDataFrame of the GADM regions.
-    gadm_bc = gdf[gdf["NAME_1"] =="BritishColumbia"]
+    if region == 'multiple':
+        geojson_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
+        gdf = gpd.read_file(geojson_file)
+        # Get GeoDataFrame of the GADM regions.
+        gadm_bc = gdf[gdf["NAME_1"] =="BritishColumbia"]
+        busmap_dict = get_busmap_dict(network, gadm_bc)
 
-    # (6) get busmap dictionary
-    busmap_dict = get_busmap_dict(network, gadm_bc)
+        # (7A) Add new gadm regions as buses
+        create_adm_buses(network, gadm_bc, busmap_dict)
 
+    elif region == 'single':
+        geojson_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
+        gdf = gpd.read_file(geojson_file)
+        mask = gdf["NAME_1"] == "BritishColumbia"
+        busmap_dict = get_single_region_busmap_dict(network, gdf.loc[mask,:])
 
-    # (7A) Add new gadm regions as buses
-    create_adm_buses(network, gadm_bc, busmap_dict)
+        # (7A) Add new gadm regions as buses: (In this case just the single BC bus)
+        network.add(class_name="Bus",
+                    name="BC",
+                    x=gdf.loc[mask,:].geometry.centroid.x.iloc[0],
+                    y=gdf.loc[mask,:].geometry.centroid.y.iloc[0],
+                    v_nom = 300 # voltage assumed
+                    )
+    else:
+        print(region," Not implemented!")
+    
+
+   
 
     # (7B) Add new trade buses
     # NOTE: trade buses have to be added to busmap_dict after the administrative buses are added atm.
@@ -291,60 +356,196 @@ def main():
     # busmap_dict["138_BCAB4_IPT"] = "AB Trade"
 
     # create_trade_buses(network)
+
+
+    # NOTE: Think about how to aggregate the new lines...
+    network.lines['s_nom'] = 50000 # 3700 no good. Good at 3800. Good at 4000.
+
+    # (8) Add load
+    start_time = cfg["data"]["cutout"]["snapshots"]["start"][0]
+    end_time = cfg["data"]["cutout"]["snapshots"]["end"][0]
+
+    res_load = pd.read_csv(cfg['output']['disaggregate_load']['res_path'],
+                            index_col=0, parse_dates=True).loc[start_time:end_time]
+    csmi_load = pd.read_csv(cfg['output']['disaggregate_load']['csmi_path'],
+                            index_col=0, parse_dates=True).loc[start_time:end_time]
     
-    # (8) Determine all componenets to relink
+    # NOTE: Update coming for Stikine and CentralCoast.z
+    if region == 'multiple':
+        for col in res_load.columns: 
+            if col not in ["Stikine", "CentralCoast", "NorthernRockies"]: 
+                load_ts = res_load[col] + csmi_load[col]
+                network.add("Load", "{} ELC Load".format(col), bus=col, p_set=load_ts) # Make load much smaller
+                # network.add(class_name="Generator",
+                #     name='Backstop {}'.format(col),
+                #     bus=col,
+                #     p_nom=10000.0,
+                #     marginal_cost=1000,
+                #     )
+            else:
+                pass
+    elif region == 'single':
+        total_load_ts = res_load.sum(axis=1) + csmi_load.sum(axis=1)
+        network.add("Load", "BC ELC Load", bus="BC", p_set=total_load_ts) # Make load much smaller
+
+
+    # (9) Determine all componenets to relink
     replace_bus_refs(network.generators,'bus', busmap_dict)
     replace_bus_refs(network.links,'bus0', busmap_dict)
     replace_bus_refs(network.links,'bus1', busmap_dict)
     replace_bus_refs(network.links,'bus2', busmap_dict)
     replace_bus_refs(network.lines,'bus0', busmap_dict)
     replace_bus_refs(network.lines,'bus1', busmap_dict)
-    replace_bus_refs(network.loads,'bus', busmap_dict)
+    # # replace_bus_refs(network.loads,'bus', busmap_dict)
 
-    # (9) Remove the old components which are no longer needed (lines, buses)
+    # (10) Remove the old components which are no longer needed (lines, buses)
     remove_old_components(network, busmap_dict)
-
-    # NOTE: Think about how to aggregate the new lines...
-    network.lines['s_nom'] = 15000 # Network (inf capacity basically)
-
-    # (10) Add load
-    start_time = cfg['scope']['temporal']['start'] 
-    end_time = cfg['scope']['temporal']['end']
-
-    res_load = pd.read_csv(r"/home/pmcwhannel/repos/PyPSA_BC/results/hourly_res.csv",
-                            index_col=0, parse_dates=True).loc[start_time:end_time]
-    csmi_load = pd.read_csv(r"/home/pmcwhannel/repos/PyPSA_BC/results/hourly_csmi.csv",
-                            index_col=0, parse_dates=True).loc[start_time:end_time]
-    
-    # NOTE: Update coming for Stikine and CentralCoast.z
-    for col in res_load.columns: 
-        if col not in ["Stikine", "CentralCoast", "NorthernRockies"]: 
-            load_ts = res_load[col] + csmi_load[col]
-            network.add("Load", "{} ELC Load".format(col), bus=col, p_set=load_ts) # Make load much smaller
-        else:
-            pass
     
     # (11) Add trade load
     # NOTE: If error occurs could be related to having negative loads...
     # add_trade(network, cfg)
 
     # Solve network
+    network.generators["ramp_limit_down"] = 1.0
+    network.generators["ramp_limit_up"] = 1.0
+    network.links["ramp_limit_down"] = 1.0
+    network.links["ramp_limit_up"] = 1.0
+
+    
+    # Add Backstops
+    for bus in network.loads.bus.unique():
+        network.add(class_name="Generator",
+                    name='Backstop {}'.format(bus),
+                    bus=bus,
+                    p_nom=50000,
+                    marginal_cost=1000,
+                    p_nom_extendable=False,
+                    capital_cost=999999
+                    )
+                    
+        
+    # Add EV load
+    charge_strat = "v2g"
+    
+    #NOTE: Modified for a single region only! This should be ipdated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
+    if charge_strat == 'v2g':
+        # load data
+        prefix = "/home/pmcwhannel/repos/PyPSA_BC/data/"
+        ev_bus = utils.read_pickle(prefix + "ev/{}_ev_bus.pickle".format(charge_strat))
+        ev_load = utils.read_pickle(prefix + "ev/{}_ev_load.pickle".format(charge_strat))
+        ev_battery = utils.read_pickle(prefix + "ev/{}_ev_battery.pickle".format(charge_strat))
+        ev_charger = utils.read_pickle(prefix + "ev/{}_ev_charger.pickle".format(charge_strat))
+        ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
+
+
+        for component in ev_bus:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_load:
+            name = component['name'].split('_')[0]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_battery:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_charger:
+            name = component['bus0']
+            component["bus0"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_discharger:
+            name = component['bus1']
+            component["bus1"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+    
+    elif charge_strat == 'coordinated':
+        # load data
+        prefix = "/home/pmcwhannel/repos/PyPSA_BC/data/"
+        ev_bus = utils.read_pickle(prefix + "ev/{}_ev_bus.pickle".format(charge_strat))
+        ev_load = utils.read_pickle(prefix + "ev/{}_ev_load.pickle".format(charge_strat))
+        ev_battery = utils.read_pickle(prefix + "ev/{}_ev_battery.pickle".format(charge_strat))
+        ev_charger = utils.read_pickle(prefix + "ev/{}_ev_charger.pickle".format(charge_strat))
+        # ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
+
+
+        for component in ev_bus:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_load:
+            name = component['name'].split('_')[0]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_battery:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_charger:
+            name = component['bus0']
+            component["bus0"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+    elif charge_strat == 'uncoordinated':
+        ev_load_list = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/ev/{}_ev_load.pickle".format(charge_strat))
+        for comp_dict in ev_load_list:
+            # if comp_dict['bus'] == 'CentralCoast':
+            #     continue
+            # if comp_dict['bus'] == 'Stikine':
+            #     continue
+            # if comp_dict['bus'] == "NorthernRockies":
+            #     continue
+            comp_dict['bus'] = "BC"
+            network.add(**comp_dict)
+    else:
+        print("{charge_strat} not implemented yet!")
+        exit(123)
+
+    network.optimize(solver_name='gurobi') # cplex should be added to a solver
 
     # model = network.optimize.create_model()
     # model.remove_constraints("Kirchhoff-Voltage-Law")
-    # network.optimize.solve_model(solver_name='cbc')
-
-    # Add temporary Backstop tech
-    # network.add(class_name="Generator",
-    #             name='Backstop',
-    #             bus='GreaterVancouver',
-    #             p_nom=10000,
-    #             marginal_cost=1000,
-    #             )
-
-    network.optimize(solver_name='cbc')
+    # network.optimize.solve_model(solver_name='gurobi')
 
     # # Save network
-    network.export_to_netcdf(cfg["pypsa"]["results"])
+    network.export_to_netcdf(cfg["output"]["build_model"]["fname"])
 if __name__ == '__main__':
     main()

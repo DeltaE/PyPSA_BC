@@ -380,13 +380,13 @@ def create_ror_power(sites_prep, basin_data, cutout, cfg):
 
     # (i) Calculated the inflows for each site
     basins = prepare_basins(sites, basin_data)
-    basin_inflows = calculate_basin_inflows(basins, cutout, height=bool(cfg['ror_inflows']['height']))
-    site_inflows = calculate_plant_inflows(basin_inflows, basins, flowspeed=cfg['ror_inflows']['flowspeed'])
+    basin_inflows = calculate_basin_inflows(basins, cutout, height=bool(cfg["output"]['ror_ps']['height']))
+    site_inflows = calculate_plant_inflows(basin_inflows, basins, flowspeed=cfg["output"]['ror_ps']['flowspeed'])
 
     # (ii) Compute the power availability series for each site based on capacity, inflow series, and
     # annual energy production
     power_series = calculate_ror_power(sites, site_inflows)
-    power_series.to_csv(cfg['ror_inflows']['ror_outfile'])
+    power_series.to_csv(cfg["output"]['ror_ps']['fname'])
 
 
 def calibrate_reservoir_inflow(site_inflows, fpath, method="mean_inflow_calibrate"):
@@ -499,13 +499,13 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg,
     basins = prepare_cascade_basins(reservoir_sites, basin_data, hydro_sites)
 
     basin_inflows = calculate_basin_inflows(basins, cutout,
-                                                height=bool(cfg['reservoir_inflows']['height']))
+                                                height=bool(cfg["output"]['reservoir_inflows']['height']))
 
     site_inflows = calculate_plant_inflows(basin_inflows, basins,
-                                                flowspeed=cfg['reservoir_inflows']['flowspeed'])
+                                                flowspeed=float(cfg["output"]['reservoir_inflows']['flowspeed']))
     
     # File path + name for reading in inflow tables
-    fpath = cfg['bc_hydro']['inflow_tables']
+    fpath = cfg["data"]["custom"]["inflow_tables"]
 
     # 1) normalize inflow time series for selected reservoirs
     reservoirs = hydro_sites[hydro_sites['hydro_type'] == "reservoir"]['upper_reservoir_id'].unique().tolist() # TRY Unique it
@@ -519,7 +519,7 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg,
         
 
     # power_series = calculate_ror_power(sites, site_inflows)
-    final_inflows.to_csv(cfg['reservoir_inflows']['output'])
+    final_inflows.to_csv(cfg["output"]['reservoir_inflows']['fname'])
 
 
 def check_wup_exists(rid, fpath):

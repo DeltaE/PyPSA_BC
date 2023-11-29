@@ -1,4 +1,5 @@
 from bc_power import utils, hydro
+import sys
 import pandas as pd
 
 
@@ -195,7 +196,7 @@ def create_df_hydro_gen(component_dict):
     return df_hydro_gen
 
 
-def add_hydro_type(hydro_sites, res_wup_data, cfg):
+def add_hydro_type(hydro_sites, res_wup_data, inflow_tables):
     '''
     This function is used to add a column type to the hydro generation dataframe.
     This column can then be used to split the hydro generatio assets into ones needing
@@ -223,7 +224,7 @@ def add_hydro_type(hydro_sites, res_wup_data, cfg):
 
     # b) Get mask of cascaded reservoirs with WUP statistics
     mask_res_wup = cascade_sites['upper_reservoir_id'].apply(lambda x: hydro.check_wup_exists(x,
-                                        cfg['bc_hydro']['inflow_tables']))
+                                        inflow_tables))
     mask_res_wup_index = cascade_sites[mask_res_wup].index
 
     hydro_sites.loc[mask_res_wup_index,new_hydro_col] = "reservoir"
@@ -270,20 +271,21 @@ def main():
 
 
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"config/config2.yaml"#r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # write path + file
-    df_hydro_path = cfg['hydro_prep']["hydro_generation"]
-    df_res_path = cfg['hydro_prep']["hydro_reservoir"]
+    df_hydro_path = cfg["output"]["create_hydro_assets"]["hydro_generation"]
+    df_res_path = cfg["output"]["create_hydro_assets"]["hydro_reservoir"]
 
     # Read in files
-    gen_generic = pd.read_csv(cfg["coders"]["gen_generic"])
-    generators = pd.read_csv(cfg["coders"]["generators"])
-    hydro_e_data = pd.read_csv(cfg["coders"]["hydro_existing"])
-    cascade_data = pd.read_csv(cfg["coders"]["hydro_cascade"])
-    gen_wup_data= pd.read_csv(cfg["bc_hydro"]["generation_wup"])
-    res_wup_data= pd.read_csv(cfg["bc_hydro"]["reservoir_wup"])
+    gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])
+    generators = pd.read_csv(cfg["data"]["coders"]["generators"])
+    hydro_e_data = pd.read_csv(cfg["data"]["coders"]["hydro_existing"])
+    cascade_data = pd.read_csv(cfg["data"]["coders"]["hydro_cascade"])
+    gen_wup_data = pd.read_csv(cfg["data"]["custom"]["gen_wup"])
+    res_wup_data = pd.read_csv(cfg["data"]["custom"]["res_wup"])
+    inflow_tables = cfg["data"]["custom"]["inflow_tables"]
 
     # get templates
     data_dict = get_hydro_data_dict()
@@ -317,7 +319,7 @@ def main():
     # a) code determines what type of time-series and modelling structure is required for each asset
     # Type 1) Hydro reservoirs apart of cascades with WUP data or those w/o WUP data and are downstream. (Need Inflow)
     # Type 2) RoR or smaller reservoirs which feed into cascades (these do not have WUP data) (Need power availability)
-    add_hydro_type(df_hydro_gen, res_wup_data, cfg)
+    add_hydro_type(df_hydro_gen, res_wup_data, inflow_tables)
 
 
     # (viii)
@@ -331,8 +333,6 @@ def main():
     # Write files
     df_hydro_gen_final.to_csv(df_hydro_path)
     res_wup_data.to_csv(df_res_path, index=False)
-
-    
  
 if __name__ == '__main__':
     main()

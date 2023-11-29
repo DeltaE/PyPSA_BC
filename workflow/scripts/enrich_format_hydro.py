@@ -104,8 +104,8 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
                                     "name":" ".join([up_rid,"Reservoir",class_name]),
                                     "bus":res_dict['reservoir bus']['name'],
                                     "e_nom":max_storage, # units of m^3
-                                    # "e_initial":max_storage * 1.0, # Assumed 100% filled
-                                    "e_cyclic":True
+                                    # "e_initial":max_storage * 0.7, # Assumed 100% filled
+                                    "e_cyclic":True #
                                     }
     
     # 6) add inflow generator
@@ -143,7 +143,7 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
         res_dict['terminal store'] = {"class_name":"Store",
                                         "name":cascade_name,
                                         "bus":downstream_bus,
-                                        "e_nom":1e45 # The max storage needs to retain all possible water in the model horizon
+                                        "e_nom":1e15 # The max storage needs to retain all possible water in the model horizon
                                         }
 
     # 7) get discharge link
@@ -310,7 +310,7 @@ def write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg):
         res_dict[aid] = get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict)
 
     # write pickle
-    out_file = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_res"]
+    out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["res"]
     utils.write_pickle(res_dict, out_file)
 
 def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
@@ -326,7 +326,7 @@ def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
         ror_dict[aid] = get_ror_dict(site, ror_ts, bus_dict)
 
     # write pickle
-    out_file = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_ror"]
+    out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["ror"]
     utils.write_pickle(ror_dict, out_file)
 
 
@@ -348,7 +348,7 @@ def write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg):
         ror_dict[aid] = get_ror_water_dict(site, ror_ts, bus_dict)
 
     # write pickle
-    out_file = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["hydro_ror_water"]
+    out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["ror_water"]
     utils.write_pickle(ror_dict, out_file)
 
 
@@ -372,21 +372,20 @@ def main():
     component.
     '''
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
-    start_time = cfg['scope']['temporal']['start'] 
-    end_time = cfg['scope']['temporal']['end']
+    start_time = cfg['data']['cutout']['snapshots']['start'][0]
+    end_time = cfg['data']['cutout']['snapshots']['end'][0]
 
-    hydro_sites = pd.read_csv(cfg["hydro_prep"]["hydro_generation"])
-    hydro_res = pd.read_csv(cfg["hydro_prep"]["hydro_reservoir"]) # Purely reservoir information
-    res_inflows = pd.read_csv(cfg["reservoir_inflows"]["output"], index_col=0, parse_dates=True).loc[start_time:end_time]
-    ror_series = pd.read_csv(cfg["ror_inflows"]["ror_outfile"], index_col=0, parse_dates=True).loc[start_time:end_time]
-    buses = pd.read_csv(cfg["network"]["folder"] + "/buses.csv")['name'].tolist()
-
+    hydro_sites = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_generation"])
+    hydro_res = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_reservoir"]) # Purely reservoir information
+    res_inflows = pd.read_csv(cfg['output']["reservoir_inflows"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
+    ror_series = pd.read_csv(cfg['output']["ror_ps"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
+    buses = pd.read_csv(cfg['output']["prepare_base_network"]["folder"] + "/buses.csv")['name'].tolist()
 
     # (0A) Create folders if they have not been created already
-    utils.create_folder(cfg["pypsa_dict"]['components'])
+    utils.create_folder(cfg['output']["pypsa_dict"]['folder'])
 
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)

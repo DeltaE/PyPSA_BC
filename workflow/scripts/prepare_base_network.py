@@ -374,14 +374,14 @@ def main():
     '''
 
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # A) load data
     # /mnt/c/Users/pmcw9/Delta-E/PICS/Data
-    transmission_line_path = cfg["coders"]["lines"]
-    substations_path = cfg["coders"]["substations"]
-    transmission_line_type_table = cfg["custom"]["line_table"]
+    transmission_line_path = cfg['data']["coders"]["lines"]
+    substations_path = cfg['data']["coders"]["substations"]
+    transmission_line_type_table = cfg['data']["custom"]["line_table"]
 
     df_lines = pd.read_csv(transmission_line_path)
     df_substations = pd.read_csv(substations_path)
@@ -432,7 +432,7 @@ def main():
     df_buses_bc['substation_type'] = df_buses_bc['name'].apply(lambda x: x.split('_')[-1])
 
     # C) record data
-    path = cfg["network"]["folder"]
+    path = cfg['output']['prepare_base_network']['folder']
     utils.create_folder(path)
     bc_lines.to_csv(path + "/lines.csv", index=False,
                     columns=['name','type','bus0','bus1','length','v_nom','s_nom'])

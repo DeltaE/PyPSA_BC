@@ -21,7 +21,7 @@ def calculate_MW(cutout, cluster, type):
     '''
     if type == 'wind':
         cap_factors = cutout.wind(turbine=wind.get_config(cluster['config_oedb'], cluster['Hub height (m)']), capacity_factor=True)
-    elif type == 'pv':
+    elif type == 'solar': # PV Panel
         cap_factors = cutout.pv(panel='CdTe', orientation='latitude_optimal', capacity_factor=True)
     else:
         print(f"error in the calculate_MW function type:{type} not implemented yet!")
@@ -60,13 +60,16 @@ def calculate_MW(cutout, cluster, type):
                                         layout = layout,
                                         shapes = cells_generation.geometry,
                                         per_unit = False) # currently using per-unit
-    elif type == 'pv':
+    elif type == 'solar':
         power_generation = cutout.pv(panel='CdTe', 
                                         orientation='latitude_optimal',
                                         layout = layout,
                                         shapes = cells_generation.geometry,
                                         per_unit = False) # currently using per-unit
-    
+    else:
+        print(f"error in the calculate_MW function type:{type} not implemented yet!")
+        exit(0)
+
     return power_generation.to_pandas()
 
 '''
@@ -126,11 +129,11 @@ def calibrate_generation(ts, assets):
     calibrated = pd.DataFrame(data={'time': ts.index})
 
     #Generate calibrated wind generation time series
-    for component in assets['component_id'].unique():
+    for component in assets['asset_id'].unique(): #NOTE: component_id -> asset_id (2023-11-15)
         #Get necessary parameters for calculating the value 'a' for calibration
         gen = ts[component].reset_index()
-        aag = assets.loc[assets['component_id'] == component]['CODERS AAG (GWh/y)'].values[0] * 1000 #GWh --> MWh
-        p = assets.loc[assets['component_id'] == component]['Install capacity'].sum()
+        aag = assets.loc[assets['asset_id'] == component]['CODERS AAG (GWh/y)'].values[0] * 1000 #GWh --> MWh
+        p = assets.loc[assets['asset_id'] == component]['Install capacity'].sum()
         
         #Empty series to hold the generation for a component_id
         column_to_add = pd.Series(name=component, dtype='float64')
@@ -140,6 +143,7 @@ def calibrate_generation(ts, assets):
             subset = gen.loc[(gen.index >= year_index[i]) & (gen.index < year_index[i+1])].copy()
 
             #Obtain a value of a for the year
+            # NOTE: This function to calibrate should be standardized to be same as run-of-river
             a = get_A(subset[component], aag, p, aag / subset[component].sum())
 
             #Use the a value to normalize the wind generation in that year

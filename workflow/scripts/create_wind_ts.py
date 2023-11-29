@@ -86,16 +86,16 @@ def generate_wind_ts(wind_assets, cutout_path):
 
 #Does some input verification before generating the time series
 def main():
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     #Try reading the arguments passed in the terminal
-    assets_path = cfg['wind']['asset_path'] # Path(sys.argv[1])
-    cutout_path = utils.get_cutout_path(cfg) # Path(sys.argv[2])
-    wind_atlas_path = cfg['wind']['atlas_speed'] # Path(sys.argv[3])
-    wind_geojson_path = cfg['wind']['atlas_geojson'] # Path(sys.argv[4])
-    calibration_flag = cfg['wind']['calibration'] # 0 for no calibration, 1 for calibration
-    output_path = cfg['wind']['ts_path'] # Path(sys.argv[6])
+    assets_path = cfg["output"]['create_wind_assets']['fname']
+    cutout_path = utils.get_cutout_path(cfg)
+    wind_atlas_path = cfg["data"]['wind']['gwa_speed']
+    wind_geojson_path = cfg["data"]['wind']['gwa_geojson']
+    calibration_flag = cfg["output"]['create_wind_ts']['calibration'] # 0 for no calibration, 1 for calibration
+    output_path = cfg['output']['create_wind_ts']['fname']
 
 
     #Correct number of arguments

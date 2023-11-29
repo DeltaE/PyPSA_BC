@@ -108,14 +108,14 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
 
 # Does some input verification before generating the assets
 def main():
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     #Try reading the arguments passed in the terminal
-    coders_path = cfg['coders']['generators']
-    canada_turbine_path = cfg['wind']['can_turbines'] 
-    turbine_dict_path = cfg['wind']['turbine_dict'] 
-    output_path = cfg['wind']['asset_path'] 
+    coders_path = cfg["data"]['coders']['generators']
+    canada_turbine_path = cfg["data"]['wind']['can_turbines'] 
+    turbine_dict_path = cfg["data"]['wind']['turbine_dict'] 
+    output_path = cfg["output"]['create_wind_assets']['fname'] 
 
 
     #Try loading in the CSV file and XLSX file into Pandas data frames

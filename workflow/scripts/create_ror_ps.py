@@ -11,17 +11,17 @@ def main():
     # and each basins upstream basins.
 
     # (i) get configuration
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # (ii) Read basin and site data. (Basins NA and Artic)
-    na_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["na_file"])
-    ar_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["artic_file"])
+    na_basin_data = hydro.load_hydro_basins(cfg["data"]["basin_files"]["na_file"])
+    ar_basin_data = hydro.load_hydro_basins(cfg["data"]["basin_files"]["artic_file"])
     basin_data = gpd.GeoDataFrame(pd.concat([na_basin_data, ar_basin_data]))
-    cutout = atlite.Cutout(path=cfg["hydro_prep"]["cutout"])
+    cutout = atlite.Cutout(path=utils.get_cutout_path(cfg))
 
     # 1) Load in hydroelectric generation sites
-    hydro_sites = hydro.load_hydro_sites(cfg["ror_inflows"]["ror_assets"])
+    hydro_sites = hydro.load_hydro_sites(cfg["output"]["create_hydro_assets"]["hydro_generation"])
 
     # 1) Create RoR power availability series:
     all_ror_sites = hydro_sites[(hydro_sites["hydro_type"] == "ror") | (hydro_sites["hydro_type"] == "ror-water")]

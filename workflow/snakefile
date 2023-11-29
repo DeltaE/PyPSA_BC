@@ -1,0 +1,225 @@
+from snakemake.utils import min_version
+from bc_power import utils
+min_version("6.0")
+
+
+configfile: "config/config2.yaml"
+
+# Rule to run build-model
+rule all:
+    input:
+        input1 = config["output"]["build_model"]["fname"]
+    run:
+        print('Hello World!')
+
+rule prepare_base_network:
+    input:
+        lines_coders = config['data']['coders']['lines'],
+        substations = config['data']['coders']['substations'],
+        line_table = config['data']['custom']['line_table']
+    output:
+        lines = config['output']['prepare_base_network']['folder'] + "/lines.csv",
+        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
+        line_types = config['output']['prepare_base_network']['folder'] + "/line_types.csv",
+        tx = config['output']['prepare_base_network']['folder'] + "/transformers.csv",
+        tx_types = config['output']['prepare_base_network']['folder'] + "/transformer_types.csv"
+    shell:
+        "python workflow/scripts/prepare_base_network.py"
+
+rule create_hydro_assets:
+    input: # "data/bc_pv_assets_2021.csv" 
+        gen_generic = config["data"]["coders"]["gen_generic"],
+        hydro_existing = config["data"]["coders"]["hydro_existing"],
+        generators = config["data"]["coders"]["generators"],
+        hydro_cascade = config["data"]["coders"]["hydro_cascade"],
+        gen_wup = config["data"]["custom"]["gen_wup"],
+        res_wup = config["data"]["custom"]["res_wup"],
+        inflow_tables = config["data"]["custom"]["inflow_tables"]
+    output:
+        hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"],
+        hydro_res = config["output"]["create_hydro_assets"]["hydro_reservoir"]
+    shell: 
+        "python workflow/scripts/create_hydro_assets.py"
+
+# Cutout resolution not added here since not intention to change for now.
+rule create_cutout:
+    input:
+        na_basin_data = config["data"]["basin_files"]["na_file"],
+        ar_basin_data = config["data"]["basin_files"]["artic_file"],
+        region_boundary = config['data']['cutout']['region']['file'],
+        hydro_sites = config["output"]["create_hydro_assets"]["hydro_generation"]
+    output:
+        cutout = utils.get_cutout_path(config) # Return file name based on creating a cutout path
+    params:
+        dx = config["data"]["cutout"]["dx"],
+        dy = config["data"]["cutout"]["dy"],
+        start_time = config["data"]["cutout"]["snapshots"]["start"][0],
+        end_time = config["data"]["cutout"]["snapshots"]["end"][0]
+    shell:
+        "python workflow/scripts/create_cutout.py"
+
+rule create_reservoir_inflows:
+    input:
+        cutout = utils.get_cutout_path(config),
+        inflow_stats = config["data"]["custom"]["inflow_tables"],
+        na_basin_data = config["data"]["basin_files"]["na_file"],
+        ar_basin_data = config["data"]["basin_files"]["artic_file"],
+        hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"],
+        hydro_res = config["output"]["create_hydro_assets"]["hydro_reservoir"]
+    output:
+        reservoir_inflows = config["output"]["reservoir_inflows"]["fname"]
+    params:
+        inflow_method = config["output"]["reservoir_inflows"]["inflow_method"],
+        height = config["output"]["reservoir_inflows"]["height"],
+        flowspeed = config["output"]["reservoir_inflows"]["flowspeed"]
+    shell:
+        "python workflow/scripts/create_reservoir_inflows.py"
+
+rule create_ror_ps:
+    input:
+        cutout = utils.get_cutout_path(config),
+        na_basin_data = config["data"]["basin_files"]["na_file"],
+        ar_basin_data = config["data"]["basin_files"]["artic_file"],
+        hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"]
+    output:
+        ror_ps = config["output"]["ror_ps"]["fname"]
+    params:
+        height = config["output"]["ror_ps"]["height"],
+        flowspeed = config["output"]["ror_ps"]["flowspeed"]
+    shell:
+        "python workflow/scripts/create_ror_ps.py"
+
+rule create_wind_assets:
+    input:
+        coders_generators = config["data"]["coders"]["generators"],
+        can_wind_turbines = config["data"]["wind"]["can_turbines"],
+        turbine_dict = config["data"]["wind"]["turbine_dict"]
+    output:
+        wind_assets = config["output"]["create_wind_assets"]["fname"]
+    shell:
+        "python workflow/scripts/create_wind_assets.py"
+
+rule create_solar_assets:
+    input:
+        coders_generators = config["data"]["coders"]["generators"],
+    output:
+        solar_assets = config["output"]["create_solar_assets"]["fname"]
+    shell:
+        "python workflow/scripts/create_solar_assets.py"
+
+rule create_wind_ts:
+    input:
+        wind_assets = config["output"]["create_wind_assets"]["fname"],
+        cutout = utils.get_cutout_path(config),
+        gwa_speed = config["data"]["wind"]["gwa_speed"],
+        gwa_geojson = config["data"]["wind"]["gwa_geojson"]
+    output:
+        wind_ts = config["output"]["create_wind_ts"]["fname"]
+    params:
+        calibration = config["output"]["create_wind_ts"]["calibration"]
+    shell:
+        "python workflow/scripts/create_wind_ts.py"
+
+rule create_solar_ts:
+    input:
+        solar_assets = config["output"]["create_solar_assets"]["fname"],
+        cutout = utils.get_cutout_path(config),
+    output:
+        solar_ts = config["output"]["create_solar_ts"]["fname"]
+    params:
+        calibration = config["output"]["create_solar_ts"]["calibration"]
+    shell:
+        "python workflow/scripts/create_solar_ts.py"
+
+rule enrich_format_hydro:
+    input:
+        hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"],
+        hydro_res = config["output"]["create_hydro_assets"]["hydro_reservoir"],
+        reservoir_inflows = config["output"]["reservoir_inflows"]["fname"],
+        ror_ps = config["output"]["ror_ps"]["fname"],
+        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
+    output:
+        reservoir_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["res"] ,
+        ror_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["ror"],
+        ror_water_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["ror_water"]
+    params:
+        start_time = config["data"]["cutout"]["snapshots"]["start"][0],
+        end_time = config["data"]["cutout"]["snapshots"]["end"][0]
+    shell:
+        "python workflow/scripts/enrich_format_hydro.py"
+
+
+rule enrich_format_wind:
+    input:
+        gen_generic = config["data"]["coders"]["gen_generic"],
+        wind_assets = config["output"]["create_wind_assets"]["fname"],
+        wind_ts = config["output"]["create_wind_ts"]["fname"],
+        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
+    output:
+        wind_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["wind"]
+    params:
+        start_time = config["data"]["cutout"]["snapshots"]["start"][0],
+        end_time = config["data"]["cutout"]["snapshots"]["end"][0],
+        vre = config["output"]["enrich_format_wind"]["vre_sel"]
+    shell:
+        "python workflow/scripts/enrich_format_vre.py {input.wind_assets} {input.wind_ts} {params.vre} {output.wind_dict}"
+
+rule enrich_format_solar:
+    input:
+        gen_generic = config["data"]["coders"]["gen_generic"],
+        solar_assets = config["output"]["create_solar_assets"]["fname"],
+        solar_ts = config["output"]["create_solar_ts"]["fname"],
+        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
+    output:
+        solar_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["solar"]
+    params:
+        start_time = config["data"]["cutout"]["snapshots"]["start"][0],
+        end_time = config["data"]["cutout"]["snapshots"]["end"][0],
+        vre = config["output"]["enrich_format_solar"]["vre_sel"]
+    shell:
+        "python workflow/scripts/enrich_format_vre.py {input.solar_assets} {input.solar_ts} {params.vre} {output.solar_dict}"
+
+rule enrich_format_tpp:
+    input:
+        generators = config["data"]["coders"]["generators"],
+        gen_generic = config["data"]["coders"]["gen_generic"],
+        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
+    output:
+        tpp_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["tpp"]
+    params:
+        gas_grid = config["output"]["enrich_format_tpp"]["gas_grid"],
+        uc = config["output"]["enrich_format_tpp"]["UC"]
+    shell:
+        "python workflow/scripts/enrich_format_tpp.py"
+
+rule disaggregate_load:
+    input:
+        ceei = config['data']['load']['ceei'],
+        bch = config['data']['load']['bch'] + config["data"]["cutout"]["snapshots"]["start"][0][:4] + ".xls"
+    output:
+        res_load = config['output']['disaggregate_load']['res_path'],
+        csmi_load = config['output']['disaggregate_load']['csmi_path']
+    params:
+        year = config["data"]["cutout"]["snapshots"]["start"][0][:4] # YYYY
+    shell:
+        "python workflow/scripts/disaggregate_load.py"
+
+rule build_model:
+    input:
+        reservoir_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["res"] ,
+        ror_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["ror"],
+        ror_water_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["ror_water"],
+        wind_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["wind"],
+        solar_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["solar"],
+        tpp_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["tpp"],
+        res_load = config['output']['disaggregate_load']['res_path'],
+        csmi_load = config['output']['disaggregate_load']['csmi_path'],
+        lines = config['output']['prepare_base_network']['folder'] + "/lines.csv",
+        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
+        line_types = config['output']['prepare_base_network']['folder'] + "/line_types.csv"
+        # tx = config['output']['prepare_base_network']['folder'] + "/transformers.csv",
+        # tx_types = config['output']['prepare_base_network']['folder'] + "/transformer_types.csv"
+    output:
+        network_model = config["output"]["build_model"]["fname"]
+    shell:
+        "python workflow/scripts/build_model.py"

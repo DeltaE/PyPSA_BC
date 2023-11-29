@@ -97,10 +97,9 @@ def get_cutout_path(cfg):
     cutout configuration.
     '''
     # Create file_path name with custom year_date
-    start_year = cfg['cutout']["snapshots"]["start"][0][:4]
-    end_year = cfg['cutout']["snapshots"]["end"][0][:4]
-    prefix = cfg['cutout']['path'] + cfg['cutout']['region']["name"]
-
+    start_year = cfg['data']['cutout']["snapshots"]["start"][0][:4]
+    end_year = cfg['data']['cutout']["snapshots"]["end"][0][:4]
+    prefix = cfg['data']['cutout']['path'] + cfg['data']['cutout']['region']["name"]
     if start_year == end_year:
         suffix = start_year
         file = "_".join([prefix, suffix + ".nc"])
@@ -115,16 +114,16 @@ def create_era5_cutout(bounds, cfg):
     This function creates a cutout based on data for era5.
     '''
     # Extract parameters from configuration file
-    dx,dy = cfg["cutout"]["dx"], cfg["cutout"]['dy']
-    time_horizon = slice(cfg["cutout"]["snapshots"]['start'][0],
-                        cfg["cutout"]["snapshots"]['end'][0])
+    dx,dy = cfg["data"]["cutout"]["dx"], cfg["data"]["cutout"]['dy']
+    time_horizon = slice(cfg["data"]["cutout"]["snapshots"]['start'][0],
+                        cfg["data"]["cutout"]["snapshots"]['end'][0])
 
     # get path + filename for the cutout
     file = get_cutout_path(cfg)
 
     # Create the cutout based on bounds found from above
     cutout = atlite.Cutout(path=file,
-                    module=cfg["cutout"]["source"],
+                    module=cfg["data"]["cutout"]["source"],
                     x=slice(bounds['west_lon'] - dx, bounds['east_lon'] + dx),
                     y=slice(bounds['south_lat'] - dy, bounds['north_lat'] + dy ),
                     dx=dx,
