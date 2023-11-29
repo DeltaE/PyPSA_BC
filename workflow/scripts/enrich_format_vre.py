@@ -76,7 +76,7 @@ def main(asset_path, ts_path, vre_selection, vre_path):
     This script takes creates the VRE dictionary for wind or solar assets for PyPSA_BC
     '''
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     start_time = cfg['data']['cutout']['snapshots']['start'][0]

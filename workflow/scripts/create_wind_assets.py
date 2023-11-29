@@ -108,7 +108,7 @@ def generate_wind_assets(coders, canada_turbines, turbine_dict):
 
 # Does some input verification before generating the assets
 def main():
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     #Try reading the arguments passed in the terminal

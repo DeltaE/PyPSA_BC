@@ -374,7 +374,7 @@ def main():
     '''
 
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # A) load data

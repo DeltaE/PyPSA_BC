@@ -266,7 +266,7 @@ def main():
 
     '''
     # (0) Load config file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # (1) Load files

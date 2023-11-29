@@ -11,7 +11,7 @@ def main():
     # and each basins upstream basins.
 
     # (i) get configuration
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # (ii) Read basin and site data. (Basins NA and Artic)

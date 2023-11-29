@@ -97,7 +97,7 @@ def main():
     This script creates the dictionaries needed to instantiate the thermal power plants (TPP) in PyPSA_BC.
     '''
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])

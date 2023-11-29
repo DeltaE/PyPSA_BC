@@ -86,7 +86,7 @@ def generate_wind_ts(wind_assets, cutout_path):
 
 #Does some input verification before generating the time series
 def main():
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     #Try reading the arguments passed in the terminal

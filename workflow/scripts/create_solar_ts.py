@@ -34,7 +34,7 @@ def generate_solar_ts(solar_assets, cutout_path):
 #Does some input verification before generating the time series
 def main():
     # Load configuration files
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
 

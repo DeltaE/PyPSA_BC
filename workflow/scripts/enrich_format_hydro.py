@@ -372,7 +372,7 @@ def main():
     component.
     '''
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config2.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     start_time = cfg['data']['cutout']['snapshots']['start'][0]
