@@ -268,10 +268,10 @@ def add_vre_expansion_sites(network, sites, ts, vre_type='Wind', k=1):
             name = "New {} {}".format(vre_type, name_id),
             bus = "BC",
             p_max_pu = ts[name_id],
-            p_nom = row["potential_capacity"],
+            p_nom = 0,
             marginal_cost = marginal_cost, # NOTE: Needs to synchronized
             capital_cost = (row['capex'] / row['potential_capacity']) * CAD_2_USD * 1e6,
-            p_nom_extendable = False,
+            p_nom_extendable = True,
             p_nom_max = row["potential_capacity"]
             )
 
