@@ -438,10 +438,10 @@ def main():
     # potential_capacity: MW
     # CF_mean: capacity factor
     # p_lcoe: MW-hr / $M-CAD-per-MW-Installed
-    pv_sites = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Solar_Top_Sites_Clustered.pkl")
-    pv_ts = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Solar_Top_Sites_Clustered_CF_timeseries.pkl")
-    wind_sites = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Wind_Top_Sites_Clustered.pkl")
-    wind_ts = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Wind_Top_Sites_Clustered_CF_timeseries.pkl")
+    pv_sites = utils.read_pickle("data/expansion/Solar_Top_Sites_Clustered.pkl")
+    pv_ts = utils.read_pickle("data/expansion/Solar_Top_Sites_Clustered_CF_timeseries.pkl")
+    wind_sites = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered.pkl")
+    wind_ts = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered_CF_timeseries.pkl")
 
     add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind', k=1)
     add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='PV', k=1)
