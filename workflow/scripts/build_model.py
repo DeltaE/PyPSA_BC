@@ -477,11 +477,11 @@ def main():
     if charge_strat == 'v2g':
         # load data
         prefix = "data/"
-        ev_bus = utils.read_pickle(prefix + "ev/{}_ev_bus.pickle".format(charge_strat))
-        ev_load = utils.read_pickle(prefix + "ev/{}_ev_load.pickle".format(charge_strat))
-        ev_battery = utils.read_pickle(prefix + "ev/{}_ev_battery.pickle".format(charge_strat))
-        ev_charger = utils.read_pickle(prefix + "ev/{}_ev_charger.pickle".format(charge_strat))
-        ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
+        ev_bus = utils.read_pickle(prefix + "ev/{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_load = utils.read_pickle(prefix + "ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_battery = utils.read_pickle(prefix + "ev/{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_charger = utils.read_pickle(prefix + "ev/{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_discharger = utils.read_pickle(prefix + "ev/{}_{}_ev_discharger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
 
 
         for component in ev_bus:
@@ -530,10 +530,10 @@ def main():
     elif charge_strat == 'coordinated':
         # load data
         prefix = "data/"
-        ev_bus = utils.read_pickle(prefix + "ev/{}_ev_bus.pickle".format(charge_strat))
-        ev_load = utils.read_pickle(prefix + "ev/{}_ev_load.pickle".format(charge_strat))
-        ev_battery = utils.read_pickle(prefix + "ev/{}_ev_battery.pickle".format(charge_strat))
-        ev_charger = utils.read_pickle(prefix + "ev/{}_ev_charger.pickle".format(charge_strat))
+        ev_bus = utils.read_pickle(prefix + "ev/{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_load = utils.read_pickle(prefix + "ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_battery = utils.read_pickle(prefix + "ev/{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        ev_charger = utils.read_pickle(prefix + "ev/{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
         # ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
 
 
@@ -571,7 +571,7 @@ def main():
             network.add(**component)
 
     elif charge_strat == 'uncoordinated':
-        ev_load_list = utils.read_pickle("data/ev/{}_ev_load.pickle".format(charge_strat))
+        ev_load_list = utils.read_pickle("data/ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
         for comp_dict in ev_load_list:
             # if comp_dict['bus'] == 'CentralCoast':
             #     continue
