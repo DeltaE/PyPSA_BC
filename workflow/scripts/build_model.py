@@ -248,6 +248,38 @@ def add_trade(network, cfg):
 #             continue
 #         network.add(**comp_dict)
 
+def add_vre_expansion_sites(network, sites, ts, vre_type='Wind', k=1):
+    '''
+    Temporary function to add pypsa components of VRE expansion sites
+    '''
+    count = 0
+    CAD_2_USD = 1.3 # Same ratio used by the CODERS data NOTE: To be updated at a later date!
+    for _,row in sites.iterrows():
+        name_id = row['Region'] + "_" + str(row['Bucket_No'])
+        
+        # Add to network.
+        if vre_type == "Wind":
+            marginal_cost = 0.001
+        elif vre_type == "PV":
+            marginal_cost = 0.001
+
+        network.add(
+            class_name = "Generator",
+            name = "New {} {}".format(vre_type, name_id),
+            bus = "BC",
+            p_max_pu = ts[name_id],
+            p_nom = row["potential_capacity"],
+            marginal_cost = marginal_cost, # NOTE: Needs to synchronized
+            capital_cost = (row['capex'] / row['potential_capacity']) * CAD_2_USD * 1e6,
+            p_nom_extendable = False,
+            p_nom_max = row["potential_capacity"]
+            )
+
+        # Check to see if targeted sites already added
+        count += 1
+        if count == k:
+            break
+
 
 def main():
     '''
@@ -400,8 +432,22 @@ def main():
 
     # (10) Remove the old components which are no longer needed (lines, buses)
     remove_old_components(network, busmap_dict)
+
+    # (11) Add VRE Expansion
+    # capex: $M-CAD / (potential capacity)
+    # potential_capacity: MW
+    # CF_mean: capacity factor
+    # p_lcoe: MW-hr / $M-CAD-per-MW-Installed
+    pv_sites = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Solar_Top_Sites_Clustered.pkl")
+    pv_ts = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Solar_Top_Sites_Clustered_CF_timeseries.pkl")
+    wind_sites = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Wind_Top_Sites_Clustered.pkl")
+    wind_ts = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/expansion/Wind_Top_Sites_Clustered_CF_timeseries.pkl")
+
+    add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind', k=1)
+    add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='PV', k=1)
+
     
-    # (11) Add trade load
+    # (12) Add trade load
     # NOTE: If error occurs could be related to having negative loads...
     # add_trade(network, cfg)
 
@@ -425,12 +471,12 @@ def main():
                     
         
     # Add EV load
-    charge_strat = "v2g"
+    charge_strat = "uncoordinated"
     
     #NOTE: Modified for a single region only! This should be ipdated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
     if charge_strat == 'v2g':
         # load data
-        prefix = "/home/pmcwhannel/repos/PyPSA_BC/data/"
+        prefix = "data/"
         ev_bus = utils.read_pickle(prefix + "ev/{}_ev_bus.pickle".format(charge_strat))
         ev_load = utils.read_pickle(prefix + "ev/{}_ev_load.pickle".format(charge_strat))
         ev_battery = utils.read_pickle(prefix + "ev/{}_ev_battery.pickle".format(charge_strat))
@@ -483,7 +529,7 @@ def main():
     
     elif charge_strat == 'coordinated':
         # load data
-        prefix = "/home/pmcwhannel/repos/PyPSA_BC/data/"
+        prefix = "data/"
         ev_bus = utils.read_pickle(prefix + "ev/{}_ev_bus.pickle".format(charge_strat))
         ev_load = utils.read_pickle(prefix + "ev/{}_ev_load.pickle".format(charge_strat))
         ev_battery = utils.read_pickle(prefix + "ev/{}_ev_battery.pickle".format(charge_strat))
@@ -525,7 +571,7 @@ def main():
             network.add(**component)
 
     elif charge_strat == 'uncoordinated':
-        ev_load_list = utils.read_pickle("/home/pmcwhannel/repos/PyPSA_BC/data/ev/{}_ev_load.pickle".format(charge_strat))
+        ev_load_list = utils.read_pickle("data/ev/{}_ev_load.pickle".format(charge_strat))
         for comp_dict in ev_load_list:
             # if comp_dict['bus'] == 'CentralCoast':
             #     continue
