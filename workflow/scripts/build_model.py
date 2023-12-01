@@ -443,8 +443,8 @@ def main():
     wind_sites = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered.pkl")
     wind_ts = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered_CF_timeseries.pkl")
 
-    add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind', k=1)
-    add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='PV', k=1)
+    add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind', k=2)
+    add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='PV', k=2)
 
     
     # (12) Add trade load
