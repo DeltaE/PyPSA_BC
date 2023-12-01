@@ -464,7 +464,7 @@ def main():
                     name='Backstop {}'.format(bus),
                     bus=bus,
                     p_nom=50000,
-                    marginal_cost=1000,
+                    marginal_cost=9999*1e6,
                     p_nom_extendable=False,
                     capital_cost=999999
                     )
