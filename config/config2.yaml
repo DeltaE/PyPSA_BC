@@ -90,6 +90,7 @@ output:
   build_model:
     fname: "results/tester.nc"
     scenario: "50" # 50 or 100 depending on EV penetration
+    charge_strat: "uncoordinated" #[uncoordinated, coordinated, v2g]
 
 # results: "nothing"
 params:

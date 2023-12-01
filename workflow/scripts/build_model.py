@@ -471,7 +471,7 @@ def main():
                     
         
     # Add EV load
-    charge_strat = "v2g"
+    charge_strat = cfg['output']['build_model']['charge_strat']
     
     #NOTE: Modified for a single region only! This should be ipdated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
     if charge_strat == 'v2g':
