@@ -11,9 +11,9 @@ from collections import namedtuple
 def main():
     # Description: main script for creating the hydro cutout based on hydro site locations and the basins they are located within
     # and each basins upstream basins.
-
+    # NOTE: This is an old script and not in use anymore
     # (i) get configuration
-    config_file = r"/mnt/c/Users/pmcw9/Delta-E/PICS/PyPSA_BC/config/config.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # (i) read basin and site data

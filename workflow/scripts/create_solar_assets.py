@@ -57,12 +57,12 @@ def generate_solar_assets(coders):
 def main():
 
     # load configuration files
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     #Try reading the arguments passed in the terminal
-    coders_path = cfg['coders']['generators'] # Path(sys.argv[1])
-    output_path = cfg['solar']['asset_path'] # Path(sys.argv[2])
+    coders_path = cfg["data"]['coders']['generators']
+    output_path = cfg["output"]['create_solar_assets']['fname']
 
     # Try loading in the CSV file into a Pandas data frame
     coders = pd.read_csv(coders_path)

@@ -1,0 +1,97 @@
+data:
+  coders:
+    gen_generic: "data/SESIT/CODERS/data-pull/supply/generation_generic.csv"
+    hydro_existing: "data/SESIT/CODERS/data-pull/supply/hydro_existing.csv"
+    generators: "data/SESIT/CODERS/data-pull/supply/generators.csv"
+    hydro_cascade: "data/SESIT/CODERS/data-pull/supply/hydro_cascade.csv"
+    lines: "data/SESIT/CODERS/data-pull/network/transmission_lines.csv"
+    substations: "data/SESIT/CODERS/data-pull/network/substations.csv"
+
+  custom:
+    gen_wup: "data/custom/hydro_gen_wup_features.csv"
+    res_wup: "data/custom/hydro_res_wup_features.csv"
+    inflow_tables: "data/custom/inflow_stats" # Has standardized names inside which are assumed
+    line_table: "data/custom/electric_power_generation_table_13_3a.xlsx" # Custom table for infering line parameters
+  basin_files:
+    na_file: "data/HydroBASINS/hybas_na_lev12_v1c.shp"
+    artic_file: "data/HydroBASINS_artic/hybas_ar_lev12_v1c.shp"
+
+  cutout:
+    dx: 0.25 # Arc Length for cutout grids cells in Degrees
+    dy: 0.25 # Arc Length for cutout grids cells in Degrees
+    path: "data/cutout/" # fname: [REGION] + _ + [YEAR] + ".nc"
+    region: # Data currently pulled from GADM for canada
+      name: "BC"
+      file: "data/regions/gadm41_CAN_1.json"
+    snapshots:
+      start: # Must be formatted as 'YYYY-MM-DD'
+        - "2021-01-01 00:00:00" # YYYY-MM-DD
+      end:
+        - '2021-12-31 23:00:00' # YYYY-MM-DD
+    source: "era5"
+  gadm:
+    bc:  "data/regions/gadm41_CAN_2.json"
+
+  wind:
+    can_turbines: "data/wind/canada_turbines.xlsx"
+    turbine_dict: "data/wind/turbine_dict.json"
+    gwa_speed: "data/wind/british_columbia_wspd_100m.tif"
+    gwa_geojson: "data/wind/british_columbia.geojson"
+
+  load:
+    ceei: "data/load/CEEI_2020.xlsx"
+    bch: "data/load/bc_hydro_load/BalancingAuthorityLoad" # 2021.xls
+
+output:
+  prepare_base_network:
+    folder: "results/pypsa-network"
+  create_hydro_assets:
+    hydro_generation: "results/interim/hydro_generation.csv"
+    hydro_reservoir: "results/interim/hydro_reservoirs.csv"
+  create_cutout:
+    cutout: "data/cutout/BC_2021.nc" # Modifications needed to how the year is added
+  reservoir_inflows:
+    fname: "results/interim/reservoir_inflows.csv" # path + name
+    inflow_method: "mean_inflow_calibrate"
+    height: True
+    flowspeed: 1
+  ror_ps:
+    fname: "results/interim/bc_ror_power_series.csv"
+    height: True
+    flowspeed: 1
+  create_wind_assets:
+    fname: "results/interim/bc_wind_assets.csv"
+  create_wind_ts:
+    calibration: 1 # Used to select whether to calibrate with annual gen average or not
+    fname: "results/interim/wind_ts.csv" # for storing the timeseries for wind
+  create_solar_assets:
+    fname: "results/interim/bc_solar_assets.csv"
+  create_solar_ts:
+    calibration: 1 # Used to select whether to calibrate with annual gen average or not
+    fname: "results/interim/solar_ts.csv" # for storing the timeseries for wind
+  pypsa_dict: # for all enrichment scripts
+    folder: "results/pypsa-components/" # Modified 2023-11-29
+    res: "hydro_reservoirs.pickle"
+    ror: "hydro_ror.pickle"
+    ror_water: "hydro_ror_water.pickle"
+    wind: "wind.pickle"
+    solar: "solar.pickle" # Change to solar
+    tpp: "tpp.pickle"
+  enrich_format_wind:
+    vre_sel: "wind"
+  enrich_format_solar:
+    vre_sel: "solar"
+  enrich_format_tpp:
+    gas_grid: False # True means the thermal generators will have unique gas bus at each of their nodes.
+    UC: False # unit commitment for thermal PPs
+  disaggregate_load:
+    res_path: "results/hourly_res.csv" # output path
+    csmi_path: "results/hourly_csmi.csv" # output path
+  build_model:
+    fname: "results/tester.nc"
+    scenario: "50" # 50 or 100 depending on EV penetration
+    charge_strat: "uncoordinated" #[uncoordinated, coordinated, v2g]
+
+# results: "nothing"
+params:
+  year: 2021 # This should be taken from the cutout later on

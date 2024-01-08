@@ -13,7 +13,7 @@ def get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg):
     '''
     fuel_type = tpp_gen_types[site["gen_type"]]
     
-    if cfg['tpp']["gas_grid"]:
+    if cfg["output"]["enrich_format_tpp"]["gas_grid"]:
         fuel_bus = "{} {} Bus".format(site.name, fuel_type)
     else:
         fuel_bus = "Global {} Bus".format(fuel_type)
@@ -40,7 +40,7 @@ def get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg):
                     "ramp_limit_up":min(gen_params["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "ramp_limit_down":min(gen_params["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "p_nom_extendable":False,
-                    "committable":cfg['tpp']["UC"],
+                    "committable":cfg["output"]["enrich_format_tpp"]["UC"],
                     "min_up_time":gen_params["min_up_time_hours"],
                     "min_down_time":gen_params["min_down_time_hours"],
                     # "ramp_limit_start_up":row["ramp_limit_start_up"], # no data atm
@@ -72,7 +72,7 @@ def write_tpp_dict(tpp_assets, gen_generic, bus_dict, tpp_gen_types, cfg):
     # Next create the dictionaries for PyPSA instantiation
     for _,site in tpp_agg.iterrows():
         fuel_type = tpp_gen_types[site["gen_type"]]
-        if cfg['tpp']["gas_grid"]:
+        if bool(cfg["output"]["enrich_format_tpp"]["gas_grid"]):
             fuel_bus = "{} {} Bus".format(site['asset_id'], fuel_type)
         else:
             fuel_bus = "Global {} Bus".format(fuel_type)
@@ -89,7 +89,7 @@ def write_tpp_dict(tpp_assets, gen_generic, bus_dict, tpp_gen_types, cfg):
         tpp_dict[aid] = get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg)
 
     # write pickle
-    out_file = cfg["pypsa_dict"]["components"] + cfg["pypsa_dict"]["tpp"]
+    out_file = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["tpp"]
     utils.write_pickle(tpp_dict, out_file)
 
 def main():
@@ -97,12 +97,12 @@ def main():
     This script creates the dictionaries needed to instantiate the thermal power plants (TPP) in PyPSA_BC.
     '''
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
-    gen_generic = pd.read_csv(cfg["coders"]["gen_generic"])
-    gens = pd.read_csv(cfg["coders"]["generators"])
-    buses = pd.read_csv(cfg["network"]["folder"] + "/buses.csv")['name'].tolist()
+    gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])
+    gens = pd.read_csv(cfg["data"]["coders"]["generators"])
+    buses = pd.read_csv(cfg['output']['prepare_base_network']['folder'] + "/buses.csv")['name'].tolist()
 
     # All generation types which are thermal PP in the CODERS dataset.
     tpp_gen_types = {'NG_CT':"NG", 'NG_CG':"NG", 'NG_CC':"NG",
@@ -118,7 +118,7 @@ def main():
     # Buses will need to be added for each node.
 
     # (0A) Create folders if they have not been created already
-    utils.create_folder(cfg["pypsa_dict"]['components'])
+    utils.create_folder(cfg['output']["pypsa_dict"]['folder'])
 
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)

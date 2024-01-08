@@ -34,15 +34,15 @@ def generate_solar_ts(solar_assets, cutout_path):
 #Does some input verification before generating the time series
 def main():
     # Load configuration files
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
 
     # Try reading the arguments passed in the terminal
-    assets_path = cfg['solar']['asset_path'] # Path to solar assets
+    assets_path = cfg["output"]["create_solar_assets"]["fname"] # Path to solar assets
     cutout_path = utils.get_cutout_path(cfg) # Path to cutout
-    calibration_flag = cfg['solar']['calibration'] # 0 for no calibration, 1 for calibration
-    output_path = cfg['solar']['ts_path']
+    calibration_flag = cfg["output"]["create_solar_ts"]["calibration"] # 0 for no calibration, 1 for calibration
+    output_path = cfg["output"]["create_solar_ts"]["fname"]
 
 
     #Load the solar_assets

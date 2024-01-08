@@ -88,15 +88,15 @@ def disaggregate(ceei, hourly):
 def main():
 
     # Read in configuration file
-    config_file = r"/home/pmcwhannel/repos/PyPSA_BC/config/config.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # Note year selection should be redesigned
-    ceei_path =  cfg["load"]["ceei"] # Path(sys.argv[1])
-    hourly_path = cfg["load"]["bch"] # Path(sys.argv[2] + '/BalancingAuthorityLoad' + sys.argv[3] + '.xls') # 
-    year =  cfg["load"]["year"] # int(sys.argv[3])
-    output_path_res = cfg["load"]["res_path"] # Path(sys.argv[4] + '/hourly_res_' + sys.argv[3] + '.csv')
-    output_path_csmi = cfg["load"]["csmi_path"] # Path(sys.argv[4] + '/hourly_csmi_' + sys.argv[3] + '.csv')
+    ceei_path =  cfg['data']["load"]["ceei"] # Path(sys.argv[1])
+    hourly_path = cfg['data']["load"]["bch"] + cfg["data"]["cutout"]["snapshots"]["start"][0][:4] + ".xls"
+    year =  int(cfg["data"]["cutout"]["snapshots"]["start"][0][:4]) # int(sys.argv[3])
+    output_path_res = cfg['output']["disaggregate_load"]["res_path"] # Path(sys.argv[4] + '/hourly_res_' + sys.argv[3] + '.csv')
+    output_path_csmi = cfg['output']['disaggregate_load']["csmi_path"] # Path(sys.argv[4] + '/hourly_csmi_' + sys.argv[3] + '.csv')
 
     #Try loading in the data
     ceei = pd.read_excel(ceei_path, sheet_name='Combined')
