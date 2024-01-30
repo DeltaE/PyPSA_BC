@@ -624,7 +624,7 @@ def main():
     #### Solve the network
     # network.optimize(solver_name='gurobi') # cplex should be added to a solver
 
-    # model = network.optimize.create_model()
+    model = network.optimize.create_model()
     # model.remove_constraints("Kirchhoff-Voltage-Law")
     network.optimize.solve_model(solver_name='gurobi')
 
