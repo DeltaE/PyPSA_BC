@@ -280,6 +280,38 @@ def add_vre_expansion_sites(network, sites, ts, vre_type='Wind', k=1):
         if count == k:
             break
 
+def aggregate_lines(n):
+    '''
+    This function aggregates the transmission lines between adminstrative zones of BC into a single lines.
+    For now the capacity of the lines is simply aggregated.
+    NOTE: Aggregation needs to be modified eventually to adjust other parameteres affecting the admittance.
+    It also removes the old lines which were aggregated.
+    n: PyPSA Network object
+    '''
+    temp_dict = {}
+
+    # 1) Store aggregate results
+    for _,row in n.lines.iterrows():
+        name = "-".join(sorted([row['bus0'], row['bus1']]))
+
+        if name not in temp_dict.keys():
+            row_dict = row.to_dict().copy()
+            row_dict["class_name"] = "Line"
+            row_dict["name"] = name
+            temp_dict[name] = row_dict
+
+        else:
+            row_dict = row.to_dict().copy()
+            temp_dict[name]["s_nom"] +=  row_dict['s_nom']
+
+    # 2) Remove all old lines
+    for line_name in n.lines.index.to_list():
+        n.remove(class_name='Line',name=line_name)
+
+    # 3) Add new lines
+    for line in temp_dict.values():
+        n.add(**line)
+
 
 def main():
     '''
@@ -451,7 +483,7 @@ def main():
     # # NOTE: If error occurs could be related to having negative loads...
     # # add_trade(network, cfg)
 
-    # Solve network
+    # NOTE: Temporary fix on ramping
     network.generators["ramp_limit_down"] = 1.0
     network.generators["ramp_limit_up"] = 1.0
     network.links["ramp_limit_down"] = 1.0
@@ -585,13 +617,18 @@ def main():
     #     print("{charge_strat} not implemented yet!")
     #     exit(123)
 
-    network.optimize(solver_name='gurobi') # cplex should be added to a solver
 
-    # model = network.optimize.create_model()
-    # model.remove_constraints("Kirchhoff-Voltage-Law")
-    # network.optimize.solve_model(solver_name='gurobi')
+    # Aggregate lines
+    aggregate_lines(network)
 
-    # # Save network
+    #### Solve the network
+    # network.optimize(solver_name='gurobi') # cplex should be added to a solver
+
+    model = network.optimize.create_model()
+    model.remove_constraints("Kirchhoff-Voltage-Law")
+    network.optimize.solve_model(solver_name='gurobi')
+
+    # Save network
     network.export_to_netcdf(cfg["output"]["build_model"]["fname"])
 if __name__ == '__main__':
     main()
