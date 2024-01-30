@@ -371,7 +371,8 @@ def main():
     network.add(class_name = 'Store',
                 name ="Global NG Store",
                 bus = "Global NG Bus",
-                e_nom = 1e10)
+                e_nom = 1e10,
+                e_initial=1e10)
     
     # (5) Clustering
     
