@@ -423,7 +423,7 @@ def main():
 
 
     # NOTE: Think about how to aggregate the new lines...
-    network.lines['s_nom'] = 50000 # 3700 no good. Good at 3800. Good at 4000.
+    # network.lines['s_nom'] = 50000 # 3700 no good. Good at 3800. Good at 4000.
 
     # (8) Add load
     start_time = cfg["data"]["cutout"]["snapshots"]["start"][0]
