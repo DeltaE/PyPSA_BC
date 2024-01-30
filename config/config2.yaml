@@ -88,7 +88,7 @@ output:
     res_path: "results/hourly_res.csv" # output path
     csmi_path: "results/hourly_csmi.csv" # output path
   build_model:
-    fname: "results/tester.nc"
+    fname: "results/tester_pf.nc"
     scenario: "0" # 50 or 100 depending on EV penetration
     charge_strat: "uncoordinated" #[uncoordinated, coordinated, v2g]
     region_res: "multiple"
