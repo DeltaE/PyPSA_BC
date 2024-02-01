@@ -347,7 +347,7 @@ def main():
     # NOTE: Centroid calculation will need an update and validation.
     # bus_dict = {name:0 for name in pd.read_csv(bus_path)['name'].tolist()}
     # NOTE: GADM switching to BC entire province here just for time being
-    region =  "single" # "single": BC as a single region, "multiple": BC split into 28 regional districts 
+    region =  cfg["output"]["build_model"]["region_res"] # "single": BC as a single region, "multiple": BC split into 28 regional districts 
 
     if region == 'multiple':
         geojson_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
@@ -438,18 +438,18 @@ def main():
     # potential_capacity: MW
     # CF_mean: capacity factor
     # p_lcoe: MW-hr / $M-CAD-per-MW-Installed
-    pv_sites = utils.read_pickle("data/expansion/Solar_Top_Sites_Clustered.pkl")
-    pv_ts = utils.read_pickle("data/expansion/Solar_Top_Sites_Clustered_CF_timeseries.pkl")
-    wind_sites = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered.pkl")
-    wind_ts = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered_CF_timeseries.pkl")
+    # pv_sites = utils.read_pickle("data/expansion/Solar_Top_Sites_Clustered.pkl")
+    # pv_ts = utils.read_pickle("data/expansion/Solar_Top_Sites_Clustered_CF_timeseries.pkl")
+    # wind_sites = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered.pkl")
+    # wind_ts = utils.read_pickle("data/expansion/Wind_Top_Sites_Clustered_CF_timeseries.pkl")
 
-    add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind', k=2)
-    add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='PV', k=2)
+    # add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind', k=2)
+    # add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='PV', k=2)
 
     
-    # (12) Add trade load
-    # NOTE: If error occurs could be related to having negative loads...
-    # add_trade(network, cfg)
+    # # (12) Add trade load
+    # # NOTE: If error occurs could be related to having negative loads...
+    # # add_trade(network, cfg)
 
     # Solve network
     network.generators["ramp_limit_down"] = 1.0
@@ -471,119 +471,119 @@ def main():
                     
         
     # Add EV load
-    charge_strat = cfg['output']['build_model']['charge_strat']
+    # charge_strat = cfg['output']['build_model']['charge_strat']
     
-    #NOTE: Modified for a single region only! This should be ipdated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
-    if charge_strat == 'v2g':
-        # load data
-        prefix = "data/"
-        ev_bus = utils.read_pickle(prefix + "ev/{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_load = utils.read_pickle(prefix + "ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_battery = utils.read_pickle(prefix + "ev/{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_charger = utils.read_pickle(prefix + "ev/{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_discharger = utils.read_pickle(prefix + "ev/{}_{}_ev_discharger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    # #NOTE: Modified for a single region only! This should be ipdated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
+    # if charge_strat == 'v2g':
+    #     # load data
+    #     prefix = "data/"
+    #     ev_bus = utils.read_pickle(prefix + "ev/{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_load = utils.read_pickle(prefix + "ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_battery = utils.read_pickle(prefix + "ev/{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_charger = utils.read_pickle(prefix + "ev/{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_discharger = utils.read_pickle(prefix + "ev/{}_{}_ev_discharger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
 
 
-        for component in ev_bus:
-            name = component['name'].split('_')[2]
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_bus:
+    #         name = component['name'].split('_')[2]
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_load:
-            name = component['name'].split('_')[0]
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_load:
+    #         name = component['name'].split('_')[0]
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_battery:
-            name = component['name'].split('_')[2]
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_battery:
+    #         name = component['name'].split('_')[2]
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_charger:
-            name = component['bus0']
-            component["bus0"] = "BC"
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_charger:
+    #         name = component['bus0']
+    #         component["bus0"] = "BC"
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_discharger:
-            name = component['bus1']
-            component["bus1"] = "BC"
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_discharger:
+    #         name = component['bus1']
+    #         component["bus1"] = "BC"
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
     
-    elif charge_strat == 'coordinated':
-        # load data
-        prefix = "data/"
-        ev_bus = utils.read_pickle(prefix + "ev/{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_load = utils.read_pickle(prefix + "ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_battery = utils.read_pickle(prefix + "ev/{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        ev_charger = utils.read_pickle(prefix + "ev/{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        # ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
+    # elif charge_strat == 'coordinated':
+    #     # load data
+    #     prefix = "data/"
+    #     ev_bus = utils.read_pickle(prefix + "ev/{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_load = utils.read_pickle(prefix + "ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_battery = utils.read_pickle(prefix + "ev/{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     ev_charger = utils.read_pickle(prefix + "ev/{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     # ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
 
 
-        for component in ev_bus:
-            name = component['name'].split('_')[2]
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_bus:
+    #         name = component['name'].split('_')[2]
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_load:
-            name = component['name'].split('_')[0]
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_load:
+    #         name = component['name'].split('_')[0]
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_battery:
-            name = component['name'].split('_')[2]
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_battery:
+    #         name = component['name'].split('_')[2]
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-        for component in ev_charger:
-            name = component['bus0']
-            component["bus0"] = "BC"
-            # c1 = name != "CentralCoast"
-            # c2 = name != "Stikine"
-            # c3 = name != "NorthernRockies"
-            # if c1 and c2 and c3:
-            network.add(**component)
+    #     for component in ev_charger:
+    #         name = component['bus0']
+    #         component["bus0"] = "BC"
+    #         # c1 = name != "CentralCoast"
+    #         # c2 = name != "Stikine"
+    #         # c3 = name != "NorthernRockies"
+    #         # if c1 and c2 and c3:
+    #         network.add(**component)
 
-    elif charge_strat == 'uncoordinated':
-        ev_load_list = utils.read_pickle("data/ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
-        for comp_dict in ev_load_list:
-            # if comp_dict['bus'] == 'CentralCoast':
-            #     continue
-            # if comp_dict['bus'] == 'Stikine':
-            #     continue
-            # if comp_dict['bus'] == "NorthernRockies":
-            #     continue
-            comp_dict['bus'] = "BC"
-            network.add(**comp_dict)
-    else:
-        print("{charge_strat} not implemented yet!")
-        exit(123)
+    # elif charge_strat == 'uncoordinated':
+    #     ev_load_list = utils.read_pickle("data/ev/{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+    #     for comp_dict in ev_load_list:
+    #         # if comp_dict['bus'] == 'CentralCoast':
+    #         #     continue
+    #         # if comp_dict['bus'] == 'Stikine':
+    #         #     continue
+    #         # if comp_dict['bus'] == "NorthernRockies":
+    #         #     continue
+    #         comp_dict['bus'] = "BC"
+    #         network.add(**comp_dict)
+    # else:
+    #     print("{charge_strat} not implemented yet!")
+    #     exit(123)
 
     network.optimize(solver_name='gurobi') # cplex should be added to a solver
 
