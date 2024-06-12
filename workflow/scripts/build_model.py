@@ -255,7 +255,7 @@ def add_vre_expansion_sites(network, sites, ts, vre_type='Wind', k=1):
     count = 0
     CAD_2_USD = 1.3 # Same ratio used by the CODERS data NOTE: To be updated at a later date!
     for _,row in sites.iterrows():
-        name_id = row['Region'] + "_" + str(row['Bucket_No'])
+        name_id = row['Region'] + "_" + str(row['Cluster_No'])
         
         # Add to network.
         if vre_type == "Wind":
