@@ -1,0 +1,21 @@
+[submodule "Linking_tool"]
+    path = models/Linking_tool
+    url = https://github.com/DeltaE/Linking_tool
+    branch = main
+
+[submodule "BC_Nexus"]
+    path = models/BC_Nexus
+    url = https://github.com/DeltaE/BC_Nexus
+    branch = main
+
+[submodule "BC_Combined_Modelling.wiki"]
+    path = BC_Combined_Modelling.wiki
+    url = https://github.com/DeltaE/BC_Combined_Modelling.wiki.git
+
+[submodule "BC_Nexus.wiki"]
+    path = models/BC_Nexus.wiki
+    url = https://github.com/DeltaE/BC_Nexus.wiki.git
+
+[submodule "Linking_tool.wiki"]
+    path = models/Linking_tool.wiki
+    url = https://github.com/DeltaE/Linking_tool.wiki.git

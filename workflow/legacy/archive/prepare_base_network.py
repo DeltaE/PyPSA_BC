@@ -1,12 +1,7 @@
 import pandas as pd
-from pypsa_bc import utils
+from bc_combined_modelling import utils
 import math
-import sys
-from pathlib import Path
-# store initiator
-# from pathlib import Path
-# from linkingtool.hdf5_handler import DataHandler
-# store:DataHandler=DataHandler(Path('data/store/downloaded_data.h5'))
+
 
 def add_missing_lines(df_lines_bc):
     '''
@@ -44,7 +39,7 @@ def correct_line_node_name(df_lines):
 def check_missing_buses(df_sub_bc, df_lines_bc):
     '''
     Checks for substations which are missing from the lines dataset.
-    The only bus like this for BC is BC_WAX_GSS which should be connected to BC_WAN.
+    The only bus like this for BC is BC_WAX_GSS which should be connceted to BC_WAN.
     df_buses_bc: DF being prepared for saving and loading into PyPSA.
     df_sub_bc: DF from CODERS of all substations.
     '''
@@ -63,7 +58,6 @@ def add_pypsa_columns_2_line_df(df):
     This function will add the columns to the line df which will be imported into a pypsa network.
     line names assigned according to standard of voltage (i.e. 230_AAL, 230 = 230kV and AAL = middle 3 char of node_code).
     Line parameters such as reactance and resistance are imputed based on line type.
-    
     name: Name of the transmission line, formatted as the starting and ending node code appended together. (i.e. XXX_GSS_YYY_DSS)
     type: Voltage level of the transmission line (i.e. 230kV).
     bus0: Name of the starting bus.
@@ -98,7 +92,7 @@ def create_bus_df(df_lines, df_substations, generators):
     '''
     This function will create an initial DataFrame of buses for PyPSA_BC from a DataFrame of lines.
     When creating the buses it
-    The lines DF contains the node names for the buses, nominal voltage, and the carrier is implicitly added.
+    The lines DF contains the node names for the buses, nomial voltage, and the carrier is implicitly added.
     '''
     # name = []
     # x = []
@@ -392,7 +386,7 @@ def create_transformer_df(df_buses):
 
     return df_transformers
     
-def create_transformer_types_df(df_transformers):
+def create_tranformer_types_df(df_transformers):
     '''
     This function will create transformers for typical hv to lv lines.
     Assumption 1: All buses use standardized transformers and 
@@ -434,30 +428,26 @@ def create_transformer_types_df(df_transformers):
     return df_transformer_types
 
 
-def main(config_file:str|Path):
+
+def main():
     '''
     This script prepares the csv files for creating the base PyPSA_BC network.
-    # Outfiles: 
-    - buses.csv, 
-    - lines.csv, 
-    - line_types.csv, 
-    - transformers.csv, 
-    - transformer_types.csv
+    outfiles: buses.csv, lines.csv,, line_types.csv, transformers.csv, transformer_types.csv
 
     '''
-    utils.print_update(level=1,message="Preparing base nework for PyPSA_BC")
-    
+
     # Read in configuration file
-    # config_file = r"config/data.yaml"
+    config_file = r"config/pypsa_config.yaml"
     cfg = utils.load_config(config_file)
 
     # A) load data
-
+    # /mnt/c/Users/pmcw9/Delta-E/PICS/Data
     transmission_line_path = cfg['data']["coders"]["lines"]
     substations_path = cfg['data']["coders"]["substations"]
     generators_path = cfg['data']['coders']['generators']
-    transmission_line_type_table = cfg["custom"]["line_table"] # NOTE: To be removed eventually
+    transmission_line_type_table = cfg['data']["custom"]["line_table"] # NOTE: To be removed eventually
     
+
     df_lines = pd.read_csv(transmission_line_path)
     df_substations = pd.read_csv(substations_path)
     generators = pd.read_csv(generators_path)
@@ -467,8 +457,8 @@ def main(config_file:str|Path):
     df_sub = df_substations[df_substations["province"].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])].copy()
     df_lines = df_lines[df_lines["province"].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])].copy()
     
-    # MODIFICATIONS 2024-10-01: Similar to create_hydro_asset fix for the bridge cascade. Here the substation name for the following is modified:
-    # BC_BR1_DFS modified to BC_BR1_GSS ; CODERS data update
+    # MODIFICATIONS 2024-10-01: Simialr to create_hydro_asset fix for the bridge cascade. Here the substation name for the following is modified:
+    # BC_BR1_DFS modified to BC_BR1_GSS
     bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'}
      
     # i)
@@ -487,8 +477,7 @@ def main(config_file:str|Path):
     df_lines['summer_rating_in_mva'] = df_lines["summer_rating_in_mva"].fillna(0.)
 
     # (1) Correction to data
-    utils.print_update(level=2,message="Checking and calibrating transmission lines data...")
-    correct_line_node_name(df_lines) # dataset specific tailored corrections, temp
+    correct_line_node_name(df_lines) 
 
     # (2) Remove spaces from code names
     df_sub["node_code"] = df_sub["node_code"].apply(lambda x: x.replace(" ",""))
@@ -498,11 +487,9 @@ def main(config_file:str|Path):
     # (3) Add missing lines to dataset
     lines = df_lines
     # NOTE: For BC only
-    utils.print_update(level=2,message="Checking and calibrating missing transmission lines...")
     lines = add_missing_lines(df_lines)
 
     # (4) Enrich coders dataframe of BC lines with columns used by PyPSA 
-    utils.print_update(level=3,message="Adding PyPSA data-fields to transmission lines data...")
     add_pypsa_columns_2_line_df(lines)
 
     # # (5) Create dataframe of BC buses from the lines and substations
@@ -516,65 +503,44 @@ def main(config_file:str|Path):
     # Find all "_DFS" endings and correct for each.
     hydro_codes = {'230_CMS_DFS':'230_CMS_GSS', '138_JOR_DFS':'138_JOR_GSS','138_PUN_DFS':'138_PUN_GSS',
                    '69_LB1_DFS':'69_LB1_GSS', '69_SON_DFS':'69_SON_GSS','69_LAJ_DFS':'69_LAJ_GSS',
-                   '69_SPN_DFS':'69_SPN_GSS','230_RGA_DSS':'230_RGA_TSS'} # CRS and SPN not found.
-    
-    utils.print_update(level=2,message="Checking and calibrating hydro generator data...")
+                   '69_SPN_DFS':'69_SPN_GSS','230_RGA_DSS':'230_RGA_TSS'} # CRS and SPN unfound.
     utils.fix_coders_update(df_buses_bc, col_to_correct='name',codes=hydro_codes)
     utils.fix_coders_update(lines, col_to_correct='bus0',codes=hydro_codes)
     utils.fix_coders_update(lines, col_to_correct='bus1',codes=hydro_codes)
 
-    utils.print_update(level=2,message="Checking and calibrating bus data...")
+
+
     check_missing_buses(df_sub, lines)
 
     # # (6) create dataframe of line types for BC
-    utils.print_update(level=2,message="Creating line types for transmission lines...")
     bc_line_types = create_line_types_df(lines, df_line_table)
 
     # # (7) rename lines which are duplicates (add suffix of _#)
-    utils.print_update(level=3,message="Renaming duplicate lines...")
     rename_duplicate_lines(lines)
 
     # # (8) add all needed operational parameters to lines
-    utils.print_update(level=3,message="Renaming duplicate lines...")
     add_line_op_params(lines, bc_line_types)
 
     # # (9) create dataframe of transformers for BC
-    utils.print_update(level=2,message="Creating transformers for buses...")
     df_transformers_bc = create_transformer_df(df_buses_bc)
 
     # # (10) create dataframe of transformer types for BC
-    utils.print_update(level=3,message="Creating transformers types...")
-    df_transformer_types_bc = create_transformer_types_df(df_transformers_bc)
+    df_transformer_types_bc = create_tranformer_types_df(df_transformers_bc)
 
     # # Additional attributes
     df_buses_bc['substation_type'] = df_buses_bc['name'].apply(lambda x: x.split('_')[-1])
     buses = df_buses_bc 
 
     # C) record data
-    root = cfg['output']['prepare_base_network']['folder']
-    utils.check_path(root)
-    utils.print_update(level=2,message=f" Saving prepared data to {root}")
-    
-    lines.to_csv(root + "/lines.csv", index=False,
+    path = cfg['output']['prepare_base_network']['folder']
+    utils.create_folder(path)
+    lines.to_csv(path + "/lines.csv", index=False,
                     columns=['name','type','bus0','bus1','length','v_nom','s_nom'])
-    utils.print_update(level=3,message="Saved 'lines.csv")
-    
-    buses.to_csv(root + "/buses.csv", index=False)
-    utils.print_update(level=3,message="Saved 'buses.csv' and 'lines.csv'")
-    
-    bc_line_types.to_csv(root + "/line_types.csv", index=False)
-    utils.print_update(level=3,message="Saved 'line_types.csv'")
-    
-    df_transformers_bc.to_csv(root + "/transformers.csv", index=False)
-    utils.print_update(level=3,message="Saved 'transformers.csv'")
-    
-    df_transformer_types_bc.to_csv(root + "/transformer_types.csv", index=False)
-    utils.print_update(level=3,message="Saved 'transformer_types.csv'")
-    
-    
+    buses.to_csv(path + "/buses.csv", index=False)
+    bc_line_types.to_csv(path + "/line_types.csv", index=False)
+    df_transformers_bc.to_csv(path + "/transformers.csv", index=False)
+    df_transformer_types_bc.to_csv(path + "/transformer_types.csv", index=False)
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_hydro_assets.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

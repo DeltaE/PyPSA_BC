@@ -1,0 +1,14 @@
+/* Style for the dropdown menu */
+.Select-menu-outer {
+    font-size: 0.7rem !important; /* Reduce font size in the dropdown popup */
+}
+
+/* Optional: Reduce padding in the dropdown items */
+.Select-option {
+    padding: 4px 6px !important;
+}
+
+/* Optional: Style the selected option for consistency */
+.Select-value-label {
+    font-size: 0.65rem !important;
+}

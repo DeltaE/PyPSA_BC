@@ -1,21 +1,22 @@
 from snakemake.utils import min_version
-from pypsa_bc import utils
+from bc_power import utils
 min_version("6.0")
 
-configfile: "config/data.yaml"
+
+configfile: "config/config2.yaml"
 
 # Rule to run build-model
-# rule all:
-#     input:
-#         input1 = config["output"]["build_model"]["fname"]
-#     run:
-#         print('Hello World!')
+rule all:
+    input:
+        input1 = config["output"]["build_model"]["fname"]
+    run:
+        print('Hello World!')
 
 rule prepare_base_network:
     input:
         lines_coders = config['data']['coders']['lines'],
         substations = config['data']['coders']['substations'],
-        line_table = config['custom']['line_table']
+        line_table = config['data']['custom']['line_table']
     output:
         lines = config['output']['prepare_base_network']['folder'] + "/lines.csv",
         buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
@@ -31,38 +32,38 @@ rule create_hydro_assets:
         hydro_existing = config["data"]["coders"]["hydro_existing"],
         generators = config["data"]["coders"]["generators"],
         hydro_cascade = config["data"]["coders"]["hydro_cascade"],
-        gen_wup = config["custom"]["gen_wup"],
-        res_wup = config["custom"]["res_wup"],
-        inflow_tables = config["custom"]["inflow_tables"]
+        gen_wup = config["data"]["custom"]["gen_wup"],
+        res_wup = config["data"]["custom"]["res_wup"],
+        inflow_tables = config["data"]["custom"]["inflow_tables"]
     output:
         hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"],
         hydro_res = config["output"]["create_hydro_assets"]["hydro_reservoir"]
     shell: 
         "python workflow/scripts/create_hydro_assets.py"
-"""
+
 # Cutout resolution not added here since not intention to change for now.
 rule create_cutout:
     input:
-        na_basin_data = config["basin_files"]["na_file"],
-        ar_basin_data = config["basin_files"]["artic_file"],
-        region_boundary = config['GADM']['country_file_L1'],
+        na_basin_data = config["data"]["basin_files"]["na_file"],
+        ar_basin_data = config["data"]["basin_files"]["artic_file"],
+        region_boundary = config['data']['cutout']['region']['file'],
         hydro_sites = config["output"]["create_hydro_assets"]["hydro_generation"]
     output:
         cutout = utils.get_cutout_path(config) # Return file name based on creating a cutout path
     params:
-        dx = config["cutout"]["dx"],
-        dy = config["cutout"]["dy"],
-        start_time = config["cutout"]["snapshots"]["start"][0],
-        end_time = config["cutout"]["snapshots"]["end"][0]
+        dx = config["data"]["cutout"]["dx"],
+        dy = config["data"]["cutout"]["dy"],
+        start_time = config["data"]["cutout"]["snapshots"]["start"][0],
+        end_time = config["data"]["cutout"]["snapshots"]["end"][0]
     shell:
         "python workflow/scripts/create_cutout.py"
-""""
+
 rule create_reservoir_inflows:
     input:
         cutout = utils.get_cutout_path(config),
-        inflow_stats = config["custom"]["inflow_tables"],
-        na_basin_data = config["basin_files"]["na_file"],
-        ar_basin_data = config["basin_files"]["artic_file"],
+        inflow_stats = config["data"]["custom"]["inflow_tables"],
+        na_basin_data = config["data"]["basin_files"]["na_file"],
+        ar_basin_data = config["data"]["basin_files"]["artic_file"],
         hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"],
         hydro_res = config["output"]["create_hydro_assets"]["hydro_reservoir"]
     output:
@@ -77,8 +78,8 @@ rule create_reservoir_inflows:
 rule create_ror_ps:
     input:
         cutout = utils.get_cutout_path(config),
-        na_basin_data = config["basin_files"]["na_file"],
-        ar_basin_data = config["basin_files"]["artic_file"],
+        na_basin_data = config["data"]["basin_files"]["na_file"],
+        ar_basin_data = config["data"]["basin_files"]["artic_file"],
         hydro_gen = config["output"]["create_hydro_assets"]["hydro_generation"]
     output:
         ror_ps = config["output"]["ror_ps"]["fname"]
@@ -94,15 +95,15 @@ rule create_wind_assets:
         can_wind_turbines = config["data"]["wind"]["can_turbines"],
         turbine_dict = config["data"]["wind"]["turbine_dict"]
     output:
-        wind_assets = config["output"]["create_ext_wind_assets"]["fname"]
+        wind_assets = config["output"]["create_wind_assets"]["fname"]
     shell:
-        "python workflow/scripts/create_ext_wind_assets.py"
+        "python workflow/scripts/create_wind_assets.py"
 
 rule create_solar_assets:
     input:
         coders_generators = config["data"]["coders"]["generators"],
     output:
-        solar_assets = config["output"]["create_ext_solar_assets"]["fname"]
+        solar_assets = config["output"]["create_solar_assets"]["fname"]
     shell:
         "python workflow/scripts/create_solar_assets.py"
 
@@ -222,4 +223,3 @@ rule build_model:
         network_model = config["output"]["build_model"]["fname"]
     shell:
         "python workflow/scripts/build_model.py"
-    """

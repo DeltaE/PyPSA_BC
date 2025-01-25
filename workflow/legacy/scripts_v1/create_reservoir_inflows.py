@@ -1,27 +1,22 @@
-from pypsa_bc import hydro, utils
+from bc_power import hydro, utils
 import atlite
 import pandas as pd
 import geopandas as gpd
 from collections import namedtuple
-import sys
-from pathlib import Path
 
 
-def main(config_file:str|Path):
+def main():
     # Description: main script for creating the hydro cutout based on hydro site locations and the basins they are located within
     # and each basins upstream basins.
 
     # (i) get configuration
-    # config_file = r"config/config.yaml"   
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
 
-    utils.print_update(level=1,message="Preparing inflows for reservoirs...")
-
-
     # (ii) Read basin and site data. (Basins NA and Artic)
-    na_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["na_file"])
-    ar_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["artic_file"])
+    na_basin_data = hydro.load_hydro_basins(cfg["data"]["basin_files"]["na_file"])
+    ar_basin_data = hydro.load_hydro_basins(cfg["data"]["basin_files"]["artic_file"])
     basin_data = gpd.GeoDataFrame(pd.concat([na_basin_data, ar_basin_data]))
     cutout = atlite.Cutout(path=utils.get_cutout_path(cfg))
 
@@ -34,12 +29,6 @@ def main(config_file:str|Path):
     hydro.create_cascade_inflow(reservoir_sites, basin_data, cutout,
                     hydro_sites, cfg, 
                     method = cfg["output"]["reservoir_inflows"]["inflow_method"])
-    
 
-    
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_reservoir_inflows.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

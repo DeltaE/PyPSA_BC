@@ -1,12 +1,7 @@
 import pandas as pd
-from pypsa_bc import utils
+from bc_power import utils
 import math
-import sys
-from pathlib import Path
-# store initiator
-# from pathlib import Path
-# from linkingtool.hdf5_handler import DataHandler
-# store:DataHandler=DataHandler(Path('data/store/downloaded_data.h5'))
+
 
 def add_missing_lines(df_lines_bc):
     '''
@@ -44,7 +39,7 @@ def correct_line_node_name(df_lines):
 def check_missing_buses(df_sub_bc, df_lines_bc):
     '''
     Checks for substations which are missing from the lines dataset.
-    The only bus like this for BC is BC_WAX_GSS which should be connected to BC_WAN.
+    The only bus like this for BC is BC_WAX_GSS which should be connceted to BC_WAN.
     df_buses_bc: DF being prepared for saving and loading into PyPSA.
     df_sub_bc: DF from CODERS of all substations.
     '''
@@ -63,7 +58,6 @@ def add_pypsa_columns_2_line_df(df):
     This function will add the columns to the line df which will be imported into a pypsa network.
     line names assigned according to standard of voltage (i.e. 230_AAL, 230 = 230kV and AAL = middle 3 char of node_code).
     Line parameters such as reactance and resistance are imputed based on line type.
-    
     name: Name of the transmission line, formatted as the starting and ending node code appended together. (i.e. XXX_GSS_YYY_DSS)
     type: Voltage level of the transmission line (i.e. 230kV).
     bus0: Name of the starting bus.
@@ -94,11 +88,11 @@ def add_pypsa_columns_2_line_df(df):
     df['length'] = length
     df['v_nom'] = v_nom
 
-def create_bus_df(df_lines, df_substations, generators):
+def create_bus_df(df_lines, df_substations):
     '''
     This function will create an initial DataFrame of buses for PyPSA_BC from a DataFrame of lines.
     When creating the buses it
-    The lines DF contains the node names for the buses, nominal voltage, and the carrier is implicitly added.
+    The lines DF contains the node names for the buses, nomial voltage, and the carrier is implicitly added.
     '''
     # name = []
     # x = []
@@ -108,10 +102,10 @@ def create_bus_df(df_lines, df_substations, generators):
     data_dict = {}
 
     # (1) Add buses based on line nodes
-    for _,line in df_lines.iterrows():
+    for idx,line in df_lines.iterrows():
         # Search for match between line and substation
         for node_code in [line["starting_node_code"], line["ending_node_code"]]:
-            bus_name, bus_x, bus_y = get_bus_name_x_y(line, node_code, df_substations, generators)
+            bus_name, bus_x, bus_y = get_bus_name_x_y(line, node_code, df_substations)
             if bus_name not in data_dict: # Avoid duplication (Change to dictionary)
                 data_dict[bus_name] = {'x':bus_x, 'y':bus_y, 'type':line['type'], 'v_nom':line['v_nom']}
                 # name.append(bus_name) # i.e. 230_AAL
@@ -131,7 +125,7 @@ def create_bus_df(df_lines, df_substations, generators):
 
     return df_buses
 
-def get_bus_name_x_y(line, node_code, df_substations, generators):
+def get_bus_name_x_y(line, node_code, df_substations):
     '''
     This function finds the correct name for a bus from the node dataset
     line: Line row from CODERS lines dataframe.
@@ -172,45 +166,9 @@ def get_bus_name_x_y(line, node_code, df_substations, generators):
         elif node_code == "PP_BCAB2_IPT":
             # ~ 108 km east
             bus_y, bus_x = 49.500543, -114.08
-        elif node_code == "PP_ABSK1_IPT":
-            #
-            bus_y, bus_x = 51.283272, -107.427622
-        elif node_code == "XX_ABUS1_INT":
-            #
-            bus_y, bus_x = 48.312902, -112.660219
-        elif node_code == "XX_SKUS1_INT":
-            bus_y, bus_x = 48.720572, -105.863443
-
-        elif node_code == "PP_MBSK1_IPT":
-            bus_y, bus_x = 54.794729, -101.885937
-
-        elif node_code == "PP_MBSK2_IPT":
-            bus_y, bus_x = 53.722668, -101.769565
-
-        elif node_code == "PP_MBSK3_IPT":
-            bus_y, bus_x = 49.495283, -101.393102
-
-        elif node_code == "PP_MBSK4_IPT":
-            bus_y, bus_x = 50.544463, -101.474715
-        
-        elif node_code == "PP_MBSK5_IPT":
-            bus_y, bus_x = 51.202531, -101.538936
-
-        else:
-            print('ERROR: Did not find a match for IPT/INT substation {}'.format(node_code))
-            exit(3)
         return bus_name, bus_x, bus_y
 
-    # (3) Look in the generator dataset for a location for the node_code
-    # First match used for location
-    for _,generator in generators.iterrows():
-        if generator["connecting_node_code"] == node_code:
-            bus_name = str(line["v_nom"]) + "_" + "_".join(node_code.split('_')[1:]) # (i.e. 230_AAL_DSS)
-            bus_x = generator["longitude"]
-            bus_y = generator["latitude"]
-            return bus_name, bus_x, bus_y
-        
-    # (4) Find first matching 3-middle characters
+    # (3) Find first matching 3-middle characters
     for idx,substation in df_substations.iterrows():
         if node_code.split('_')[1] == substation['node_code'].split('_')[1]:
             bus_name = str(line["v_nom"]) + "_" + "_".join(node_code.split('_')[1:])
@@ -219,18 +177,7 @@ def get_bus_name_x_y(line, node_code, df_substations, generators):
             return bus_name, bus_x, bus_y
     # print(f"Did not find partial match for: {node_code}") # To-be logged
 
-
-    # (6) Find first matching 3-middle characters
-    # First match used for location
-    for _,generator in generators.iterrows():
-        if node_code.split('_')[1] == generator["connecting_node_code"].split('_')[1]:
-            bus_name = str(line["v_nom"]) + "_" + "_".join(node_code.split('_')[1:]) # (i.e. 230_AAL_DSS)
-            bus_x = generator["longitude"]
-            bus_y = generator["latitude"]
-            return bus_name, bus_x, bus_y
-
-    # (5) No match found...
-    # Case of no matches found....
+    # (4) No matching 3 middle characters (i.e. BC_WAX_GSS).. these are special cases..
     print(f"There is no information to create bus for: {node_code}") # To-be logged
 
     return None,None,None
@@ -248,7 +195,7 @@ def create_line_types_df(df_lines, df_line_table):
     1) match based on closest match in the table
     2) match based on average for similar lines???
     '''
-    ampacity_sel_col = "winter_ampacity" # NOTE: Switched from winter to summer
+    ampacity_sel_col = "summer_ampacity"
     f_nom = 60 # nominal frequency in NA is 60 Hz
     data_dict = {'name':[],
                 'f_nom':[],
@@ -261,11 +208,6 @@ def create_line_types_df(df_lines, df_line_table):
     line_type_col = []
     amp_cap_2_idx = {amp_cap:idx for idx,amp_cap in enumerate(df_line_table["approx_current_capacity"])}
 
-    # Manual dictionary of Voltage (kV) -> Reactance (ohm/km)
-    voltage_2_react = {63:0.3800, 66:0.3821, 69: 0.3843, 72:0.3864, 115: 0.4171, 120:0.4207,
-                       138:0.4336, 144:0.4379, 161:0.4500, 230:0.4800, 240:0.4769, 287:0.4621, 315:0.4532,
-                       345:0.4438, 360:0.4391, 500:0.3950, 735:0.3800, 765:0.3781}
-
     for _,row in df_lines.iterrows():
         ampacity = row[ampacity_sel_col] # Later should look into making this based on a timeseries.
         if not math.isnan(ampacity):
@@ -277,13 +219,7 @@ def create_line_types_df(df_lines, df_line_table):
                 data_dict["name"].append(name) # More descriptive name later (ampacity for now).
                 data_dict["f_nom"].append(f_nom) # Hz
                 data_dict['r_per_length'].append(df_line_table["resistance_ac_25_deg"].iloc[idx] / 1000)
-                # data_dict['x_per_length'].append(df_line_table["x_l"].iloc[idx])
-                if row["voltage_in_kv"] in voltage_2_react.keys():
-                    data_dict['x_per_length'].append(voltage_2_react[row["voltage_in_kv"]])
-                else:
-                    # find nearest voltage and linearly interpolate the value
-                    print('ERROR: TRANSMISSION LINE MISSING A MAPPING FROM VOLTAGE TO REACTANCE')
-                    exit(2)
+                data_dict['x_per_length'].append(df_line_table["x_l"].iloc[idx])
                 data_dict['c_per_length'].append(8.85) # Assumed based on VI-PyPSA.. Needs updating..
                 data_dict['i_nom'].append(df_line_table["resistance_ac_25_deg"].iloc[idx] / 1000)
                 data_dict['mounting'].append("ol")
@@ -297,15 +233,10 @@ def create_line_types_df(df_lines, df_line_table):
                 voltage = 69 
             elif row["voltage_in_kv"] == 161: # replace 161 kV since no ampacity for it
                 voltage = 138 
-            elif row["voltage_in_kv"] == 72:
-                voltage = 69
             else:
                 voltage = row["voltage_in_kv"]
 
-            # if len(df_lines[(df_lines["voltage_in_kv"] == voltage) & (~df_lines[ampacity_sel_col].isnull())][ampacity_sel_col]) == 0:
-            #     ampacity = name # NOTE: Just using last ampacity that was valid...
-            # else:
-            ampacity = df_lines[(df_lines["voltage_in_kv"] == voltage) & (~df_lines[ampacity_sel_col].isnull())][ampacity_sel_col].mode()[0]
+            ampacity = df_lines[(df_lines["voltage_in_kv"] == voltage) & (~df_lines["summer_ampacity"].isnull())]["summer_ampacity"].mode()[0]
                 
             line_type_col.append(str(int(ampacity)))
 
@@ -392,7 +323,7 @@ def create_transformer_df(df_buses):
 
     return df_transformers
     
-def create_transformer_types_df(df_transformers):
+def create_tranformer_types_df(df_transformers):
     '''
     This function will create transformers for typical hv to lv lines.
     Assumption 1: All buses use standardized transformers and 
@@ -434,147 +365,82 @@ def create_transformer_types_df(df_transformers):
     return df_transformer_types
 
 
-def main(config_file:str|Path):
+
+def main():
     '''
     This script prepares the csv files for creating the base PyPSA_BC network.
-    # Outfiles: 
-    - buses.csv, 
-    - lines.csv, 
-    - line_types.csv, 
-    - transformers.csv, 
-    - transformer_types.csv
+    outfiles: buses.csv, lines.csv,, line_types.csv, transformers.csv, transformer_types.csv
 
     '''
-    utils.print_update(level=1,message="Preparing base nework for PyPSA_BC")
-    
+
     # Read in configuration file
-    # config_file = r"config/data.yaml"
+    config_file = r"config/config2.yaml"
     cfg = utils.load_config(config_file)
 
     # A) load data
-
+    # /mnt/c/Users/pmcw9/Delta-E/PICS/Data
     transmission_line_path = cfg['data']["coders"]["lines"]
     substations_path = cfg['data']["coders"]["substations"]
-    generators_path = cfg['data']['coders']['generators']
-    transmission_line_type_table = cfg["custom"]["line_table"] # NOTE: To be removed eventually
-    
+    transmission_line_type_table = cfg['data']["custom"]["line_table"]
+
     df_lines = pd.read_csv(transmission_line_path)
     df_substations = pd.read_csv(substations_path)
-    generators = pd.read_csv(generators_path)
     df_line_table = pd.read_excel(transmission_line_type_table) # Tables with line type data for indexing by ampacities
 
-    # Loop over all regions to include
-    df_sub = df_substations[df_substations["province"].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])].copy()
-    df_lines = df_lines[df_lines["province"].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])].copy()
+    df_sub_bc = df_substations[df_substations["province"] == "BC"].copy()
+    df_lines_bc = df_lines[df_lines["province"] == "BC"].copy()
     
-    # MODIFICATIONS 2024-10-01: Similar to create_hydro_asset fix for the bridge cascade. Here the substation name for the following is modified:
-    # BC_BR1_DFS modified to BC_BR1_GSS ; CODERS data update
-    bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'}
-     
-    # i)
-    mask = df_sub['node_code'].isin(bridge_codes)
-    df_sub.loc[mask,'node_code'] = df_sub.loc[mask,'node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-    # ii)
-    mask = df_lines['starting_node_code'].isin(bridge_codes)
-    df_lines.loc[mask,'starting_node_code'] = df_lines.loc[mask,'starting_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-    # iii) 
-    mask = df_lines['ending_node_code'].isin(bridge_codes)
-    df_lines.loc[mask,'ending_node_code'] = df_lines.loc[mask,'ending_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-
     # B) process data
 
     # (0) Replace NaN for summer rating with 0
-    df_lines['summer_rating_in_mva'] = df_lines["summer_rating_in_mva"].fillna(0.)
+    df_lines_bc['summer_rating_in_mva'] = df_lines_bc["summer_rating_in_mva"].fillna(0.)
 
     # (1) Correction to data
-    utils.print_update(level=2,message="Checking and calibrating transmission lines data...")
-    correct_line_node_name(df_lines) # dataset specific tailored corrections, temp
+    correct_line_node_name(df_lines_bc) 
 
     # (2) Remove spaces from code names
-    df_sub["node_code"] = df_sub["node_code"].apply(lambda x: x.replace(" ",""))
-    df_lines["starting_node_code"] = df_lines["starting_node_code"].apply(lambda x: x.replace(" ",""))
-    df_lines["ending_node_code"] = df_lines["ending_node_code"].apply(lambda x: x.replace(" ",""))
+    df_sub_bc["node_code"] = df_sub_bc["node_code"].apply(lambda x: x.replace(" ",""))
+    df_lines_bc["starting_node_code"] = df_lines_bc["starting_node_code"].apply(lambda x: x.replace(" ",""))
+    df_lines_bc["ending_node_code"] = df_lines_bc["ending_node_code"].apply(lambda x: x.replace(" ",""))
 
     # (3) Add missing lines to dataset
-    lines = df_lines
-    # NOTE: For BC only
-    utils.print_update(level=2,message="Checking and calibrating missing transmission lines...")
-    lines = add_missing_lines(df_lines)
+    bc_lines = add_missing_lines(df_lines_bc)
 
     # (4) Enrich coders dataframe of BC lines with columns used by PyPSA 
-    utils.print_update(level=3,message="Adding PyPSA data-fields to transmission lines data...")
-    add_pypsa_columns_2_line_df(lines)
+    add_pypsa_columns_2_line_df(bc_lines)
 
     # # (5) Create dataframe of BC buses from the lines and substations
-    df_buses_bc = create_bus_df(lines, df_sub, generators) 
-    
-    
-
-    # ######### MODIFICATIONS: To adjust for the CODERS updates in naming. #####################
-    # lines + buses modified (NOTE: lines name is NOT modified)
-    # i) add all other mismatches between hydro,wind,sol,tpp generators and the buses.csv file
-    # Find all "_DFS" endings and correct for each.
-    hydro_codes = {'230_CMS_DFS':'230_CMS_GSS', '138_JOR_DFS':'138_JOR_GSS','138_PUN_DFS':'138_PUN_GSS',
-                   '69_LB1_DFS':'69_LB1_GSS', '69_SON_DFS':'69_SON_GSS','69_LAJ_DFS':'69_LAJ_GSS',
-                   '69_SPN_DFS':'69_SPN_GSS','230_RGA_DSS':'230_RGA_TSS'} # CRS and SPN not found.
-    
-    utils.print_update(level=2,message="Checking and calibrating hydro generator data...")
-    utils.fix_coders_update(df_buses_bc, col_to_correct='name',codes=hydro_codes)
-    utils.fix_coders_update(lines, col_to_correct='bus0',codes=hydro_codes)
-    utils.fix_coders_update(lines, col_to_correct='bus1',codes=hydro_codes)
-
-    utils.print_update(level=2,message="Checking and calibrating bus data...")
-    check_missing_buses(df_sub, lines)
+    df_buses_bc = create_bus_df(bc_lines, df_sub_bc) 
+    check_missing_buses(df_sub_bc, bc_lines)
 
     # # (6) create dataframe of line types for BC
-    utils.print_update(level=2,message="Creating line types for transmission lines...")
-    bc_line_types = create_line_types_df(lines, df_line_table)
+    bc_line_types = create_line_types_df(bc_lines, df_line_table)
 
     # # (7) rename lines which are duplicates (add suffix of _#)
-    utils.print_update(level=3,message="Renaming duplicate lines...")
-    rename_duplicate_lines(lines)
+    rename_duplicate_lines(bc_lines)
 
     # # (8) add all needed operational parameters to lines
-    utils.print_update(level=3,message="Renaming duplicate lines...")
-    add_line_op_params(lines, bc_line_types)
+    add_line_op_params(bc_lines, bc_line_types)
 
     # # (9) create dataframe of transformers for BC
-    utils.print_update(level=2,message="Creating transformers for buses...")
     df_transformers_bc = create_transformer_df(df_buses_bc)
 
     # # (10) create dataframe of transformer types for BC
-    utils.print_update(level=3,message="Creating transformers types...")
-    df_transformer_types_bc = create_transformer_types_df(df_transformers_bc)
+    df_transformer_types_bc = create_tranformer_types_df(df_transformers_bc)
 
     # # Additional attributes
     df_buses_bc['substation_type'] = df_buses_bc['name'].apply(lambda x: x.split('_')[-1])
-    buses = df_buses_bc 
 
     # C) record data
-    root = cfg['output']['prepare_base_network']['folder']
-    utils.check_path(root)
-    utils.print_update(level=2,message=f" Saving prepared data to {root}")
-    
-    lines.to_csv(root + "/lines.csv", index=False,
+    path = cfg['output']['prepare_base_network']['folder']
+    utils.create_folder(path)
+    bc_lines.to_csv(path + "/lines.csv", index=False,
                     columns=['name','type','bus0','bus1','length','v_nom','s_nom'])
-    utils.print_update(level=3,message="Saved 'lines.csv")
-    
-    buses.to_csv(root + "/buses.csv", index=False)
-    utils.print_update(level=3,message="Saved 'buses.csv' and 'lines.csv'")
-    
-    bc_line_types.to_csv(root + "/line_types.csv", index=False)
-    utils.print_update(level=3,message="Saved 'line_types.csv'")
-    
-    df_transformers_bc.to_csv(root + "/transformers.csv", index=False)
-    utils.print_update(level=3,message="Saved 'transformers.csv'")
-    
-    df_transformer_types_bc.to_csv(root + "/transformer_types.csv", index=False)
-    utils.print_update(level=3,message="Saved 'transformer_types.csv'")
-    
-    
+    df_buses_bc.to_csv(path + "/buses.csv", index=False)
+    bc_line_types.to_csv(path + "/line_types.csv", index=False)
+    df_transformers_bc.to_csv(path + "/transformers.csv", index=False)
+    df_transformer_types_bc.to_csv(path + "/transformer_types.csv", index=False)
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_hydro_assets.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

@@ -1,5 +1,5 @@
 import pypsa
-from bc_combined_modelling import utils, hydro
+from bc_power import utils, hydro
 import json
 import pandas as pd
 
@@ -152,7 +152,7 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
     ###
     q_rated = float(site['max_water_discharge']) * 3600 # Convert from m^3/s to units of m^3 / hr
     eff_m3_to_mwhr =  site['capacity'] / q_rated
-    marginal_cost = (site["variable_om_cost_CAD_per_MWh"]) * eff_m3_to_mwhr # Needs permanent fix for costs later.
+    marginal_cost = (site["variable_om_cost_USD_per_MWh"]) * eff_m3_to_mwhr # Needs permanent fix for costs later.
     res_dict['discharge link'] = {"class_name":"Link",
                                     "name": " ".join([aid,"Discharge Link"]),
                                     "bus0": res_dict['water bus']['name'],
@@ -200,7 +200,7 @@ def get_ror_dict(site, ror_ts, bus_dict):
             "name":name,
             "bus":elc_bus,
             "p_nom":site['capacity'],
-            "marginal_cost":site["variable_om_cost_CAD_per_MWh"],
+            "marginal_cost":site["variable_om_cost_USD_per_MWh"],
             "p_nom_extendable":False, # Site already built
             # "capital_cost":site[], # no applicable since built
             "p_max_pu":ror_ts.apply(lambda x: min(x / site['capacity'],1))}
@@ -261,7 +261,7 @@ def get_ror_water_dict(site, ror_series, bus_dict):
                                     "bus0": ror_water_dict['reservoir bus']['name'], # res bus
                                     "bus1": elc_bus_name, # elc bus
                                     "bus2": downstream_bus, # downstream res
-                                    "marginal_cost":site["variable_om_cost_CAD_per_MWh"], # CAD / MW-hr
+                                    "marginal_cost":site["variable_om_cost_USD_per_MWh"], # USD / MW-hr
                                     "efficiency":1.0,  # energy balance
                                     "efficiency2":eff_mwhr_to_m3, # energy to water
                                     "p_nom":site_capacity, # Should be derived to ensure larger than max(inflow, spill + discharge)
@@ -318,7 +318,6 @@ def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
     This function writes a dictionary containing the information needed to create the components for
     existing RoR facilities in PyPSA.
     '''
-
     ror_dict = {}
     temp_df = hydro_sites[hydro_sites["hydro_type"] == 'ror']
     for _,site in temp_df.iterrows():
@@ -373,19 +372,14 @@ def main():
     component.
     '''
     # Read in configuration file
-    config_file = r"config/config.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
-    print(">>> formatting hydro dataset initiates...")
+    config_file = r"config/config2.yaml"
+    cfg = utils.load_config(config_file)
 
-    # start_time = cfg['params']['start']
-    # end_time = cfg['params']['end']
-    
-    start_time = cfg_complete['province_mapping']['BC']['snapshots_tz_BC']['start'][0]
-    end_time = cfg_complete['province_mapping']['BC']['snapshots_tz_BC']['end'][0]
+    start_time = cfg['data']['cutout']['snapshots']['start'][0]
+    end_time = cfg['data']['cutout']['snapshots']['end'][0]
 
     hydro_sites = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_generation"])
-    
+    hydro_res = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_reservoir"]) # Purely reservoir information
     res_inflows = pd.read_csv(cfg['output']["reservoir_inflows"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
     ror_series = pd.read_csv(cfg['output']["ror_ps"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
     buses = pd.read_csv(cfg['output']["prepare_base_network"]["folder"] + "/buses.csv")['name'].tolist()
@@ -393,22 +387,17 @@ def main():
     # (0A) Create folders if they have not been created already
     utils.create_folder(cfg['output']["pypsa_dict"]['folder'])
 
-    
-
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)
 
-    # (1) Write pickle dictionaries for the RoR facilities.
-    write_ror_dict(hydro_sites, ror_series, bus_dict, cfg)
-
-    # (2) Write pickle dictionaries for the reservoirs.
-    hydro_res = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_reservoir"]) # Purely reservoir information
+    # (1) Write pickle dictionaries for the reservoirs.
     write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg)
+
+    # (2) Write pickle dictionaries for the RoR facilities.
+    write_ror_dict(hydro_sites, ror_series, bus_dict, cfg)
 
     # (3) Write pickle dictionaries for the RoR-Water facilities.
     write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg)
-    print(">>> formatting hydro dataset completed !")
-    
     
 if __name__ == '__main__':
     main()

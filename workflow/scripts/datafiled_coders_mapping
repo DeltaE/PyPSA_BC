@@ -1,0 +1,8 @@
+data_fields:
+install_capacity_in_mw : facility_installed _capacity 
+
+'NG_CT':"NG", 'NG_CC':"NG", 'gasoline_CT':"NG",
+                    'oil_CT':"Oil", "coal":"Coal", 'oil_ST':"Oil",
+                    'diesel_CT':"Diesel", 'coal_CCS':"Coal", 'biomass':'Biomass',
+                    "biogas":"Biomass", "Coal_CCS":"Coal",
+                    'NG_CG':'NG'

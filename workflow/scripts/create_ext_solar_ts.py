@@ -1,0 +1,82 @@
+import sys
+import pandas as pd
+import atlite
+from pypsa_bc import solar_wind
+from pypsa_bc import utils
+from pathlib import Path
+
+
+def generate_solar_ts(solar_assets, cutout_path):
+    #Load in the cutout
+    cutout = atlite.Cutout(path=cutout_path)
+
+    #Generating the solar generation time series here
+    #Loop through solar_assets and construct the solar_generation dataframe
+    solar_gen_dict = {} # new
+
+    # for i in range(wind_assets.index.size):
+    #     # Right here create a dictionary with key as asset_id and pd
+    #     wind_generation[str(wind_assets.index[i])] = solar_wind.calculate_MW(cutout, wind_assets.loc[wind_assets.index[i]], 'wind')
+
+    for _,row in solar_assets.iterrows():
+        if row['asset_id'] not in solar_gen_dict.keys(): 
+            solar_gen_dict[row['asset_id']] = solar_wind.calculate_MW(cutout, row, 'solar').squeeze()
+        else:
+            solar_gen_dict[row['asset_id']] += solar_wind.calculate_MW(cutout, row, 'solar').squeeze()
+
+    pv_generation = pd.DataFrame(solar_gen_dict)
+
+
+    return pv_generation
+
+#Does some input verification before generating the time series
+def main(config_file:str|Path):
+    
+    # Load configuration files
+    cfg = utils.load_config(config_file)
+
+
+    utils.print_update(level=1,message="Preparing timeseries for existing solar assets...")
+
+
+    # Try reading the arguments passed in the terminal
+    assets_path = cfg["output"]["create_ext_solar_assets"]["fname"] # Path to solar assets
+    cutout_path = utils.get_cutout_path(cfg) # Path to cutout
+    calibration_flag = cfg["output"]["create_ext_solar_ts"]["calibration"] # 0 for no calibration, 1 for calibration
+    output_path = cfg["output"]["create_ext_solar_ts"]["fname"]
+
+
+    #Load the solar_assets
+    utils.print_update(level=2,message="Loading existing solar assets...")
+    assets = pd.read_csv(assets_path)
+
+    #All is good, start generating wind_ts data frame
+    if calibration_flag == 0:
+        #No calibration for the solar generation with CODERS AAG
+        solar_ts = generate_solar_ts(assets, cutout_path)
+
+    elif calibration_flag == 1:
+        #Use CODERS AAG to calibrate the wind speeds
+        utils.print_update(level=2,message="calibrating existing solar assets' timeseries...")
+        solar_ts = solar_wind.calibrate_generation(generate_solar_ts(assets, cutout_path), assets)
+
+    else:
+        #Calibration flag, return error code 3
+        print('Invalid value for calibration flag, choose 0 for no calibration or 1 for calibration')
+        return 3
+    
+    # Fix timeseries index
+    utils.fix_df_ts_index(solar_ts)
+
+    #Write solar_ts.csv
+    solar_ts.to_csv(output_path)
+    utils.print_update(level=2,message=f"Solar timeseries created and saved to: {output_path}")    
+    #Return code 0 is for when everything runs without a problem
+    return 0
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("Usage: python create_ext_solar_ts.py <config_file>")
+        sys.exit(1)
+    config_file = sys.argv[1]
+    main(config_file)

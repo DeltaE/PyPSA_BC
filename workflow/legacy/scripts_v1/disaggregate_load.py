@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import pandas as pd
-from bc_combined_modelling import utils
+from bc_power import utils
 
 
 #Format the hourly load data to account for inconsistencies with how BC Hydro handles daylight savings
@@ -69,34 +69,32 @@ def disaggregate(ceei, hourly):
 
 
 #Does some input verification before generating the regional hourly loads
-""" 
-USAGE:
+'''
 
-python dissagregate_load.py <ARG1> <ARG2> <ARG3> <ARG4>
+    USAGE:
 
-ARG1 = The CEEI spreadsheet file
-ARG2 = The folder which contains the hourly load data from BC Hydro. This folder should contain files named BalancingAuthorityLoad20XX.xls
-ARG3 = The year to use for disaggregation
-ARG4 = The folder to write the outputs to. This script outputs two CSV files, one for residential load, one for industrial load
+    python dissagregate_load.py <ARG1> <ARG2> <ARG3> <ARG4>
 
-EXAMPLE:
+    ARG1 = The CEEI spreadsheet file
+    ARG2 = The folder which contains the hourly load data from BC Hydro. This folder should contain files named BalancingAuthorityLoad20XX.xls
+    ARG3 = The year to use for disaggregation
+    ARG4 = The folder to write the outputs to. This script outputs two CSV files, one for residential load, one for industrial load
 
-'python disaggregate_load.py CEEI_2020.xlsx .\load\ 2015 .\hourly_load_region\'
+    EXAMPLE:
+
+    python disaggregate_load.py CEEI_2020.xlsx .\load\ 2015 .\hourly_load_region\
     
-"""
+'''
 def main():
 
     # Read in configuration file
-    config_file = r"config/config.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
-    print(f"Load disaggregation for pypsa initiates...")
+    config_file = r"config/config2.yaml"
+    cfg = utils.load_config(config_file)
 
     # Note year selection should be redesigned
     ceei_path =  cfg['data']["load"]["ceei"] # Path(sys.argv[1])
-    hourly_path = cfg['data']["load"]["bch"] + cfg_complete["cutout"]["snapshots"]["start"][0][:4] + ".xls"
-    
-    year =  int(cfg_complete["cutout"]["snapshots"]["start"][0][:4]) # int(sys.argv[3])
+    hourly_path = cfg['data']["load"]["bch"] + cfg["data"]["cutout"]["snapshots"]["start"][0][:4] + ".xls"
+    year =  int(cfg["data"]["cutout"]["snapshots"]["start"][0][:4]) # int(sys.argv[3])
     output_path_res = cfg['output']["disaggregate_load"]["res_path"] # Path(sys.argv[4] + '/hourly_res_' + sys.argv[3] + '.csv')
     output_path_csmi = cfg['output']['disaggregate_load']["csmi_path"] # Path(sys.argv[4] + '/hourly_csmi_' + sys.argv[3] + '.csv')
 
@@ -117,7 +115,6 @@ def main():
     # Write to files to the output folder path
     hourly_res.to_csv(output_path_res)
     hourly_csmi.to_csv(output_path_csmi)
-    print(f"Load disaggregation for pypsa completed !")
     
     #Return code 0 is for when everything runs without a problem
     return 0
