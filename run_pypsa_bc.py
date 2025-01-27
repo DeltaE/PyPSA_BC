@@ -38,6 +38,7 @@ def main(update_data:bool=False):
         enrich_format_hydro.main()
         enrich_format_tpp.main()
         enrich_format_vre.main()
+        
     else:
         utils.print_update(level=1, message='Skipping network and profile data preparation. Using the prepared data.')
     
