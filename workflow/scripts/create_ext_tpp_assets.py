@@ -1,13 +1,9 @@
-import pypsa
-from bc_combined_modelling import utils
-import json
+from pypsa_bc import utils
 import pandas as pd
 
-# Store setup
-from linkingtool.hdf5_handler import DataHandler
-store_path='data/store/bc_combined_model.h5'
-store=DataHandler(store_path)
-
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 
 def get_fuel_bus(site, fuel_type, cfg):
@@ -104,10 +100,8 @@ def main():
     '''
     This script creates the dictionaries needed to instantiate the thermal power plants (TPP) in PyPSA_BC.
     '''
-    # Read in configuration file
-    config_file = r"config/config.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
+    # get configuration file
+    cfg=pypsa_aparser.pypsa_cfg
 
     print(f"Preparing existing thermal power assets...")
 
@@ -130,8 +124,6 @@ def main():
     # NOTE: For time being there will only be a single NG bus. however, in the future.
     # Buses will need to be added for each node.
 
-    # (0A) Create folders if they have not been created already
-    utils.create_folder(cfg['output']["pypsa_dict"]['folder'])
 
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)
@@ -142,8 +134,8 @@ def main():
     mask = (gens['province'] == 'BC') & (gens["gen_type"].apply(lambda x: x in tpp_gen_types ))
     subset = ["connecting_node_code"]
     sum_list = ["facility_installed_capacity","facility_average_annual_energy"]
-    gens[mask].groupby(subset, group_keys=False).apply(lambda x:
-    utils.merge_assets(x, subset, sum_list))
+    gens[mask].groupby(subset, group_keys=False).apply(lambda x: utils.merge_assets(x, subset, sum_list))
+
 
     for region in cfg['output']['prepare_base_network']['regions']:
         mask = (gens["province"] == region) & (gens["gen_type"].apply(lambda x: x in tpp_gen_types ))
@@ -167,8 +159,7 @@ def main():
     codes = {"BC_CRS_DSS":"BC_CRS_DFS", "BC_DGB_TSS":"BC_DGB_DSS"}
     utils.fix_coders_update(ext_tpp_assets,'connecting_node_code',codes)
     ext_tpp_assets.to_csv(cfg['output']['create_ext_tpp_assets']['fname'],index=False)
-    store.to_store(ext_tpp_assets,'processed_data/pypsa/inputs/existing/thermal/sites')
-    print(f"Existing thermal power assets prepared successfully...")
+    utils.print_update(level=2,message="Finished preparing existing thermal power assets.")
     
 if __name__ == '__main__':
     main()

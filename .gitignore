@@ -1,7 +1,9 @@
 # exclude these files
 results/*
 resources/*
-data/*
+data/downloaded_data/*
+data/linking_tool
+data/store/*
 
 # include these from hidden partially ignored folders
 !results/.keep

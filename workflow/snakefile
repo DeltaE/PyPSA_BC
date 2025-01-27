@@ -148,7 +148,7 @@ rule enrich_format_hydro:
         "python workflow/scripts/enrich_format_hydro.py"
 
 
-rule enrich_format_wind:
+rule enrich_format_vre:
     input:
         gen_generic = config["data"]["coders"]["gen_generic"],
         wind_assets = config["output"]["create_wind_assets"]["fname"],
@@ -161,22 +161,8 @@ rule enrich_format_wind:
         end_time = config["data"]["cutout"]["snapshots"]["end"][0],
         vre = config["output"]["enrich_format_wind"]["vre_sel"]
     shell:
-        "python workflow/scripts/enrich_format_vre.py {input.wind_assets} {input.wind_ts} {params.vre} {output.wind_dict}"
+        "python workflow/scripts/enrich_format_vre.py"
 
-rule enrich_format_solar:
-    input:
-        gen_generic = config["data"]["coders"]["gen_generic"],
-        solar_assets = config["output"]["create_solar_assets"]["fname"],
-        solar_ts = config["output"]["create_solar_ts"]["fname"],
-        buses = config['output']['prepare_base_network']['folder'] + "/buses.csv",
-    output:
-        solar_dict = config["output"]["pypsa_dict"]["folder"] + config["output"]["pypsa_dict"]["solar"]
-    params:
-        start_time = config["data"]["cutout"]["snapshots"]["start"][0],
-        end_time = config["data"]["cutout"]["snapshots"]["end"][0],
-        vre = config["output"]["enrich_format_solar"]["vre_sel"]
-    shell:
-        "python workflow/scripts/enrich_format_vre.py {input.solar_assets} {input.solar_ts} {params.vre} {output.solar_dict}"
 
 rule enrich_format_tpp:
     input:

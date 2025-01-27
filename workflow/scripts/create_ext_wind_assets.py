@@ -1,9 +1,10 @@
-import sys
-from pathlib import Path
 import pandas as pd
 import json
-from pypsa_bc import wind, utils
+from pypsa_bc import utils
 
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 '''
 ====================================================================================================
@@ -177,9 +178,9 @@ def generate_wind_assets(wind_assets, turbines, turbine_dict, province):
 
 
 # Does some input verification before generating the assets
-def main(config_file:str|Path):
+def main():
 
-    cfg = utils.load_config(config_file)
+    cfg = pypsa_aparser.pypsa_cfg
 
     utils.print_update(level=1,message="Preparing existing wind assets...")
 
@@ -227,8 +228,4 @@ def main(config_file:str|Path):
     return 0
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_hydro_assets.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

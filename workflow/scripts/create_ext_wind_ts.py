@@ -1,11 +1,12 @@
-import sys
-from pathlib import Path
 import rasterio as rio
 import pandas as pd
 import geojson as gj
 import atlite
 from pypsa_bc import wind, solar_wind, utils
 
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 #This part builds the wind_ts data frame to be written into a CSV file (NO CALIBRATION WITH CODERS AAG DATA)
 #Used in main()
@@ -87,12 +88,11 @@ def generate_wind_ts(wind_assets, cutout_path):
     return wind_generation
 
 #Does some input verification before generating the time series
-def main(config_file:str|Path):
+def main():
 
-    cfg = utils.load_config(config_file)
+    cfg = pypsa_aparser.pypsa_cfg
 
     utils.print_update(level=1,message="Preparing timeseries for existing wind assets...")
-    
 
     #Try reading the arguments passed in the terminal
     assets_path = cfg["output"]['create_ext_wind_assets']['fname']
@@ -149,8 +149,4 @@ def main(config_file:str|Path):
     return 0
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_ext_wind_ts.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

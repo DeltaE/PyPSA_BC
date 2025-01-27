@@ -3,8 +3,10 @@ import pandas as pd
 import atlite
 from pypsa_bc import solar_wind
 from pypsa_bc import utils
-from pathlib import Path
 
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 def generate_solar_ts(solar_assets, cutout_path):
     #Load in the cutout
@@ -30,10 +32,10 @@ def generate_solar_ts(solar_assets, cutout_path):
     return pv_generation
 
 #Does some input verification before generating the time series
-def main(config_file:str|Path):
+def main():
     
     # Load configuration files
-    cfg = utils.load_config(config_file)
+    cfg = pypsa_aparser.pypsa_cfg
 
 
     utils.print_update(level=1,message="Preparing timeseries for existing solar assets...")
@@ -75,8 +77,4 @@ def main(config_file:str|Path):
     return 0
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_ext_solar_ts.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

@@ -12,6 +12,7 @@ from pathlib import Path
 from colorama import Fore, Style
 from typing import Optional
 from pathlib import Path
+import requests
 
 def print_update(level: int=None,
                  message: str="--",
@@ -36,7 +37,34 @@ def print_update(level: int=None,
     
     print(f"{color}{prefix}> {message}{Style.RESET_ALL}")
     
+def merge_assets(df,subset,sum_list):
+    '''
+    Function used to reduce hydroelectric datasets from turbines to an aggregate asset.
+    This aggregation operator is currently applied only to the installed capacities for the units and
+    the annual_avg_energy.
+    df: Dataframe which is passed via a groupby operation.
+    subset: Name of columns to use for deduplication
+    sum_list: Name of parameters/columns to aggegtate using the sum operation.
+    Example:
+    Input dataframe has following entries below:
+    component_id | asset_id | capacity | annual_avg_energy
+    BC_MCA01_GEN | BC_MCA_GSS | 492 | 1936.79
+    BC_MCA02_GEN | BC_MCA_GSS | 492 | 1936.79
+    BC_MCA03_GEN | BC_MCA_GSS | 494 | 1942.7
+    BC_MCA04_GEN | BC_MCA_GSS | 494 | 1942.7
+    BC_MCA05_GEN | BC_MCA_GSS | 500 | 1968.45
+    BC_MCA06_GEN | BC_MCA_GSS | 500 | 1968.45
 
+    Output dataframe will have the following:
+    asset_id | capacity | annual_avg_energy
+    BC_MCA_GSS | 2972 | 11695.88
+
+    '''
+    # Other columns don't matter here for calcualting inflow and associated power production.
+    df_out = df.drop_duplicates(subset=subset).set_index("connecting_node_code").copy()
+    for param in sum_list:
+        df_out[param] = df[param].sum()
+    return df_out
         
 def set_root(current_dir = Path.cwd()):
     # Check if the last folder name matches 'BC_Combined_Modelling'
@@ -91,7 +119,37 @@ def setup_environment(marker="bc_combined_modelling", start_dir: str = None):
             print(str(e))
             raise
 
-
+def download_data(source_URL: str, file_path: str) -> str:
+    """
+    Downloads a file from a given URL and saves it to the specified file path.
+    
+    Parameters:
+        source_URL (str): URL of the file to download.
+        file_path (str): Path where the downloaded file will be saved.
+    
+    Returns:
+        str: The file path if download is successful; otherwise, an instruction message.
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    print_update(level=2,message=f"Downloading datafile from: {source_URL}")
+    try:
+        # Send HTTP GET request
+        response = requests.get(source_URL, headers=headers, timeout=30)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            with open(file_path, 'wb') as file:
+                file.write(response.content)
+            print_update(level=3,message=f"File downloaded successfully and saved as {file_path}")
+            return file_path
+        else:
+            print_update(level=2,message=f"Failed to download the file. Status code: {response.status_code}")
+            return print_update(level=1,message=f"Please download the data manually from {source_URL} and save it to {file_path}")
+    except requests.RequestException as e:
+        print_update(level=2,message=f">> An error occurred while downloading the file: {e}")
+        return f">> Please download the data manually from {source_URL} and save it to {file_path}"
 
 # In a Jupyter Notebook
 # Add the following at the start of your notebook:
@@ -237,7 +295,6 @@ def write_pickle(data_dict, filepath):
     with open(filepath,"wb") as f:
         pd.to_pickle(data_dict, f)
     f.close()
-    print(f'Wrote pickle file {filepath}')
 
 def read_pickle(filepath):
     '''

@@ -5,7 +5,12 @@ from shapely.geometry import Point
 import numpy as np
 from pypsa_bc import utils
 from pathlib import Path
-
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
+import warnings
+# Suppress specific warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 def is_comp_in_network(comp,network):
     '''
@@ -66,7 +71,7 @@ def add_cogen_assets(network, cogen_dict):
 
 def add_ff_infra(network, ff_infra_list):
     # add tpp
-    for comp in ff_infra_list: # actualyl a list
+    for comp in ff_infra_list: # actually a list
         network.add(**comp)
 
 def get_nearest_adm_region(point,gadm_bc):
@@ -268,7 +273,7 @@ def remove_old_components(network, busmap_dict):
 
     # NOTE: Custom revmoval of Site C
     # Will need to be updated
-    stc_link = 'BC_STC_GSS Discharge Link'
+    # stc_link = 'BC_STC_GSS Discharge Link'
     # if stc_link in network.links.index:
     #     network.remove(class_name='Link', name=stc_link)
 
@@ -605,10 +610,8 @@ def main():
     '''
     print(" pypsa model building initiates...")
     # (0) Load config file
-    # master_cfg = linking_utility.load_config('config/config_master.yaml')
-    config_file = r"config/data.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
+
+    cfg=pypsa_aparser.pypsa_cfg
 
     # (1) Load files
     network = pypsa.Network(override_component_attrs=utils.get_multi_link_override())
@@ -671,7 +674,7 @@ def main():
         # # (7A) Add new gadm regions as buses
 
         # geojson_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
-        geojson_file = cfg_complete["GADM"]["country_file_L2"] 
+        geojson_file = cfg["GADM"]["country_file_L2"] 
         
         gdf = gpd.read_file(geojson_file)
         # Get GeoDataFrame of the GADM regions.
@@ -716,8 +719,8 @@ def main():
     # network.lines['s_nom'] = 50000 # 3700 no good. Good at 3800. Good at 4000.
 
     # (8) Add load (BC)
-    start_time = cfg_complete["cutout"]["snapshots"]["start"][0]
-    end_time = cfg_complete["cutout"]["snapshots"]["end"][0]
+    start_time = cfg["cutout"]["snapshots"]["start"][0]
+    end_time = cfg["cutout"]["snapshots"]["end"][0]
 
     res_load = pd.read_csv(cfg['output']['disaggregate_load']['res_path'],
                             index_col=0, parse_dates=True).loc[start_time:end_time]
@@ -817,5 +820,6 @@ def main():
     # Save network
     network.export_to_netcdf(cfg["output"]["build_model"]["fname"])
     print(" pypsa model building completed and solved network saved to local !")
+    
 if __name__ == '__main__':
     main()

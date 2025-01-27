@@ -1,10 +1,9 @@
-# from pathlib import Path
-# import sys
 import pandas as pd
 from pypsa_bc import utils
 
-# Store setup
-
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 #This part builds the solar_assets data frame to be written into a CSV file
 #Used in main()
@@ -59,12 +58,9 @@ def generate_solar_assets(solar_df):
 def main():
 
     # load configuration files
-    config_file = r"config/config.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
+    cfg = pypsa_aparser.pypsa_cfg
 
-
-    print("Preparing existing solar assets...")
+    utils.print_update(level=1,message="Preparing existing solar assets...")
     #Try reading the arguments passed in the terminal
     coders_generic_path = cfg['data']['coders']['gen_generic']
     coders_path = cfg["data"]['coders']['generators']
@@ -87,15 +83,11 @@ def main():
 
     to_solar_assets_csv = utils.add_generic_columns(solar_assets, gen_generic, "solar_PV")
 
-    
-
     # Write solar_assets.csv
     to_solar_assets_csv.to_csv(output_path, index=False)
-    store.to_store(to_solar_assets_csv,'processed_data/pypsa/inputs/existing/solar/sites')
-    print(f"Existing solar assets prepared successfully...")
+    utils.print_update(level=2,message=f"Saved solar assets to : {output_path}")
     #Return code 0 is for when everything runs without a problem
     return 0
 
 if __name__ == '__main__':
     main()
-    

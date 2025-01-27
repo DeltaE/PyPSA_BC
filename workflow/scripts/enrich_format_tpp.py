@@ -1,5 +1,9 @@
-from bc_combined_modelling import utils
+from pypsa_bc import utils
 import pandas as pd
+
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 def get_fuel_bus(site, fuel_type, cfg):
     '''
@@ -131,6 +135,7 @@ def write_tpp_dict(tpp_assets, bus_dict, tpp_gen_types, cfg):
     # write pickle
     out_file = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["tpp"]
     utils.write_pickle(tpp_dict, out_file)
+    utils.print_update(level=2,message=f"Thermal Power Plant data for PyPSA saved to: {out_file}")
 
 def write_cogen_dict(cogen_assets, gen_generic, bus_dict, hist_gen, cfg):
     '''
@@ -155,6 +160,7 @@ def write_cogen_dict(cogen_assets, gen_generic, bus_dict, hist_gen, cfg):
     # write pickle
     out_file = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["cogen"]
     utils.write_pickle(cogen_dict, out_file)
+    utils.print_update(level=2,message=f"Cogeneration data for PyPSA saved to: {out_file}")
 
 
 def write_ff_infrastructure(tpp_gens, tpp_gen_types, cfg):
@@ -197,23 +203,25 @@ def write_ff_infrastructure(tpp_gens, tpp_gen_types, cfg):
 
     out_file = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["ff_infrastructure"]
     utils.write_pickle(ffi_list, out_file)
+    utils.print_update(level=2,message=f"Fossil Fuel Infrastructure for PyPSA saved to: {out_file}")
 
 def main():
     '''
     This script creates the dictionaries needed to instantiate the thermal power plants (TPP) in PyPSA_BC.
     '''
-    # Read in configuration file
-    config_file = r"config/data.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
-    print(">>> formatting thermal power dataset initiated...")
+    # Get configuration
+    cfg=pypsa_aparser.pypsa_cfg
+    utils.print_update(level=1,message="Formatting thermal power dataset for PyPSA...")
+    
     # gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])
     # gens = pd.read_csv(cfg["data"]["coders"]["generators"])
     # hist_gen = pd.read_csv(cfg["output"]["enrich_format_tpp"]["cogen_history"],parse_dates=True, index_col=0)
     tpp_gens = pd.read_csv(cfg["output"]["create_ext_tpp_assets"]["fname"])
+    utils.print_update(level=3,message=f"Thermal Power Plant Assets loaded from : {cfg['output']['create_ext_tpp_assets']['fname']}")
 
     buses = pd.read_csv(cfg['output']['prepare_base_network']['folder'] + "/buses.csv")['name'].tolist()
-
+    utils.print_update(level=3,message=f"Buses loaded from : {cfg['output']['prepare_base_network']['folder'] + '/buses.csv'}")
+    
     # All generation types which are thermal PP in the CODERS dataset.
     tpp_gen_types = {'NG_CT':"NG", 'NG_CC':"NG", 'gasoline_CT':"NG",
                     'oil_CT':"Oil", "coal":"Coal", 'oil_ST':"Oil",
@@ -223,16 +231,13 @@ def main():
 
 
     # Determine tpp generators in BC
-    
     # In BC all generators are "NG" however in general this is not true.
     # NOTE: For time being there will only be a single NG bus. however, in the future.
     # Buses will need to be added for each node.
 
-    # (0A) Create folders if they have not been created already
-    utils.create_folder(cfg['output']["pypsa_dict"]['folder'])
-
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     bus_dict = utils.create_standard_gen_bus_map(buses)
+    utils.print_update(level=3,message="Bus mapping loaded...")
     
     # (1) Write pickle dictionaries for the vre assets.
     # per fuel type now to access specific costs for each
@@ -245,7 +250,7 @@ def main():
     # (2)
     # Added buses, store, carrier for each unique fuel type of thermal power plants
     write_ff_infrastructure(tpp_gens, tpp_gen_types, cfg) # NOTE: Look into next 2024-09-27!!!!!!!!!!
-    print(">>> formatting thermal power dataset completed !")
+
     
 if __name__ == '__main__':
     main()

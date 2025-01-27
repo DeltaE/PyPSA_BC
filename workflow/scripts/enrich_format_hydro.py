@@ -1,8 +1,13 @@
 import pypsa
-from bc_combined_modelling import utils, hydro
+import sys
+from pypsa_bc import utils, hydro
 import json
 import pandas as pd
+from pypsa_bc import utils
 
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 def is_terminal_stage(down_rid):
     '''
@@ -312,6 +317,7 @@ def write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg):
     # write pickle
     out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["res"]
     utils.write_pickle(res_dict, out_file)
+    utils.print_update(level=3,message="Reservoir data saved to :"+out_file)
 
 def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
     '''
@@ -329,7 +335,7 @@ def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
     # write pickle
     out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["ror"]
     utils.write_pickle(ror_dict, out_file)
-
+    utils.print_update(level=3,message="RoR data saved to :"+out_file)
 
 
 def write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg):
@@ -351,6 +357,7 @@ def write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg):
     # write pickle
     out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["ror_water"]
     utils.write_pickle(ror_dict, out_file)
+    utils.print_update(level=3,message="RoR data sevd to :"+out_file)
 
 
 def main():
@@ -372,43 +379,48 @@ def main():
     Plan will be to export a json for now.. This is so there are redundant columns and avoid need of a DF per
     component.
     '''
-    # Read in configuration file
-    config_file = r"config/config.yaml"   
-    cfg_complete = utils.load_config(config_file)
-    cfg=cfg_complete['pypsa']
-    print(">>> formatting hydro dataset initiates...")
+    # get the configuration file
+    cfg:dict=pypsa_aparser.pypsa_cfg
+    utils.print_update(level=1,message="Formatting hydro dataset for PyPSA...")
 
-    # start_time = cfg['params']['start']
-    # end_time = cfg['params']['end']
     
-    start_time = cfg_complete['province_mapping']['BC']['snapshots_tz_BC']['start'][0]
-    end_time = cfg_complete['province_mapping']['BC']['snapshots_tz_BC']['end'][0]
+    (start_time,end_time) = pypsa_aparser.get_snapshot
+    utils.print_update(level=2,message=f"Snapshot extracted:{start_time},{end_time}")
 
     hydro_sites = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_generation"])
+    utils.print_update(level=2,message="Hydro sites loaded...")
     
     res_inflows = pd.read_csv(cfg['output']["reservoir_inflows"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
+    utils.print_update(level=2,message="Reservoir inflows loaded...")
+    
     ror_series = pd.read_csv(cfg['output']["ror_ps"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
+    utils.print_update(level=2,message="RoR series loaded...")
+    
     buses = pd.read_csv(cfg['output']["prepare_base_network"]["folder"] + "/buses.csv")['name'].tolist()
+    utils.print_update(level=2,message="Buses loaded...")
 
     # (0A) Create folders if they have not been created already
-    utils.create_folder(cfg['output']["pypsa_dict"]['folder'])
+    utils.check_path(cfg['output']["pypsa_dict"]['folder'])
 
     
-
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
+    utils.print_update(level=3,message="creating bus mapping dictionary...")
     bus_dict = utils.create_standard_gen_bus_map(buses)
+
 
     # (1) Write pickle dictionaries for the RoR facilities.
     write_ror_dict(hydro_sites, ror_series, bus_dict, cfg)
 
     # (2) Write pickle dictionaries for the reservoirs.
+    
     hydro_res = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_reservoir"]) # Purely reservoir information
+    utils.print_update(level=2,message="Hydro reservoirs loaded...")
+    
     write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg)
 
     # (3) Write pickle dictionaries for the RoR-Water facilities.
     write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg)
-    print(">>> formatting hydro dataset completed !")
-    
+
     
 if __name__ == '__main__':
-    main()
+ main()

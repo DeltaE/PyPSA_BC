@@ -1,12 +1,10 @@
 import pandas as pd
 from pypsa_bc import utils
 import math
-import sys
-from pathlib import Path
-# store initiator
-# from pathlib import Path
-# from linkingtool.hdf5_handler import DataHandler
-# store:DataHandler=DataHandler(Path('data/store/downloaded_data.h5'))
+
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
 
 def add_missing_lines(df_lines_bc):
     '''
@@ -434,7 +432,7 @@ def create_transformer_types_df(df_transformers):
     return df_transformer_types
 
 
-def main(config_file:str|Path):
+def main():
     '''
     This script prepares the csv files for creating the base PyPSA_BC network.
     # Outfiles: 
@@ -447,10 +445,9 @@ def main(config_file:str|Path):
     '''
     utils.print_update(level=1,message="Preparing base nework for PyPSA_BC")
     
-    # Read in configuration file
-    # config_file = r"config/data.yaml"
-    cfg = utils.load_config(config_file)
-
+    # get config
+    cfg = pypsa_aparser.pypsa_cfg
+    
     # A) load data
 
     transmission_line_path = cfg['data']["coders"]["lines"]
@@ -573,8 +570,4 @@ def main(config_file:str|Path):
     
     
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_hydro_assets.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

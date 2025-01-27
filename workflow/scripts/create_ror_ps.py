@@ -1,19 +1,20 @@
-from pypsa_bc import hydro
-from pypsa_bc import utils
+from pypsa_bc import hydro,utils
 import atlite
 import pandas as pd
 import geopandas as gpd
 import sys
-from collections import namedtuple
 from pathlib import Path
 
-def main(config_file:str|Path):
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
+
+def main():
     # Description: main script for creating the hydro cutout based on hydro site locations and the basins they are located within
     # and each basins upstream basins.
 
     # (i) get configuration
-    # config_file = r"config/config.yaml"   
-    cfg = utils.load_config(config_file)
+    cfg = pypsa_aparser.pypsa_cfg
 
     utils.print_update(level=1,message="Preparing existing ROR assets...")
   
@@ -35,8 +36,4 @@ def main(config_file:str|Path):
     hydro.create_ror_power(all_ror_sites, basin_data, cutout, cfg)
     
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_hydro_assets.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()

@@ -27,7 +27,8 @@ data: #Temp
     lines: "data/downloaded_data/CODERS/data-pull/network/transmission_lines.csv"
     substations: "data/downloaded_data/CODERS/data-pull/network/substations.csv"
   load:
-    ceei: "data/downloaded_data/load/CEEI_2020.xlsx"
+    ceei: "data/downloaded_data/load/CEEI_2022.xlsx"
+    cee_transport: "data/downloaded_data/load/CEEI_TRA_2022.xlsx"
     bch: "data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad" # 2021.xls
 output:
   prepare_base_network:
@@ -80,6 +81,7 @@ output:
     UC: False # unit commitment for thermal PPs
     fname: "data/processed_data/tpp/existing/bc_ext_tpp_assets.csv"
   disaggregate_load:
+    province_2_RD_proportions : 'data/processed_data/load/CEEI_RD_ELEC_proportions.csv'
     res_path: "data/processed_data/load/hourly_res.csv" # output path
     csmi_path: "data/processed_data/load/hourly_csmi.csv" # output path
   build_model:
@@ -201,3 +203,90 @@ GWA:
   filter:
     windspeed_low: 7 # meter/s
     windspeed_high: 35 # meter/s
+
+province_mapping:
+
+  'AB': 
+    name: "Alberta"
+    land_area_km2: 642,317
+    land_area_mi2: 275,000
+    percentage_national_land_area: "7.1%"
+    timezone_convert: 'Etc/GMT-7' # Mountain Time Zone
+    region_mapping: {}
+    
+  'BC': 
+    name: "British Columbia"
+    land_area_km2: 925,186
+    land_area_mi2: 357,216
+    percentage_national_land_area: "10.4%"
+    snapshots_tz_BC: # Hardcoded alternate measures of 'timezone_convert', supported by Pypsa
+      start: 
+      - '2021-01-01 00:00:00' # YYYY-MM-DD "2021-01-01 07:00:00"
+      end: 
+      - '2021-12-31 23:00:00' # YYYY-MM-DD "2022-01-01 06:00:00"
+    timezone_convert: 'Etc/GMT+7' # Pacific Time Zone
+    region_mapping: {}
+    
+  'MB': 
+    name: "Manitoba"
+    land_area_km2: 553,556
+    land_area_mi2: 213,733
+    percentage_national_land_area: "6.1%"
+    timezone_convert: 'Etc/GMT-6' # Central Time Zone
+    region_mapping: {}
+
+  'NB': 
+    name: "New Brunswick"
+    land_area_km2: 71,450
+    land_area_mi2: 27,587
+    percentage_national_land_area: "0.8%"
+    timezone_convert: 'Etc/GMT-4' # Atlantic Time Zone
+    region_mapping: {}
+
+  'NL': 
+    name: "Newfoundland and Labrador"
+    land_area_km2: 373,872
+    land_area_mi2: 144,355
+    percentage_national_land_area: "4.1%"
+    timezone_convert: 'Etc/GMT-3.5' # Newfoundland Time Zone
+    region_mapping: {}
+
+  'NS': 
+    name: "Nova Scotia"
+    land_area_km2: 53,338
+    land_area_mi2: 20,594
+    percentage_national_land_area: "0.6%"
+    timezone_convert: 'Etc/GMT-4' # Atlantic Time Zone
+    region_mapping: {}
+
+  'ON': 
+    name: "Ontario"
+    land_area_km2: 917,741
+    land_area_mi2: 354,348
+    timezone_convert: 'Etc/GMT-5' # Eastern Time Zone
+    percentage_national_land_area: "10.1%"
+    region_mapping: {}
+
+  'PE': 
+    name: "Prince Edward Island"
+    land_area_km2: 5,660
+    land_area_mi2: 2,185
+    timezone_convert: 'Etc/GMT-4' # Atlantic Time Zone
+    percentage_national_land_area: "0.1%"
+    region_mapping: {}
+
+  'QC': 
+    name: "Quebec"
+    land_area_km2: 1,365,128
+    land_area_mi2: 527,088
+    timezone_convert: 'Etc/GMT-5' # Eastern Time Zone
+    percentage_national_land_area: "15.0%"
+    region_mapping: {}
+
+  'SK': 
+    name: "Saskatchewan"
+    land_area_km2: 591,670
+    land_area_mi2: 228,449
+    timezone_convert: 'Etc/GMT-6' # Central Time Zone (no DST in most areas)
+    percentage_national_land_area: "6.5%"
+    region_mapping: {}

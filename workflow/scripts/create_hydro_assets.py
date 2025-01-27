@@ -3,6 +3,11 @@ import pandas as pd
 from pathlib import Path
 import warnings
 import sys
+
+# handles the config loading centrally
+from pypsa_bc.attributes_parser import AttributesParser
+pypsa_aparser=AttributesParser()
+
 # Suppress all warnings
 warnings.filterwarnings("ignore")
 
@@ -293,7 +298,7 @@ def custom_bridge_agg(df):
     return df
 
 
-def main(config_file:str|Path):
+def main():
     '''
     Description: This script is for creating a single csv file with all
     the needed technical information regarding the hydro assets.     
@@ -306,7 +311,7 @@ def main(config_file:str|Path):
     
     # Read in configuration file
     # config_file = r"config/data.yaml"
-    cfg = utils.load_config(config_file)
+    cfg = pypsa_aparser.pypsa_cfg
 
 
     # write path + file
@@ -394,8 +399,4 @@ def main(config_file:str|Path):
     utils.print_update(level=2,message=f"hydro generator data saved to: {df_hydro_path}")
  
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print("Usage: python create_hydro_assets.py <config_file>")
-        sys.exit(1)
-    config_file = sys.argv[1]
-    main(config_file)
+    main()
