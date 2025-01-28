@@ -344,7 +344,8 @@ EXAMPLE:
 """
 
 
-def main(provincial_total_load_MWh:float):
+def main(provincial_total_load_MWh:float=None,
+         provincial_peak_load_MWh:float=None):
     """
     Main function to disaggregate hourly load data for PyPSA.
     # Parameters:
@@ -392,13 +393,20 @@ def main(provincial_total_load_MWh:float):
     # Hourly load data needs some fixing
     hourly = fix_hourly_load(pd.read_excel(hourly_path), year)
     utils.print_update(level=2,message=f"Hourly load data loaded from: {hourly_path}")
-
-    hourly['LOAD']=provincial_total_load_MWh*hourly['LOAD_profile_norm_total2hr']
+    
+    load_data_disaggregation_field= {'provincial_peak_load_MWh':'LOAD_profile_norm_peak2hr',
+                                     'provincial_total_load_MWh':'LOAD_profile_norm_total2hr'}
+    if provincial_peak_load_MWh is not None:
+        hourly['LOAD']=provincial_total_load_MWh*hourly[load_data_disaggregation_field['provincial_peak_load_MWh']]
+        
+    elif provincial_total_load_MWh is not None:  
+        hourly['LOAD']=provincial_total_load_MWh*hourly[load_data_disaggregation_field['provincial_total_load_MWh']]
 
     hourly_res, hourly_csmi = disaggregate_load(proportions,
                                                 hourly)
     
     BC_boundary = gpd.read_file('data/processed_data/regions/gadm41_Canada_L2_BC.geojson')
+    
     visualize_ratios_in_map(proportions,
                             BC_boundary)
     hourly_res = hourly_res / 1000 # convert from KW-hr to MW-hr

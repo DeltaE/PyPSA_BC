@@ -338,11 +338,14 @@ def add_vre_expansion_sites(network, sites, ts, vre_type='Wind'):
 
 def aggregate_lines(n):
     '''
-    This function aggregates the transmission lines between adminstrative zones of BC into a single lines.
+    This function aggregates the transmission lines between administrative zones of BC into a single lines.
     For now the capacity of the lines is simply aggregated.
-    NOTE: Aggregation needs to be modified eventually to adjust other parameteres affecting the admittance.
+    
+    NOTE: Aggregation needs to be modified eventually to adjust other parameters affecting the admittance.
     It also removes the old lines which were aggregated.
+    
     n: PyPSA Network object
+    
     '''
     temp_dict = {}
 
@@ -363,11 +366,12 @@ def aggregate_lines(n):
     # 2) Remove all old lines
     for line_name in n.lines.index.to_list():
         n.remove(class_name='Line',name=line_name)
+        utils.print_update(level=4,message=f"Removed line: {line_name}")
 
     # 3) Add new lines
     for line in temp_dict.values():
         n.add(**line)
-
+        # utils.print_update(level=4,message=f"Added line: {line}")
 
 def fix_vre(n, hist_gen, ab_gen_map, vre_sel):
     '''
@@ -592,10 +596,11 @@ def add_reserves(n):
     rhs = p_nom_series
     capacity_lim = n.model.add_constraints(lhs <= rhs, name='Capacity-r')
 
-def main():
+def main(copperplate:bool=False,
+         year:int=2021):
     '''
     This script is used to build the model.(Currently, designed to build the existing electricity system in BC. (with site-c))
-    The scripts takes in the followig data:
+    The scripts takes in the following data:
     
     1) Network structure
     2) Hydro assets
@@ -608,13 +613,17 @@ def main():
     The script will save a NetCDF file of the instantiated network. 
 
     '''
-    print(" pypsa model building initiates...")
+    utils.print_update(level=1,message=" PyPSA model building initiated...")
+    utils.print_update(level=100,message="Disclaimer: This model supports upto 28 Regional Districts (administrative regions) as nodes. The detailed loads (if provided) will be aggregated to these regional nodes.")
     # (0) Load config file
 
     cfg=pypsa_aparser.pypsa_cfg
 
     # (1) Load files
+    utils.print_update(level=2,message='Customizing components attributes by Overriding the standard components of PyPSA')
     network = pypsa.Network(override_component_attrs=utils.get_multi_link_override())
+    
+    utils.print_update(level=2,message='Loading the prepared data-file paths for PyPSA-BC')
     network_path = cfg['output']['prepare_base_network']['folder'] 
     hydro_ror_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["ror"]
     hydro_res_path = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["res"]
@@ -626,19 +635,36 @@ def main():
 
 
     network.import_from_csv_folder(network_path)
+    utils.print_update(level=3,message=f'Loaded the network from : {network_path}')
+    
     ror_dict = utils.read_pickle(hydro_ror_path)
+    utils.print_update(level=3,message=f'Loaded the ROR data from : {hydro_ror_path}')
+    
     res_dict = utils.read_pickle(hydro_res_path)
+    utils.print_update(level=3,message=f'Loaded the Reservoir data from : {hydro_res_path}')
+    
     ror_water_dict = utils.read_pickle(hydro_ror_water_path)
+    utils.print_update(level=3,message=f'Loaded the Water inflow data from : {hydro_ror_water_path}')
+    
     wind_dict = utils.read_pickle(wind_path)
+    utils.print_update(level=3,message=f'Loaded the Wind resources data from : {wind_path}')
+    
     pv_dict = utils.read_pickle(pv_path)
+    utils.print_update(level=3,message=f'Loaded the Solar photovoltaic resources data from : {pv_path}')
+    
     tpp_dict = utils.read_pickle(tpp_path)
+    utils.print_update(level=3,message=f'Loaded the Thermal power resources data from : {tpp_path}')
+    
     ff_infra_dict = utils.read_pickle(ff_infra_path)
+    utils.print_update(level=3,message=f'Loaded the Fossil fuel resources data from : {ff_infra_path}')
 
 
-    # (2) Set timeslicing
-    network.set_snapshots(ror_dict['BC_ABN_GSS']['p_max_pu'].index) # UDPATE REQUIRED
+    # (2) Set time-slicing
+    utils.print_update(level=2,message='Updating ROR time-slices...')
+    network.set_snapshots(ror_dict['BC_ABN_GSS']['p_max_pu'].index) # UPDATE REQUIRED
 
     # (3) Start adding assets
+    utils.print_update(level=2,message='Adding power generation assets to the network...')
     add_hydro_ror_assets(network, ror_dict)
     add_hydro_res_assets(network, res_dict) # NOTE: None for AB
     add_hydro_ror_water_assets(network, ror_water_dict) # NOTE: None for AB
@@ -664,9 +690,12 @@ def main():
     # NOTE: Centroid calculation will need an update and validation.
     # bus_dict = {name:0 for name in pd.read_csv(bus_path)['name'].tolist()}
     # NOTE: GADM switching to BC entire province here just for time being
-    region =  cfg["output"]["build_model"]["region_res"] # "single": BC as a single region, "multiple": BC split into 28 regional districts 
-
-    if region == 'multiple':
+    
+    # region =  cfg["output"]["build_model"]["region_res"] # "single": BC as a single region, "multiple": BC split into 28 regional districts 
+    
+    if not copperplate:
+        utils.print_update(level=2,message="Preparing network for multi regional nodes...")
+        # region == 'multiple':
         # # geo_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
         # geo_file = r'/home/pmcwhannel/repos/PyPSA_BC/data/regions/AESO-Planning-Areas-2020-06-23'
         # regional_gdf = gpd.read_file(geo_file)
@@ -674,19 +703,21 @@ def main():
         # # (7A) Add new gadm regions as buses
 
         # geojson_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
-        geojson_file = cfg["GADM"]["country_file_L2"] 
+        regional_boundaries = Path(cfg["GADM"]["country_file_L2"])
+        gdf = gpd.read_file(regional_boundaries)
         
-        gdf = gpd.read_file(geojson_file)
         # Get GeoDataFrame of the GADM regions.
         gadm_bc = gdf[gdf["NAME_1"] =="BritishColumbia"]
         busmap_dict = get_bc_busmap_dict(network, gadm_bc)
 
         # (7A) Add new gadm regions as buses
+        utils.print_update(level=3,message="Creating regional buses...")
         create_adm_buses(network, gadm_bc, busmap_dict)
 
-    elif region == 'single':
+    else:
+        utils.print_update(level=3,message="Preparing network for single node (aggregated regions)")
         # geo_file = cfg["data"]["gadm"]["bc"] #"/mnt/c/Users/pmcw9/Delta-E/PICS/Data/regions/gadm41_CAN_2.json"
-        geojson_file = cfg_complete["GADM"]["country_file_L2"] 
+        geojson_file = cfg["GADM"]["country_file_L1"] 
         gdf = gpd.read_file(geojson_file)
         mask = gdf["NAME_1"] == "BritishColumbia"
         busmap_dict = get_single_region_busmap_dict(network, gdf.loc[mask,:])
@@ -698,9 +729,6 @@ def main():
                     y=gdf.loc[mask,:].geometry.centroid.y.iloc[0],
                     v_nom = 300 # voltage assumed
                     )
-    else:
-        print(region," Not implemented!")
-    
    
 
     # (7B) Add new trade buses
@@ -719,18 +747,24 @@ def main():
     # network.lines['s_nom'] = 50000 # 3700 no good. Good at 3800. Good at 4000.
 
     # (8) Add load (BC)
-    start_time = cfg["cutout"]["snapshots"]["start"][0]
-    end_time = cfg["cutout"]["snapshots"]["end"][0]
 
+    (start_time,end_time)=pypsa_aparser.get_snapshot
+    utils.print_update(level=2,message= f"Snapshot loaded: {start_time}-{end_time}")
+
+    utils.print_update(level=2,message= "Checking loads data")
     res_load = pd.read_csv(cfg['output']['disaggregate_load']['res_path'],
                             index_col=0, parse_dates=True).loc[start_time:end_time]
+    utils.print_update(level=3,message= f"Residential load data loaded from: {cfg['output']['disaggregate_load']['res_path']} ")
+
     csmi_load = pd.read_csv(cfg['output']['disaggregate_load']['csmi_path'],
                             index_col=0, parse_dates=True).loc[start_time:end_time]
+    utils.print_update(level=3,message= f"Commercial, Small and Medium Industries load data loaded from: {cfg['output']['disaggregate_load']['res_path']} ")
     
     # # NOTE: Update coming for Stikine and CentralCoast.z
     # NOTE: May be issues here with assignment of new assets
     # These regions have no way to serve load or do not have load according to CEEI
-    if region == 'multiple':
+    utils.print_update(level=2,message="Calibrating load for network buses...")
+    if not copperplate:
         for col in res_load.columns: 
             if col not in ["Stikine", "CentralCoast", "NorthernRockies"]: 
                 load_ts = res_load[col] + csmi_load[col]
@@ -743,13 +777,14 @@ def main():
                 #     )
             else:
                 pass
-    elif region == 'single':
+    else:
         total_load_ts = res_load.sum(axis=1) + csmi_load.sum(axis=1)
         network.add("Load", "BC ELC Load", bus="BC", p_set=total_load_ts) # Make load much smaller
 
 
 
-    # (9) Determine all componenets to relink
+    # (9) Determine all components to relink
+    utils.print_update(level=2,message="Refactoring,aggregating and mapping buses to regions...")
     replace_bus_refs(network.generators,'bus', busmap_dict)
     replace_bus_refs(network.links,'bus0', busmap_dict)
     replace_bus_refs(network.links,'bus1', busmap_dict)
@@ -759,6 +794,7 @@ def main():
     # replace_bus_refs(network.loads,'bus', busmap_dict)
 
     # (10) Remove the old components which are no longer needed (lines, buses)
+    utils.print_update(level=2,message="Cleaning the non-aggregated lines and buses that are not required for solving the network...")
     remove_old_components(network, busmap_dict)
 
     #################### ADDING ALL NEW ASSETS BEGINS HERE ##############
@@ -768,18 +804,23 @@ def main():
     # CF_mean: capacity factor
     # p_lcoe: MW-hr / $M-CAD-per-MW-Installed
     # load pv/solar, wind, and battery assets?
+    utils.print_update(level=2,message="Loading Resource Options (non-existing future resources)...")
     resource_options_data = Path('data/processed_data')
     solar_resources=resource_options_data/'solar/potential'
     wind_resources=resource_options_data/'wind/potential'
     
     pv_sites = pd.read_csv(solar_resources/'resource_options_investments_solar.csv',index_col='cluster_id')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['solar']))
     pv_ts = pd.read_csv(solar_resources/'resource_options_solar_timeseries.csv',index_col='time', parse_dates=True)# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_CFts_topSites']['solar']))
-    
+    utils.print_update(level=3,message=f"Solar sites and profiles loaded from {solar_resources} ")
+   
     wind_sites = pd.read_csv(wind_resources/'resource_options_investments_wind.csv',index_col='cluster_id')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['wind']))
     wind_ts = pd.read_csv(wind_resources/'resource_options_wind_timeseries.csv',index_col='time', parse_dates=True)# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_CFts_topSites']['wind']))
+    utils.print_update(level=3,message=f"Wind sites and profiles loaded from {wind_resources} ")
+    
 
     add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='Solar')
     add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind')
+    utils.print_update(level=3,message="Resources options added to pypsa network.")
     
     # # (12) Add trade load
     # # NOTE: Needs to be updated in line with what is done in BC_Nexus
@@ -794,6 +835,7 @@ def main():
     
     # Add Backstops
     # NOTE: Watch out for when cogen is added here....
+    utils.print_update(level=2,message="Creating BACKSTOP generators to the network...")
     for bus in network.loads.bus.unique():
         network.add(class_name="Generator",
                     name='Backstop {}'.format(bus),
@@ -805,12 +847,14 @@ def main():
                     )
                 
     # Aggregate lines
+    utils.print_update(level=2,message="Aggregating inter-zones lines...")
     aggregate_lines(network)
 
     # Solve network or save network below:
-
+    utils.print_update(level=2,message="Optimizing the build network...")
     network.optimize(solver_name='gurobi') # cplex should be added to a solver
 
+    utils.print_update(level=2,message="Creating model instance from the PyPSA network. Can be accessed later via 'n.model' ")
     network.optimize.create_model()
     # add_reserves(network)
     # network.optimize.create_model()
@@ -818,8 +862,12 @@ def main():
     # network.optimize.solve_model(solver_name='gurobi')
 
     # Save network
-    network.export_to_netcdf(cfg["output"]["build_model"]["fname"])
-    print(" pypsa model building completed and solved network saved to local !")
+    
+    solved_network_save_to=Path(cfg["output"]["build_model"]["fname"]+f'_{year}.nc')
+    solved_network_save_to.parent.mkdir(exist_ok=True,parents=True)
+    
+    network.export_to_netcdf(solved_network_save_to)
+    utils.print_update(level=1,message=f"Solved network saved to : {solved_network_save_to} ")
     
 if __name__ == '__main__':
-    main()
+    main(year=2021)

@@ -24,9 +24,12 @@ def print_update(level: int=None,
         elif level == 2:
             color = Fore.CYAN
             prefix=" └"
-        elif level > 2:
+        elif level > 2 and level<100:
             color = Fore.LIGHTBLACK_EX + Style.DIM
             prefix="  └─"
+        elif level==100:
+            color = Fore.RED
+            prefix="└"
         elif alert:
             level=2
             color = Fore.RED
@@ -337,13 +340,24 @@ def get_gen_bus(node_code, bus_dict):
     return "_".join([str(bus_dict[node_code_suffix]), node_code_suffix])
 
 def get_multi_link_override():
-    '''
-    Gets the multi-link override. Needed for cascaded hydroelectric.
-    '''
+    """
+    Gets the multi-link override configuration for PyPSA components.
+
+    This function modifies the default component attributes of PyPSA to allow 
+    a single link to have two outputs, which is necessary for modeling cascaded 
+    hydroelectric systems. It adds attributes for a second bus, its efficiency, 
+    and its output power to the 'Link' component.
+
+    Returns:
+        dict: A dictionary with the overridden component attributes for PyPSA.
+    """
+
     # From PyPSA CHP Example: This ensures we can add 2 outputs for a single link i.e bus0 -> bus_1 AND bus_2
-    override_component_attrs = pypsa.descriptors.Dict(
-        {k: v.copy() for k, v in pypsa.components.component_attrs.items()}
-    )
+    # override_component_attrs = pypsa.descriptors.Dict(
+    #     {k: v.copy() for k, v in pypsa.components.component_attrs.items()}
+    # )
+    override_component_attrs = pypsa.components.component_attrs.copy() # new version compatibility
+    
     override_component_attrs["Link"].loc["bus2"] = [
         "string",
         np.nan,
@@ -365,6 +379,9 @@ def get_multi_link_override():
         "2nd bus output",
         "Output",
     ]
+
+    
+    print_update(level=2,message='For more about custom components of pypsa, see >> https://pypsa.readthedocs.io/en/latest/user-guide/components.html#custom-components')
     return override_component_attrs
 
 def get_multi_gen_override():
