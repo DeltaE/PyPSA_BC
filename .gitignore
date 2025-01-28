@@ -8,3 +8,6 @@ data/store/*
 # include these from hidden partially ignored folders
 !results/.keep
 !resources/.keep
+
+workflow/scripts/__pycache__
+pypsa_bc/__pycache__

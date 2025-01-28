@@ -1,6 +1,9 @@
 import pandas as pd
 from pypsa_bc import utils
 from pathlib import Path
+import geopandas as gpd
+import pandas as pd
+import folium
 
 import plotly.express as px
 import numpy as np
@@ -70,80 +73,66 @@ def fix_hourly_load(load_bch_raw:pd.DataFrame,
     load_bch_MWh = load_bch_MWh.set_index('TIME')
 
     load_bch_MWh=add_normalize_load_data(load_bch_MWh)
+    load_bch_MWh.to_csv(f'data/processed_data/load/Hourly_profile_{year}.csv')
     
-    plot_hourly_profile_with_ldc(load_bch_MWh)
+    plot_hourly_profile(load_bch_MWh)
     
     #Return the hourly load for the entire province for a given year
     return load_bch_MWh
 
 def add_normalize_load_data(load:pd.DataFrame):
    
-    load['LOAD_profile_norm'] = load['LOAD'] / load['LOAD'].sum()
+    load['LOAD_profile_norm_total2hr'] = load['LOAD'] / load['LOAD'].sum()
+    load['LOAD_profile_norm_peak2hr'] = load['LOAD'] / load['LOAD'].max()
     
     return load
 
-def plot_proportions(proportions:pd.DataFrame,
-                     show:bool=False):
-    """
-    Plots a heatmap of the proportions of residential and commercial/small industrial electricity consumption for each region.
-    Parameters:
-    -----------
-    proportions : pd.DataFrame
-        A DataFrame containing the proportions of electricity consumption with columns:
-        - 'REGION': The region names.
-        - 'PROPORTION_RES': Proportion of residential electricity consumption.
-        - 'PROPORTION_CSMI': Proportion of commercial and small industrial electricity consumption.
-    Returns:
-    --------
-    None
-        Displays the heatmap and saves it as an HTML file in the 'vis' directory.
-    """
+def visualize_ratios_in_map(ratios:pd.DataFrame,
+                            BC_boundary:gpd.GeoDataFrame):
 
-    # Create a heatmap of the proportions of residential and industrial electricity consumption for each region
-    proportions.rename(columns={'PROPORTION_RES': 'Residential','PROPORTION_CSMI':'Commercial and Small Industries'},inplace=True)
+    # Merge boundary GeoDataFrame with ratios on 'REGION' (ratios) and 'Region' (boundary)
+    ratios_ = ratios.merge(BC_boundary[['Region', 'geometry']], left_index=True, right_on='Region', how='left')
+    ratios_gdf=gpd.GeoDataFrame(ratios_,geometry='geometry')
 
-    # Filter out empty or all-NA columns/rows
-    # Reshape the data for the heatmap
-    df_melted = proportions.melt(id_vars="REGION", var_name="Metric", value_name="Proportion")
+    # Assuming 'ratios_gdf' is your GeoDataFrame
 
-    # Create the heatmap data
-    heatmap_data = df_melted.pivot_table(index="REGION", columns="Metric", values="Proportion")
+    # Initialize the base map
+    m = folium.Map(location=[53.7267, -127.6476], zoom_start=5)
 
-    # Reshape the data for the heatmap
-    # Create the heatmap
-    fig = px.imshow(
-        heatmap_data,
-        color_continuous_scale="Reds",
-        title="Regional Proportions for Provincial Electricity Consumption",
-        labels={"color": "Proportion"},
-        aspect="auto",  # Keeps the aspect ratio balanced
-    )
+    # Add the first layer (PROPORTION_RES)
+    folium.Choropleth(
+        geo_data=ratios_gdf,
+        data=ratios_gdf,
+        columns=['Region', 'PROPORTION_RES'],
+        key_on='feature.properties.Region',
+        fill_color='Reds',
+        fill_opacity=0.7,
+        line_opacity=0.2,
+        legend_name='Proportion of Residential Load',
+        highlight=True,
+        name='Residential Load'
+    ).add_to(m)
 
-    # Update layout for readability
-    fig.update_layout(
-        xaxis_title="Proportions", 
-        yaxis_title="Regions",
-        xaxis=dict(
-            tickangle=0,  # Make tick marks horizontal
-            tickvals=[i for i, col in enumerate(heatmap_data.columns)],  # Label all metrics
-            ticktext=[col.replace(" and ", " and\n") for col in heatmap_data.columns]  # Split long labels into two lines
-        ),
-        width=800,
-            tickvals=[i for i in range(len(heatmap_data.columns))],  # Label all metrics
-        margin=dict(l=50, r=50, t=50, b=50),
-        coloraxis_colorbar=dict(title="Proportions", ticks="outside", ticklen=5),
-    )
+    # Add the second layer (PROPORTION_CSMI)
+    folium.Choropleth(
+        geo_data=ratios_gdf,
+        data=ratios_gdf,
+        columns=['Region', 'PROPORTION_CSMI'],
+        key_on='feature.properties.Region',
+        fill_color='Blues',
+        fill_opacity=0.7,
+        line_opacity=0.2,
+        legend_name='Proportion of Commercial, Small and Medium Industries Load',
+        highlight=True,
+        name='Commercial Load'
+    ).add_to(m)
 
-    # Customize hover text
-    fig.update_traces(hovertemplate="Region: %{y}<br>Metric: %{x}<br>Proportion: %{z:.3f}")
-    if show:
-        fig.show()
-    
+    # Add layer control to toggle between layers
+    folium.LayerControl().add_to(m)
+    proportions_vis_save_to= plot_save_to_root/'PROVICIAL_2_Regional_loads_ratios.html'
+    # Display the map
+    m.save(proportions_vis_save_to)
 
-    proportions_vis_save_to=plot_save_to_root/'CEEI_RD_ELEC_proportions_heatmap.html'
-    proportions_vis_save_to.parent.mkdir(parents=True,exist_ok=True)
-    
-    fig.write_html(proportions_vis_save_to)
     utils.print_update(level=2,message=f"Provincial load to Regional Districts load ratios' visual saved to : {proportions_vis_save_to}")
 
 #This part disaggregates the hourly load data from BC Hydro into 27 subdivisions of BC
@@ -152,7 +141,8 @@ def get_proportions(ceei:pd.DataFrame,
                     proportions_data_path:Path,
                     force_replace:bool=False):
     
-    if proportions_data_path.exists() and not force_replace:
+    if not proportions_data_path.exists() or force_replace:
+        utils.print_update(level=3,message="Preparing Provincial to Regional Proportions data")
         #Get all the regions of BC to loop through
         regions = ceei['ORG_NAME'].unique()
 
@@ -179,15 +169,16 @@ def get_proportions(ceei:pd.DataFrame,
         #Comox Valley & Strathcona combine into Comox-Strathcona, Metro-Vancouver becomes GreaterVancouver (this is to line up with GADM naming convention)
         proportions.loc['Comox Valley'] += proportions.loc['Strathcona']
         proportions = proportions.drop('Strathcona')
-        proportions = proportions.rename(index={'Comox Valley': 'Comox-Strathcona', 'Metro-Vancouver': 'GreaterVancouver'})
+        proportions = proportions.rename(index={'Comox Valley': 'Comox-Strathcona', 'Metro-Vancouver': 'Greater Vancouver'})
     
         proportions_data_path.parent.mkdir(parents=True,exist_ok=True)
         proportions.to_csv(proportions_data_path)
         utils.print_update(level=2,message=f"Provincial load to Regional Districts load ratios' saved to :{proportions_data_path}")
     else:
         utils.print_update(level=3,message="Proportions data already exists. Use force_replace=True to overwrite.")
-        proportions=pd.read_csv(proportions_data_path,set_index='REGION')
-    
+        proportions=pd.read_csv(proportions_data_path)
+        proportions=proportions.set_index('REGION')
+        
     return proportions
         
 def preprocess_ceei_data(ceei_Buildings_eng_file_path:str|Path,
@@ -240,65 +231,26 @@ def preprocess_ceei_data(ceei_Buildings_eng_file_path:str|Path,
     return ceei_data
 
 
-from plotly.subplots import make_subplots
-import plotly.express as px
-import plotly.graph_objects as go
-from typing import Optional
-from pathlib import Path
-
-def plot_hourly_profile_with_ldc(data: pd.DataFrame,
-                                 show: Optional[bool] = False):
-    utils.print_update(level=2, message="Plotting the normalized load profile and load duration curve for the year...")
+def plot_hourly_profile(data:pd.DataFrame,
+                        show:Optional[bool]=False):
+    utils.print_update(level=2,message="Plotting the normalized load profile for the year...")
 
     title = f'Normalized Load Profile {data.index[0].year}'
     peak_load_time = data['LOAD'].idxmax()
-    peak_load_value = data['LOAD_profile_norm'].max()
+    peak_load_value = data['LOAD_profile_norm_peak2hr'].max()
 
     # Function to resample data
     def resample_data(freq):
         return data.resample(freq).mean()
 
-    # Create subplots: 1 row, 2 columns
-    fig = make_subplots(
-        rows=1, cols=2,
-        column_widths=[0.6, 0.4],
-        subplot_titles=("Normalized Load Profile", "Load Duration Curve")
-    )
-
-    # Plot normalized load profile
-    fig.add_trace(
-        go.Scatter(
-            x=data.index,
-            y=data['LOAD_profile_norm'],
-            mode='lines',
-            name='Normalized Profile'
-        ),
-        row=1, col=1
-    )
-
-    # Highlight peak load
-    fig.add_trace(
-        go.Scatter(
-            x=[peak_load_time],
-            y=[peak_load_value],
-            mode='markers',
-            marker=dict(color='red', size=8),
-            name='Peak Load'
-        ),
-        row=1, col=1
-    )
-
-    # Compute and plot Load Duration Curve
-    ldc_data = data['LOAD_profile_norm'].sort_values(ascending=False).reset_index(drop=True)
-    fig.add_trace(
-        go.Scatter(
-            x=ldc_data.index,
-            y=ldc_data,
-            mode='lines',
-            name='Load Duration Curve',
-            line=dict(color='blue')
-        ),
-        row=1, col=2
+    # Create the initial figure
+    fig = px.line(data, x=data.index, y='LOAD_profile_norm_peak2hr', title=title)
+    fig.add_scatter(
+        x=[peak_load_time],
+        y=[peak_load_value],
+        mode='lines',
+        marker=dict(color='red', size=8),
+        name='Peak Load'
     )
 
     # Customize layout for minimal and clean look
@@ -312,15 +264,15 @@ def plot_hourly_profile_with_ldc(data: pd.DataFrame,
         },
         xaxis_title=None,
         yaxis_title="Normalized Load Profile",
+        xaxis=dict(showgrid=False, ticks="outside"),
+        yaxis=dict(showgrid=True, gridcolor="lightgrey"),
         font=dict(size=14),
         margin=dict(l=40, r=40, t=50, b=40),
-        showlegend=False,
-        height=500,
-        width=1000
+        showlegend=False
     )
 
     # Add dropdown for resampling
-    freq_options = ['h', 'D', 'W', 'ME']  # Hourly, Daily, Weekly, Monthly
+    freq_options = ['h','D', 'W', 'ME']  # Daily, Weekly, Monthly
     updatemenus = [
         {
             "buttons": [
@@ -328,10 +280,7 @@ def plot_hourly_profile_with_ldc(data: pd.DataFrame,
                     "label": f"Sampling: {freq}",
                     "method": "update",
                     "args": [
-                        {
-                            "x": [resample_data(freq).index, None],
-                            "y": [resample_data(freq)['LOAD_profile_norm'], None]
-                        },
+                        {"x": [resample_data(freq).index], "y": [resample_data(freq)['LOAD_profile_norm_peak2hr']]},
                         {"title": f"Normalized Load Profile (Resampled: {freq})"}
                     ],
                 }
@@ -350,9 +299,10 @@ def plot_hourly_profile_with_ldc(data: pd.DataFrame,
     fig.update_layout(updatemenus=updatemenus)
 
     # Show and save the figure
-    plot_save_to = plot_save_to_root / (title + '.html')
+
+    plot_save_to=str(Path('vis') / title) + '.html'
     fig.write_html(plot_save_to)
-    utils.print_update(level=3, message=f"Plot saved to {plot_save_to}")
+    utils.print_update(level=3,message=f"plot saved to {plot_save_to}")
     if show:
         fig.show()
 
@@ -443,11 +393,14 @@ def main(provincial_total_load_MWh:float):
     hourly = fix_hourly_load(pd.read_excel(hourly_path), year)
     utils.print_update(level=2,message=f"Hourly load data loaded from: {hourly_path}")
 
-    hourly['LOAD']=provincial_total_load_MWh*hourly['LOAD_profile_norm']
+    hourly['LOAD']=provincial_total_load_MWh*hourly['LOAD_profile_norm_total2hr']
 
     hourly_res, hourly_csmi = disaggregate_load(proportions,
                                                 hourly)
     
+    BC_boundary = gpd.read_file('data/processed_data/regions/gadm41_Canada_L2_BC.geojson')
+    visualize_ratios_in_map(proportions,
+                            BC_boundary)
     hourly_res = hourly_res / 1000 # convert from KW-hr to MW-hr
     hourly_csmi = hourly_csmi / 1000 # convert from KW-hr to MW-hr
 
