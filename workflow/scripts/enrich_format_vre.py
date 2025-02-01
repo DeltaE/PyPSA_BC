@@ -44,6 +44,7 @@ def get_vre_dict(site, site_ts, bus_dict, vre_selection): # site, site_ts, vre_p
             "name":name,
             "bus":elc_bus,
             "p_nom":p_nom,
+            "type" : vre_selection,
             "marginal_cost":site["variable_om_cost_CAD_per_MWh"],
             "p_nom_extendable":False, # Site already built
             # "capital_cost":site[], # not applicable since built

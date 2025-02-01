@@ -120,6 +120,7 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
                                     "name": " ".join([up_rid,"Inflow",class_name]),
                                     "bus": res_dict['reservoir bus']['name'],
                                     "carrier": "inflow",
+                                    "type" : "Reservoir",
                                     "efficiency":1., # mass_balance
                                     "p_nom":max_inflow, # max(inflow series)
                                     "p_set":inflow,
@@ -141,7 +142,7 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
         # Add bus for the terminal reservoir
         res_dict['terminal bus'] = {"class_name":"Bus",
                                     "name":downstream_bus,
-                                    "carrier":"water",
+                                    "carrier":"Water", # Water not water, EL
                                     }
         
         # Add spill store
@@ -205,6 +206,7 @@ def get_ror_dict(site, ror_ts, bus_dict):
             "name":name,
             "bus":elc_bus,
             "p_nom":site['capacity'],
+            "type" : "RoR",
             "marginal_cost":site["variable_om_cost_CAD_per_MWh"],
             "p_nom_extendable":False, # Site already built
             # "capital_cost":site[], # no applicable since built
@@ -239,6 +241,7 @@ def get_ror_water_dict(site, ror_series, bus_dict):
                                             "name": " ".join([up_rid,"Inflow",class_name]),
                                             "bus": ror_water_dict['reservoir bus']['name'],
                                             "carrier": "inflow",
+                                            "type" : "Reservoir",
                                             "efficiency":1., # mass_balance
                                             "p_nom":max_energy, # max(inflow series)
                                             "p_set":ror_series,

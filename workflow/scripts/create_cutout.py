@@ -1,4 +1,4 @@
-from pypsa_bc.pypsa import hydro
+from pypsa_bc import hydro
 from pypsa_bc import utils
 import pandas as pd
 import geopandas as gpd

@@ -44,6 +44,7 @@ def get_tpp_dict(site, bus_dict, tpp_gen_types, cfg):
                     "bus1": elc_bus,
                     "carrier": fuel_type,
                     "efficiency":eff_hr,
+                    "type" : "Thermal",
                     "ramp_limit_up":min(site["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "ramp_limit_down":min(site["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "p_nom_extendable":False,
@@ -95,6 +96,7 @@ def get_cogen_dict(site, gen_params, bus_dict, hist_gen, cfg):
                     "ramp_limit_up":min(gen_params["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "ramp_limit_down":min(gen_params["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "p_nom_extendable":False,
+                    "type" : "CoGen",
                     "committable":cfg["output"]["enrich_format_tpp"]["UC"],
                     "min_up_time":gen_params["min_up_time_hours"],
                     "min_down_time":gen_params["min_down_time_hours"],

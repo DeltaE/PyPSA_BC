@@ -55,30 +55,45 @@ CEEI_regional_districts_name = [
 
 
 #Format the hourly load data to account for inconsistencies with how BC Hydro handles daylight savings
-def fix_hourly_load(load_bch_raw:pd.DataFrame,
-                    year:int):
+def fix_hourly_load(load_bch_raw: pd.DataFrame, year: int) -> pd.DataFrame:
+    """
+    Processes and fixes the hourly load data for a given year.
+    This function performs the following steps:
+    1. Filters the input DataFrame to extract load data.
+    2. Converts the load data from MWh to kWh.
+    3. Removes NaN and zero values from the load data.
+    4. Indexes the load data by hourly timestamps for the specified year.
+    5. Normalizes the load data.
+    6. Saves the processed load data to a CSV file.
+    7. Plots the hourly load profile.
+    Args:
+        load_bch_raw (pd.DataFrame): Raw load data from BC Hydro.
+        year (int): The year for which the load data is being processed.
+    Returns:
+        pd.DataFrame: The processed hourly load data indexed by timestamp. The LOAD is in kWh
+    """
     
     #Filter down to just the loads
-    load_bch_data = pd.to_numeric(load_bch_raw[load_bch_raw.columns[-1]], errors='coerce')
+    load_bch_data_MWh = pd.to_numeric(load_bch_raw[load_bch_raw.columns[-1]], errors='coerce')
     #Rightmost column in BC Hydro hourly load spreadsheet, to_numeric converts the labels into NaN
-    load_bch_kWh = load_bch_data.reset_index().drop(columns=['index'])
+    load_bch_MWh = load_bch_data_MWh.reset_index().drop(columns=['index'])
     
-    load_bch_kWh.columns = ['LOAD']
+    load_bch_MWh.columns = ['LOAD']
 
     #Remove NaN values (the column labels and sometimes the value for DST hour) and 0 values (sometimes the DST hour), then convert from MWh to kWh
-    load_bch_MWh = load_bch_kWh.loc[load_bch_kWh['LOAD'] > 0] * 1000
+    load_bch_kWh = load_bch_MWh.loc[load_bch_MWh['LOAD'] > 0] * 1000
 
     #Index hourly loads by hourly timestamp
-    load_bch_MWh['TIME'] = pd.date_range(start=str(year)+'-01-01 00:00:00', end=str(year)+'-12-31 23:00:00', freq='h')
-    load_bch_MWh = load_bch_MWh.set_index('TIME')
+    load_bch_kWh['TIME'] = pd.date_range(start=str(year)+'-01-01 00:00:00', end=str(year)+'-12-31 23:00:00', freq='h')
+    load_bch_kWh = load_bch_kWh.set_index('TIME')
 
-    load_bch_MWh=add_normalize_load_data(load_bch_MWh)
-    load_bch_MWh.to_csv(f'data/processed_data/load/Hourly_profile_{year}.csv')
+    load_bch_kWh=add_normalize_load_data(load_bch_kWh)
+    load_bch_kWh.to_csv(f'data/processed_data/load/Hourly_profile_{year}.csv')
     
-    plot_hourly_profile(load_bch_MWh)
+    plot_hourly_profile(load_bch_kWh)
     
     #Return the hourly load for the entire province for a given year
-    return load_bch_MWh
+    return load_bch_kWh
 
 def add_normalize_load_data(load:pd.DataFrame):
    
@@ -359,7 +374,7 @@ def main(provincial_total_load_MWh:float=None,
         3. Loads Community Energy and Emissions Inventory (CEEI) data.
         4. Downloads necessary data files if they do not exist.
         5. Loads and processes hourly load data.
-        6. Disaggregates the load data using the specified method.
+        6. Disaggregates the load data using the specified method. The return data is in MWh (if not unit-less ratios)
         7. Saves the disaggregated load data to output files.
     """
 
@@ -391,32 +406,33 @@ def main(provincial_total_load_MWh:float=None,
                                 force_replace= False)
 
     # Hourly load data needs some fixing
-    hourly = fix_hourly_load(pd.read_excel(hourly_path), year)
+    hourly_kWh = fix_hourly_load(pd.read_excel(hourly_path), year) # in MWh
     utils.print_update(level=2,message=f"Hourly load data loaded from: {hourly_path}")
     
-    load_data_disaggregation_field= {'provincial_peak_load_MWh':'LOAD_profile_norm_peak2hr',
-                                     'provincial_total_load_MWh':'LOAD_profile_norm_total2hr'}
+    load_data_disaggregation_field= {'provincial_peak_load_kWh':'LOAD_profile_norm_peak2hr',
+                                     'provincial_total_load_kWh':'LOAD_profile_norm_total2hr'}
+    
     if provincial_peak_load_MWh is not None:
-        hourly['LOAD']=provincial_total_load_MWh*hourly[load_data_disaggregation_field['provincial_peak_load_MWh']]
+        hourly_kWh['LOAD']=provincial_total_load_MWh*hourly_kWh[load_data_disaggregation_field['provincial_peak_load_kWh']]
         
     elif provincial_total_load_MWh is not None:  
-        hourly['LOAD']=provincial_total_load_MWh*hourly[load_data_disaggregation_field['provincial_total_load_MWh']]
+        hourly_kWh['LOAD']=provincial_total_load_MWh*hourly_kWh[load_data_disaggregation_field['provincial_total_load_kWh']]
 
-    hourly_res, hourly_csmi = disaggregate_load(proportions,
-                                                hourly)
+    hourly_kWh_res, hourly_kWh_csmi = disaggregate_load(proportions,
+                                                hourly_kWh) #kWh
     
     BC_boundary = gpd.read_file('data/processed_data/regions/gadm41_Canada_L2_BC.geojson')
     
     visualize_ratios_in_map(proportions,
                             BC_boundary)
-    hourly_res = hourly_res / 1000 # convert from KW-hr to MW-hr
-    hourly_csmi = hourly_csmi / 1000 # convert from KW-hr to MW-hr
+    hourly_MWh_res = hourly_kWh_res / 1000 # convert from KW-hr to MW-hr
+    hourly_MWh_csmi = hourly_kWh_csmi / 1000 # convert from KW-hr to MW-hr
 
     # Write to files to the output folder path
-    hourly_res.to_csv(output_path_res)
+    hourly_MWh_res.to_csv(output_path_res)
     utils.print_update(level=2,message=f"Hourly residential load saved to: {output_path_res}")
     
-    hourly_csmi.to_csv(output_path_csmi)
+    hourly_MWh_csmi.to_csv(output_path_csmi)
     utils.print_update(level=2,message=f"Hourly industrial load saved to: {output_path_csmi}")
 
     #Return code 0 is for when everything runs without a problem
