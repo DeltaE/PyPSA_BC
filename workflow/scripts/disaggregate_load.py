@@ -88,7 +88,7 @@ def fix_hourly_load(load_bch_raw: pd.DataFrame, year: int) -> pd.DataFrame:
     load_bch_kWh = load_bch_kWh.set_index('TIME')
 
     load_bch_kWh=add_normalize_load_data(load_bch_kWh)
-    load_bch_kWh.to_csv(f'data/processed_data/load/Hourly_profile_{year}.csv')
+    load_bch_kWh.to_csv(f'data/pypsa/processed_data/load/Hourly_profile_{year}.csv')
     
     plot_hourly_profile(load_bch_kWh)
     
@@ -241,7 +241,7 @@ def preprocess_ceei_data(ceei_Buildings_eng_file_path:str|Path,
     # We only need data for electricity usage from regional districts for this disaggregation step
     data_year_selection=min(2021, profile_data_year)
     ceei_data = ceei.loc[(ceei.YEAR == data_year_selection) & (ceei.ENERGY_TYPE == 'ELEC') & (ceei.ORG_TYPE == 'Regional District')]
-    ceei_data.to_csv(f'data/processed_data/load/CEEI_{data_year_selection}_RD_ELEC.csv')
+    ceei_data.to_csv(f'data/pypsa/processed_data/load/CEEI_{data_year_selection}_RD_ELEC.csv')
     
     return ceei_data
 
@@ -421,7 +421,7 @@ def main(provincial_total_load_MWh:float=None,
     hourly_kWh_res, hourly_kWh_csmi = disaggregate_load(proportions,
                                                 hourly_kWh) #kWh
     
-    BC_boundary = gpd.read_file('data/processed_data/regions/gadm41_Canada_L2_BC.geojson')
+    BC_boundary = gpd.read_file('data/pypsa/processed_data/regions/gadm41_Canada_L2_BC.geojson')
     
     visualize_ratios_in_map(proportions,
                             BC_boundary)

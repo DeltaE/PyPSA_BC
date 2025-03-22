@@ -651,9 +651,12 @@ def add_reserves(n):
     rhs = p_nom_series
     capacity_lim = n.model.add_constraints(lhs <= rhs, name='Capacity-r')
 
-def main(copperplate:bool=False,
+def main(ev_charging:str,
+         ev_population:float,
+         copperplate:bool=False,
          capacity_choice:str='investment',
          year:int=2021,
+
          solved_network_save_to:Path=None):
     '''
     This script is used to build the model.(Currently, designed to build the existing electricity system in BC. (with site-c))
@@ -662,6 +665,7 @@ def main(copperplate:bool=False,
         copperplate (bool) : 'True ' or 'False
         capacity_choice (str): 'investment' or 'full_potential'
         year (int): 2021 to 2050
+        ev_charging (str) : 'uncoordinated'or 'coordinated' or 'v2g'
     
     1) Network structure
     2) Hydro assets
@@ -870,7 +874,7 @@ def main(copperplate:bool=False,
     # p_lcoe: MW-hr / $M-CAD-per-MW-Installed
     # load pv/solar, wind, and battery assets?
     utils.print_update(level=2,message="Loading Resource Options (non-existing future resources)...")
-    resource_options_data = Path('data/processed_data')
+    resource_options_data = Path('data/pypsa/processed_data')
     solar_resources=resource_options_data/'solar/potential'
     wind_resources=resource_options_data/'wind/potential'
     
@@ -886,10 +890,10 @@ def main(copperplate:bool=False,
     add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='Solar',capacity_choice=capacity_choice)
     add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind',capacity_choice=capacity_choice)
     
-    committed_sites_solar=pd.read_csv('data/processed_data/solar/committed/BCH_CFP24_solar.csv',index_col='project_name')
-    committed_sites_solar_ts=pd.read_csv('data/processed_data/solar/committed/BCH_CFP24_solar_ts.csv',index_col='time',parse_dates=True)
-    committed_sites_wind=pd.read_csv('data/processed_data/wind/committed/BCH_CFP24_wind.csv',index_col='project_name')
-    committed_sites_wind_ts=pd.read_csv('data/processed_data/wind/committed/BCH_CFP24_wind_ts.csv',index_col='time',parse_dates=True)
+    committed_sites_solar=pd.read_csv('data/pypsa/processed_data/solar/committed/BCH_CFP24_solar.csv',index_col='project_name')
+    committed_sites_solar_ts=pd.read_csv('data/pypsa/processed_data/solar/committed/BCH_CFP24_solar_ts.csv',index_col='time',parse_dates=True)
+    committed_sites_wind=pd.read_csv('data/pypsa/processed_data/wind/committed/BCH_CFP24_wind.csv',index_col='project_name')
+    committed_sites_wind_ts=pd.read_csv('data/pypsa/processed_data/wind/committed/BCH_CFP24_wind_ts.csv',index_col='time',parse_dates=True)
     
     committed_sites_solar_year=committed_sites_solar.iloc[committed_sites_solar['start_year'].values <= year]
     committed_sites_wind_year=committed_sites_wind.iloc[committed_sites_wind['start_year'].values <= year]
@@ -926,11 +930,142 @@ def main(copperplate:bool=False,
                     type='backstop',
                     bus=bus,
                     p_nom=50000,
-                    marginal_cost=1000,
+                    marginal_cost=9999*1e6,
                     p_nom_extendable=False,
                     capital_cost=999999
                     )
-                
+    
+    # Add EV load
+    utils.print_update(level=2,message="Creating EV components to the network...")
+    utils.print_update(level=2,message="the EV components currently supports copperplate simulation only.",
+                       alert=True)
+    if not copperplate:
+        utils.print_update(level=2,message="Multi-region EV simulation not implemented yet!",
+                           alert=True)
+        exit(123)
+    
+    charge_strat =ev_charging # cfg['output']['build_model']['charge_strat']
+    utils.print_update(level=3,message=f"Charging strategy : {charge_strat}")
+    ev_fleet_load_data_root = "results/fleet_EV_load_simulator/"
+    utils.print_update(level=3,message=f"Loading data for {charge_strat} charging scenario from {ev_fleet_load_data_root}")
+    
+    ev_penetration_prefix=int(ev_population*100)
+    #NOTE: Modified for a single region only! This should be updated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
+    if charge_strat == 'v2g':
+        # load data
+        
+        # ev_bus = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_bus.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        # ev_load = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_load.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        # ev_battery = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_battery.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        # ev_charger = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_charger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        # ev_discharger = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_discharger.pickle".format(charge_strat,cfg['output']['build_model']['scenario']))
+        
+        ev_bus = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_bus.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_load = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_load.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_battery = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_battery.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_charger = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_charger.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_discharger = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_discharger.pickle".format(charge_strat,ev_penetration_prefix))
+
+
+        for component in ev_bus:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_load:
+            name = component['name'].split('_')[0]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_battery:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_charger:
+            name = component['bus0']
+            component["bus0"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_discharger:
+            name = component['bus1']
+            component["bus1"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+    
+    elif charge_strat == 'coordinated':
+        # load data
+        ev_bus = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_bus.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_load = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_load.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_battery = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_battery.pickle".format(charge_strat,ev_penetration_prefix))
+        ev_charger = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_charger.pickle".format(charge_strat,ev_penetration_prefix))
+        # ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
+
+
+        for component in ev_bus:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_load:
+            name = component['name'].split('_')[0]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_battery:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_charger:
+            name = component['bus0']  # noqa: F841
+            component["bus0"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+    elif charge_strat == 'uncoordinated':
+        ev_load_list = utils.read_pickle(ev_fleet_load_data_root+"{}_{}_ev_load.pickle".format(charge_strat,ev_penetration_prefix))
+        for comp_dict in ev_load_list:
+            # if comp_dict['bus'] == 'CentralCoast':
+            #     continue
+            # if comp_dict['bus'] == 'Stikine':
+            #     continue
+            # if comp_dict['bus'] == "NorthernRockies":
+            #     continue
+            comp_dict['bus'] = "BC"
+            network.add(**comp_dict)
+    else:
+        utils.print_update(level=2,message="{charge_strat} not implemented yet!")
+        exit(123)
+    
     # Aggregate lines
     utils.print_update(level=2,message="Aggregating inter-zones lines...")
     aggregate_lines(network)

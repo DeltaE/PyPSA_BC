@@ -10,4 +10,7 @@ data/store/*
 !resources/.keep
 
 workflow/scripts/__pycache__
-pypsa_bc/__pycache__
+__pycache__
+*/__pycache__
+workflow/scripts/__pycache__
+*.pyc

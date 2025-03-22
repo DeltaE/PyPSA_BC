@@ -36,7 +36,7 @@ class AttributesParser:
         - The clews_builder.yaml file if not exists will mirror the skeleton file sourced from 'models/BC_Nexus/config/clews_builder_skeleton.yaml'
     """
     # Attributes that are required as Args.
-    pypsa_config_path:str|Path= field(default='config/data.yaml')
+    pypsa_config_path:str|Path= field(default='models/PyPSA_BC/config/data.yaml')
     
     def __post_init__(self):
 
@@ -78,13 +78,13 @@ class AttributesParser:
     @property
     def check_dirs(self):
         directories = [
-            "data/processed_data/load",
-            "data/processed_data/network",
-            "data/processed_data/wind",
-            "data/processed_data/hydro",
-            "data/processed_data/solar",
-            "data/processed_data/tpp",
-            "data/pypsa_data",
+            "data/pypsa/processed_data/load",
+            "data/pypsa/processed_data/network",
+            "data/pypsa/processed_data/wind",
+            "data/pypsa/processed_data/hydro",
+            "data/pypsa/processed_data/solar",
+            "data/pypsa/processed_data/tpp",
+            "data/pypsa/pypsa_data",
             'vis',
             'results/pypsa',
         ]

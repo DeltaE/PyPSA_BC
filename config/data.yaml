@@ -1,66 +1,66 @@
 GADM:
-  root: data/downloaded_data/GADM
-  processed: data/processed_data/regions
-  country_file_L1: "data/downloaded_data/GADM/gadm41_CAN_1.json" # Provincial level maps..
-  country_file_L2:  "data/downloaded_data/GADM/gadm41_CAN_2.json" # Administrative regions within provincial..
+  root: data/pypsa/downloaded_data/GADM
+  processed: data/pypsa/processed_data/regions
+  country_file_L1: "data/pypsa/downloaded_data/GADM/gadm41_CAN_1.json" # Provincial level maps..
+  country_file_L2:  "data/pypsa/downloaded_data/GADM/gadm41_CAN_2.json" # Administrative regions within provincial..
 
 # Directories
 custom: # need to automate this or upload to repo. Pierre created this manually
-    gen_wup: "data/downloaded_data/custom/hydro_gen_wup_features.csv"
-    res_wup: "data/downloaded_data/custom/hydro_res_wup_features.csv"
-    inflow_tables: "data/downloaded_data/custom/inflow_stats" # Has standardized names inside which are assumed
-    line_table: "data/downloaded_data/custom/electric_power_generation_table_13_3a.xlsx" # Custom table for infering line parameters
+    gen_wup: "data/pypsa/downloaded_data/custom/hydro_gen_wup_features.csv"
+    res_wup: "data/pypsa/downloaded_data/custom/hydro_res_wup_features.csv"
+    inflow_tables: "data/pypsa/downloaded_data/custom/inflow_stats" # Has standardized names inside which are assumed
+    line_table: "data/pypsa/downloaded_data/custom/electric_power_generation_table_13_3a.xlsx" # Custom table for infering line parameters
 basin_files:  # need to automate this or upload to repo. Pierre created this manually
-    na_file: "data/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.shp"
-    artic_file: "data/downloaded_data/HydroBASINS_artic/hybas_ar_lev12_v1c.shp"
+    na_file: "data/pypsa/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.shp"
+    artic_file: "data/pypsa/downloaded_data/HydroBASINS_artic/hybas_ar_lev12_v1c.shp"
 data: #Temp
   wind:
-    can_turbines: "data/downloaded_data/wind/canada_turbines.xlsx"
-    turbine_dict: "data/downloaded_data/wind/turbine_dict.json"
-    gwa_speed: "data/downloaded_data/wind/british_columbia_wspd_100m.tif"
-    gwa_geojson: "data/downloaded_data/wind/british_columbia.geojson"
+    can_turbines: "data/pypsa/downloaded_data/wind/canada_turbines.xlsx"
+    turbine_dict: "data/pypsa/downloaded_data/wind/turbine_dict.json"
+    gwa_speed: "data/pypsa/downloaded_data/wind/british_columbia_wspd_100m.tif"
+    gwa_geojson: "data/pypsa/downloaded_data/wind/british_columbia.geojson"
   coders:
-    gen_generic: "data/downloaded_data/CODERS/data-pull/supply/generation_generic.csv"
-    hydro_existing: "data/downloaded_data/CODERS/data-pull/supply/hydro_existing.csv"
-    generators: "data/downloaded_data/CODERS/data-pull/supply/generators.csv"
-    hydro_cascade: "data/downloaded_data/CODERS/data-pull/supply/hydro_cascade.csv"
-    lines: "data/downloaded_data/CODERS/data-pull/network/transmission_lines.csv"
-    substations: "data/downloaded_data/CODERS/data-pull/network/substations.csv"
+    gen_generic: "data/pypsa/downloaded_data/CODERS/data-pull/supply/generation_generic.csv"
+    hydro_existing: "data/pypsa/downloaded_data/CODERS/data-pull/supply/hydro_existing.csv"
+    generators: "data/pypsa/downloaded_data/CODERS/data-pull/supply/generators.csv"
+    hydro_cascade: "data/pypsa/downloaded_data/CODERS/data-pull/supply/hydro_cascade.csv"
+    lines: "data/pypsa/downloaded_data/CODERS/data-pull/network/transmission_lines.csv"
+    substations: "data/pypsa/downloaded_data/CODERS/data-pull/network/substations.csv"
   load:
-    ceei: "data/downloaded_data/load/CEEI_2022.xlsx"
-    cee_transport: "data/downloaded_data/load/CEEI_TRA_2022.xlsx"
-    bch: "data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad" # 2021.xls
+    ceei: "data/pypsa/downloaded_data/load/CEEI_2022.xlsx"
+    cee_transport: "data/pypsa/downloaded_data/load/CEEI_TRA_2022.xlsx"
+    bch: "data/pypsa/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad" # 2021.xls
 output:
   prepare_base_network:
-    folder: "data/processed_data/network"
+    folder: "data/pypsa/processed_data/network"
     regions: # list of all regions to include in the model build
       - "BC"
   create_hydro_assets:
-    hydro_generation: "data/processed_data/hydro/existing/hydro_generation.csv"
-    hydro_reservoir: "data/processed_data/hydro/existing/hydro_reservoirs.csv"
+    hydro_generation: "data/pypsa/processed_data/hydro/existing/hydro_generation.csv"
+    hydro_reservoir: "data/pypsa/processed_data/hydro/existing/hydro_reservoirs.csv"
   create_cutout:
-    cutout: "data/downloaded_data/cutout/BC_2021_2022.nc" # Modifications needed to how the year is added
+    cutout: "data/pypsa/downloaded_data/cutout/BC_2021_2022.nc" # Modifications needed to how the year is added
   reservoir_inflows:
-    fname: "data/processed_data/hydro/existing/bc_ext_reservoir_inflows.csv" # path + name
+    fname: "data/pypsa/processed_data/hydro/existing/bc_ext_reservoir_inflows.csv" # path + name
     inflow_method: "mean_inflow_calibrate"
     height: True
     flowspeed: 1 #WORKFLOW PARAM
   ror_ps:
-    fname: "data/processed_data/hydro/existing/bc_ext_ror_ts.csv"
+    fname: "data/pypsa/processed_data/hydro/existing/bc_ext_ror_ts.csv"
     height: True
     flowspeed: 1 #WORKFLOW PARAM
   create_ext_wind_assets:
-    fname: "data/processed_data/wind/existing/bc_ext_wind_assets.csv"
+    fname: "data/pypsa/processed_data/wind/existing/bc_ext_wind_assets.csv"
   create_ext_wind_ts:
     calibration: 1 # Used to select whether to calibrate with annual gen average or not #WORKFLOW PARAM
-    fname: "data/processed_data/wind/existing/bc_ext_wind_ts.csv" # for storing the timeseries for wind
+    fname: "data/pypsa/processed_data/wind/existing/bc_ext_wind_ts.csv" # for storing the timeseries for wind
   create_ext_solar_assets:
-    fname: "data/processed_data/solar/existing/bc_ext_solar_assets.csv"
+    fname: "data/pypsa/processed_data/solar/existing/bc_ext_solar_assets.csv"
   create_ext_solar_ts:
     calibration: 0 # Used to select whether to calibrate with annual gen average or not #WORKFLOW PARAM
-    fname: "data/processed_data/solar/existing/bc_ext_solar_ts.csv" # for storing the timeseries for wind
+    fname: "data/pypsa/processed_data/solar/existing/bc_ext_solar_ts.csv" # for storing the timeseries for wind
   pypsa_dict: # for all enrichment scripts
-    folder: "data/pypsa_data/" # Modified 2023-11-29
+    folder: "data/pypsa/pypsa_model_data/" # Modified 2023-11-29
     res: "hydro_reservoirs.pickle"
     ror: "hydro_ror.pickle"
     ror_water: "hydro_ror_water.pickle"
@@ -79,15 +79,15 @@ output:
   create_ext_tpp_assets:
     gas_grid: False # True means the thermal generators will have unique gas bus at each of their nodes.
     UC: False # unit commitment for thermal PPs
-    fname: "data/processed_data/tpp/existing/bc_ext_tpp_assets.csv"
+    fname: "data/pypsa/processed_data/tpp/existing/bc_ext_tpp_assets.csv"
   disaggregate_load:
-    province_2_RD_proportions : 'data/processed_data/load/CEEI_RD_ELEC_proportions.csv'
-    res_path: "data/processed_data/load/hourly_res.csv" # output path
-    csmi_path: "data/processed_data/load/hourly_csmi.csv" # output path
+    province_2_RD_proportions : 'data/pypsa/processed_data/load/CEEI_RD_ELEC_proportions.csv'
+    res_path: "data/pypsa/processed_data/load/hourly_res.csv" # output path
+    csmi_path: "data/pypsa/processed_data/load/hourly_csmi.csv" # output path
   build_model:
     fname: "results/pypsa/prepared_net.nc"
-    scenario: "0" # 50 or 100 depending on EV penetration
-    charge_strat: "uncoordinated" #[uncoordinated, coordinated, v2g]
+    # scenario: "0" # 50 or 100 depending on EV penetration
+    # charge_strat: "uncoordinated" #[uncoordinated, coordinated, v2g]
     region_res: "multiple"
     ng_prices: "data/Alberta/2021_ab_ng_prices.csv"
 
@@ -123,7 +123,7 @@ CODERS:
       - transmission_generic
 
 GAEZ:
-  root: 'data/downloaded_data/GAEZ'
+  root: 'data/pypsa/downloaded_data/GAEZ'
   self.: 'https://s3.eu-west-1.amazonaws.com/data.gaezdev.aws.fao.org/LR.zip'
   zip_file: 'LR.zip'
   Rasters_in_use_direct: 'Rasters_in_use'
@@ -159,7 +159,7 @@ GAEZ:
           wind: 0 #m
           
 WorldPop:
-  root: 'data/downloaded_data/WorldPop'
+  root: 'data/pypsa/downloaded_data/WorldPop'
   source : 
     population_density_CAN: 'https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/2020/CAN/can_pd_2020_1km_UNadj_ASCII_XYZ.zip'
     population_count_CAN: 'https://data.worldpop.org/GIS/Population/Global_2000_2020_1km_UNadj/2020/CAN/can_ppp_2020_1km_UNadj_ASCII_XYZ.zip'
@@ -167,7 +167,7 @@ WorldPop:
     # more_data : https://www.worldpop.org/datacatalog/
         
 cutout:
-  root: data/downloaded_data/cutout/
+  root: data/pypsa/downloaded_data/cutout/
   module:
     - era5
     # - sarah
@@ -185,7 +185,7 @@ cutout:
       - '2022-01-01 06:00:00' # 6 # YYYY-MM-DD "2022-01-01 06:00:00"
 
 GWA:
-  root: 'data/downloaded_data/GWA'
+  root: 'data/pypsa/downloaded_data/GWA'
   datafields: ['windspeed_gwa', 'CF_IEC2','CF_IEC3' ] #,'IEC_Class_ExLoads'
   sources:
     windspeed_gwa: 'https://globalwindatlas.info/api/gis/country/CAN/wind-speed/100'
