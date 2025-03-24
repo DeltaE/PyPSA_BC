@@ -14,3 +14,4 @@ __pycache__
 */__pycache__
 workflow/scripts/__pycache__
 *.pyc
+workflow/scripts/__pycache__
