@@ -30,7 +30,7 @@ pypsa_model_build_args={
     'update_data':False,
     'update_load':True,
     'year':2021,
-    'capacity_choice':'investment',
+    'resource_options': 'investment',  # 'investment' or 'full_potential',
     'solved_network_save_to': Path('results/pypsa')
 }
 """
@@ -55,7 +55,7 @@ def enrich_format_workflow():
 def main(copperplate:bool, # the EV load data is prepared for Copperplate (single region)
         update_data:bool,
         update_load:bool,
-        capacity_choice:str,
+        resource_options:str,
         start_date:str,
         end_date:str,
         ev_charging:str,
@@ -66,7 +66,7 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
         update_data (bool) : 'True ' or 'False
         update_load
         copperplate (bool) : 'True ' or 'False
-        capacity_choice (str): 'investment' or 'full_potential'
+        'resource_options' (str): 'investment' or 'full_potential'
         year (int): 2021 to 2050
     """
     year:int= datetime.datetime.strptime(start_date, "%Y-%m-%d").year
@@ -92,7 +92,7 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
     
     build_main_args= {
     'copperplate':copperplate,
-    'capacity_choice':capacity_choice,
+    'capacity_choice':resource_options,
     'year':year,
     'ev_charging': ev_charging,
     'ev_population':ev_population
