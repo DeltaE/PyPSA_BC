@@ -10,7 +10,7 @@ from shapely.ops import unary_union
 import sys
 from pathlib import Path
 from colorama import Fore, Style
-from typing import Optional
+from typing import Optional, List, Dict
 from pathlib import Path
 import requests
 
@@ -39,7 +39,83 @@ def print_update(level: int=None,
         prefix=" ─"
     
     print(f"{color}{prefix}> {message}{Style.RESET_ALL}")
+
+def load_network(network_path):
+    network = pypsa.Network(override_component_attrs=get_multi_link_override())
+    pypsa.Network.import_from_netcdf(network=network, path=network_path)
+    return network
+
+def get_networks(pypsa_results_path:str|Path="results/pypsa")->list:
+    """
+    Load all the networks in the folder and return a list of the network names
     
+    Args:
+        pypsa_results_path (str|Path): The folder containing the networks. Default is set to "results/pypsa"
+    Returns:
+        network_names (list): A list of the network names
+    """
+    pypsa_results_path=Path(pypsa_results_path)
+    network_names = []
+    network_dict = {}
+
+    # Loop over each file in the folder
+    for file_name in os.listdir(pypsa_results_path):
+        if file_name.endswith('.nc'):  # Process only .nc files      
+            # pypsa_n_XXXX_coordinated_scale_YYYYMMDD.nc
+            network_name = file_name.rstrip('.nc')
+            network_name.split('_')[2]
+            network_name.split('_')[3]
+            network_name.split('_')[4]
+            network_name.split('_')[5]
+            
+            # Load the network and store it in a dictionary
+            network_dict[network_name] = load_network(pypsa_results_path / file_name)
+           
+            # Apply the load_network function and assign the result to the dynamically created variable
+            # globals()[network_name] = load_network(pypsa_results_path/file_name)
+            
+            network_names.append(network_name)
+            # Print the assigned variable name for verification
+            print_update(level=3,message=f"Assigned: {network_name} = {pypsa_results_path/file_name}")
+    return network_names, network_dict
+
+def ev_load_only(network:pypsa.Network,
+                 exclude_load_bus:Optional[str]='BC ELC Load'):
+    
+    load_data = network.loads_t.p_set
+    load_data.index = pd.to_datetime(load_data.index)
+    exclude_load_bus = 'BC ELC Load'
+    load_data_without_excluded = load_data.drop(columns=[exclude_load_bus], errors='ignore')
+    ev_load_only = load_data_without_excluded.sum(axis=1)
+    return ev_load_only
+
+
+def get_ev_reults(network_names:list,
+                  network_dict:Dict[str,pypsa.Network])->dict:
+    ev_load_results:dict = {}
+
+    # Iterate over all networks in network_names
+    for network_name in network_names:
+        # Retrieve the network object using globals()
+        network = network_dict[network_name]
+        
+        # Apply the ev_load_only function to the network
+        result = ev_load_only(network)
+        
+        # Store the result with the network name in the dictionary
+        ev_load_results[network_name] = result
+    
+    print_update(level=2,message=  "----Summary of EV loads from Results---")
+    # Iterate over the ev_load_results dictionary
+    for network_name, ev_load in ev_load_results.items():
+        # Calculate the sum of EV load for the current network
+        total_ev_load = ev_load.sum()
+        
+        # Print the network name and the total EV load
+        print_update(level=3,message=f"Network: {network_name}, Total EV Load: {int(total_ev_load/1E3)} GWh")
+    # Now `ev_load_results` contains the ev_load_only result for each network, keyed by network name
+    return ev_load_results
+
 def merge_assets(df,subset,sum_list):
     '''
     Function used to reduce hydroelectric datasets from turbines to an aggregate asset.
@@ -497,3 +573,56 @@ def fix_coders_update(data,col_to_correct,codes):
     '''
     mask = data[col_to_correct].isin(codes)
     data.loc[mask,col_to_correct] = data.loc[mask,col_to_correct].apply(lambda old_cold: codes[old_cold])
+
+def get_network_features(network_names:str,
+                         network_dict:Dict[str,pypsa.Network]):
+    # Initialize a dictionary to store results for each network
+    network_features = {}
+
+    # Iterate over each network variable name in network_names
+    for var_name in network_names:
+        # n = globals()[var_name]  # Access the loaded network using the variable name
+        n = network_dict[var_name] 
+        # Identify relevant columns for each type of feature
+        res_link_cols = n.links.index[n.links.index.str.contains('Discharge Link')]
+        ror_gen_cols = n.generators.index[n.generators.index.str.contains('RoR')]
+        wind_gen_cols = n.generators.index[n.generators.index.str.contains('Wind')]
+        solar_gen_cols = n.generators.index[n.generators.index.str.contains('Solar')]
+        discharge_cols = n.links.index[n.links.index.str.contains('Discharger')]
+        charge_cols = n.links.index[n.links.index.str.contains('Charger')]
+        new_wind_gen_cols = n.generators.index[n.generators.index.str.contains('New Wind')]
+        new_solar_gen_cols = n.generators.index[n.generators.index.str.contains('New PV')]
+        new_backstop_col = n.generators.index[n.generators.index.str.contains('Backstop')]
+
+        # Calculate the sums for each feature
+        res_gen = n.links_t.p1[res_link_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        ror_gen = n.generators_t.p[ror_gen_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        wind_gen = n.generators_t.p[wind_gen_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        solar_gen = n.generators_t.p[solar_gen_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        discharge_gen = n.links_t.p1[discharge_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        charge_gen = n.links_t.p1[charge_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        new_wind_gen = n.generators_t.p[new_wind_gen_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        new_solar_gen = n.generators_t.p[new_solar_gen_cols].apply(lambda x: abs(x), axis=0).sum(axis=1)
+        backstop_gen = n.generators_t.p[new_backstop_col].apply(lambda x: abs(x), axis=0).sum(axis=1)
+
+        new_capacity = n.generators['p_nom_opt'] - n.generators['p_nom']  # Difference in optimized and initial capacities
+        total_new_installed_capacity = new_capacity.sum()
+        # Calculate total generation
+        tot_gen = res_gen + ror_gen + wind_gen + solar_gen
+
+        # Store the results in the dictionary
+        network_features[var_name] = {
+            'res_gen': res_gen,
+            'ror_gen': ror_gen,
+            'wind_gen': wind_gen,
+            'solar_gen': solar_gen,
+            'discharge_gen': discharge_gen,
+            'charge_gen': charge_gen,
+            'new_wind_gen': new_wind_gen,
+            'new_solar_gen': new_solar_gen,
+            'backstop_gen': backstop_gen,
+            'total_gen': tot_gen,
+            'total_new_installed_capacity': total_new_installed_capacity
+        }
+        
+    return network_features
