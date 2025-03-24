@@ -60,6 +60,7 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
         end_date:str,
         ev_charging:str,
         ev_population:float,
+        run_tag:Optional[int]=None,
         solved_network_save_to:str= 'results/pypsa'):
     """ 
     Args:
@@ -95,7 +96,8 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
     'capacity_choice':resource_options,
     'year':year,
     'ev_charging': ev_charging,
-    'ev_population':ev_population
+    'ev_population':ev_population,
+    'run_tag':run_tag,
     }
     build_model.main(**build_main_args)
 

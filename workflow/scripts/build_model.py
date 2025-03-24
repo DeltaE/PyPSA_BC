@@ -4,11 +4,14 @@ import geopandas as gpd
 from shapely.geometry import Point
 import numpy as np
 from pypsa_bc import utils
+from typing import Optional
 from pathlib import Path
+from datetime import datetime
 # handles the config loading centrally
 
 import warnings
 from pypsa_bc.attributes_parser import AttributesParser
+
 pypsa_aparser=AttributesParser()
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -656,8 +659,8 @@ def main(ev_charging:str,
          copperplate:bool=False,
          capacity_choice:str='investment',
          year:int=2021,
-
-         solved_network_save_to:Path=None):
+         run_tag:Optional[str]=None,
+         solved_network_save_to:str|Path='results/pypsa'):
     '''
     This script is used to build the model.(Currently, designed to build the existing electricity system in BC. (with site-c))
     The scripts takes in the following data:
@@ -678,6 +681,9 @@ def main(ev_charging:str,
     The script will save a NetCDF file of the instantiated network. 
 
     '''
+    solved_network_save_to=Path(solved_network_save_to)
+    run_tag=str(run_tag)
+    
     utils.print_update(level=1,message=" PyPSA model building initiated...")
     utils.print_update(level=100,message="Disclaimer: This model supports upto 28 Regional Districts (administrative regions) as nodes. The detailed loads (if provided) will be aggregated to these regional nodes.")
     # (0) Load config file
@@ -949,7 +955,7 @@ def main(ev_charging:str,
     ev_fleet_load_data_root = "results/fleet_EV_load_simulator/"
     utils.print_update(level=3,message=f"Loading data for {charge_strat} charging scenario from {ev_fleet_load_data_root}")
     
-    ev_penetration_prefix=int(ev_population*100)
+    ev_penetration_prefix=str(int(ev_population*100))
     #NOTE: Modified for a single region only! This should be updated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
     if charge_strat == 'v2g':
         # load data
@@ -1082,14 +1088,13 @@ def main(ev_charging:str,
     # network.optimize.create_model()
     # model.remove_constraints("Kirchhoff-Voltage-Law")
     # network.optimize.solve_model(solver_name='gurobi')
-
-    # Save network
-    if solved_network_save_to is None:
-        solved_network_save_to=Path(cfg["output"]["build_model"]["fname"]+f'_{year}.nc')
     
     solved_network_save_to.parent.mkdir(exist_ok=True,parents=True)
-    network.export_to_netcdf(solved_network_save_to)
-    utils.print_update(level=1,message=f"Solved network saved to : {solved_network_save_to} ")
+    run_tag=str(datetime.now().strftime("%Y%m%d"))
+    file_name='pypsa_n_'+ str(year) + '_'+charge_strat+'_'+ ev_penetration_prefix+'_'+run_tag+'.nc'
+    file_path=solved_network_save_to/ file_name
+    network.export_to_netcdf(file_path)
+    utils.print_update(level=1,message=f"Solved network saved to : {file_path} ")
 
 if __name__ == '__main__':
     main()
