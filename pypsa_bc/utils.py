@@ -13,6 +13,8 @@ from colorama import Fore, Style
 from typing import Optional, List, Dict
 from pathlib import Path
 import requests
+import warnings
+warnings.filterwarnings("ignore")
 
 def print_update(level: int=None,
                  message: str="--",
@@ -39,6 +41,20 @@ def print_update(level: int=None,
         prefix=" ─"
     
     print(f"{color}{prefix}> {message}{Style.RESET_ALL}")
+    
+def filter_networks_list(network_names, penetration=None, run_tag=None):
+    filtered = []
+    for name in network_names:
+        parts = name.split('_')
+        if (penetration and str(penetration) not in parts) or (run_tag and not name.endswith(str(run_tag))):
+            continue
+        filtered.append(name)
+    return filtered
+
+def get_generators(network,type):
+    mask = network.generators.index.str.contains(type)
+    cols = network.generators[mask].index.to_list()
+    return network.generators_t.p[cols].sum(axis=1)
 
 def load_network(network_path):
     network = pypsa.Network(override_component_attrs=get_multi_link_override())
@@ -76,7 +92,7 @@ def get_networks(pypsa_results_path:str|Path="results/pypsa")->list:
             
             network_names.append(network_name)
             # Print the assigned variable name for verification
-            print_update(level=3,message=f"Assigned: {network_name} = {pypsa_results_path/file_name}")
+            # print_update(level=3,message=f"Assigned: {network_name} = {pypsa_results_path/file_name}")
     return network_names, network_dict
 
 def ev_load_only(network:pypsa.Network,

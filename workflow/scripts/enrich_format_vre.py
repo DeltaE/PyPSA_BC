@@ -104,7 +104,7 @@ def main():
         asset_path = cfg['output'][f'create_ext_{resource_type}_assets']['fname']
         ts_path = cfg['output'][f'create_ext_{resource_type}_ts']['fname']
         vre_selection = cfg['output'][f'enrich_format_{resource_type}']['vre_sel']
-        vre_path = "data/pypsa_data/" + cfg['output']['pypsa_dict'][f'{resource_type}']
+        vre_path = "data/pypsa/pypsa_model_data/" + cfg['output']['pypsa_dict'][f'{resource_type}']
 
         # gen_generic = pd.read_csv(cfg['data']["coders"]["gen_generic"])
         

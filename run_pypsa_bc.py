@@ -67,7 +67,7 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
         update_data (bool) : 'True ' or 'False
         update_load
         copperplate (bool) : 'True ' or 'False
-        'resource_options' (str): 'investment' or 'full_potential'
+        resource_options (str): 'investment' or 'full_potential'
         year (int): 2021 to 2050
     """
     year:int= datetime.datetime.strptime(start_date, "%Y-%m-%d").year
