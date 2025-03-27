@@ -61,6 +61,32 @@ def load_network(network_path):
     pypsa.Network.import_from_netcdf(network=network, path=network_path)
     return network
 
+def get_datafield_from_networks(unique_generator_tag:str,
+                                data_filed:str,
+                                network_names:list,
+                                network_dict:Dict[str,pypsa.Network],):
+    """
+    This function extracts specific data-fields from generator's dataframe from network. Handy for comparing capacity investments during optimization across different scenarios.
+
+    Args:
+        unique_generator_tag (str): _"New" or "CFP24" etc._
+        data_filed (str): _"p_nom" or "p_nom_opt" etc._
+        network_names (list): a list of network names
+        network_dict (Dict[str,pypsa.Network]): a dictionary of the networks mapped with network names.
+
+    Returns:
+        _type_: _A dataframe with column names extracted from network names, each col. represents the data for the given datafield._
+    """
+    filtered_df=pd.DataFrame()
+    for network_name in network_names:
+ 
+        filtered_gens = network_dict[network_name].generators[network_dict[network_name].generators.index.str.contains(unique_generator_tag)]
+        col_name=network_name.split('_')[3][:3]+'_'+network_name.split('_')[4]
+        filtered_df[col_name]= filtered_gens[data_filed]
+    print("'coo'= Coordinated, 'unc'= Uncoordinated, 'v2g'= Vehicle to grid")
+    print(f"Extracted '{data_filed}' for Generators with '{unique_generator_tag}' tags:")
+    return filtered_df
+
 def get_networks(pypsa_results_path:str|Path="results/pypsa")->list:
     """
     Load all the networks in the folder and return a list of the network names
