@@ -54,19 +54,19 @@ def enrich_format_workflow():
 
 def main(copperplate:bool, # the EV load data is prepared for Copperplate (single region)
         update_data:bool,
-        update_load:bool,
-        resource_options:str,
         start_date:str,
         end_date:str,
         ev_charging:str,
         ev_population:float,
+        total_load_scaling_factor:float,
+        resource_options:str='full_potential',
         run_tag:Optional[int]=None,
         solved_network_save_to:str= 'results/pypsa'):
     """ 
     Args:
         update_data (bool) : 'True ' or 'False
-        update_load
         copperplate (bool) : 'True ' or 'False
+        total_load_scaling_factor (float) : scaling factor for total load to test the resource options pick-up optimization
         resource_options (str): 'investment' or 'full_potential'
         year (int): 2021 to 2050
     """
@@ -76,20 +76,24 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
         utils.print_update(level=1, message='Initiating network and profile data preparation...')
         run_data_preparation_workflow()    
         enrich_format_workflow()
-
-    elif update_load:
-        utils.print_update(level=1, message='Skipping network and profile data update. Using the prepared data.')
         
     else:
         utils.print_update(level=1, message='Skipping network and profile data update. Using the prepared data from <data/pypsa/pypsa_data>')
-        utils.print_update(level=1, message='Skipping load data update. Using the prepared data.')
-
+    
+    utils.print_update(level=1, message='Preparing load data...')
     load_bch_raw:pd.DataFrame=pd.read_excel('data/pypsa/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad2021.xls')
     provincial_load_MWh:float=disaggregate_load.fix_hourly_load(load_bch_raw,year)
-
+    
     # replace with any total load data
     provincial_total_load_MWh:float=provincial_load_MWh.LOAD.sum() #MWh, provincial total
-    disaggregate_load.main(provincial_total_load_MWh)
+    utils.print_update(level=2, message=f'Provincial total load - Actual: {int(provincial_total_load_MWh/1E3)} GWh')
+    provincial_total_load_scaled_MWh=provincial_total_load_MWh*total_load_scaling_factor
+    
+    if total_load_scaling_factor!=1:
+        utils.print_update(level=3, message=f'Applying the Provincial total load scaling factor : {total_load_scaling_factor}')
+        utils.print_update(level=2, message=f'Provincial total load - Increased: {int(provincial_total_load_scaled_MWh/1E3)} GWh')
+    
+    disaggregate_load.main(provincial_total_load_scaled_MWh)
     
     build_main_args= {
     'copperplate':copperplate,

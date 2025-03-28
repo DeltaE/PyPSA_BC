@@ -357,7 +357,7 @@ def add_vre_expansion_sites(network:pypsa.Network,
             type = vre_type.lower(),
             bus = 'BC' if copperplate else (''.join(row['Region'].split(' '))), # Currently removes space before creating unique bus name
             p_max_pu = ts[name_id],
-            p_nom_mod = min(row[capacity_choice_mapping[capacity_choice]],p_nom_mod), ## some resources have a very low potential row[capacity_choice_mapping[capacity_choice]],
+            # p_nom_mod = min(row[capacity_choice_mapping[capacity_choice]],p_nom_mod), ## some resources have a very low potential row[capacity_choice_mapping[capacity_choice]],
             p_nom=0,
             marginal_cost = marginal_cost, # row['vom'], # NOTE: Needs to synchronized
             capital_cost = row['capex'] * CAD_2_USD * 1e6, # NOTE: Currently converting M$ USD to CAD $
@@ -402,7 +402,7 @@ def add_vre_committed_sites(network:pypsa.Network,
             name = "CFP24 {} {}".format(vre_type, name_id),
             bus = 'BC' if copperplate else (''.join(row['Region'].split(' '))), # Currently removes space before creating uniqut bus name
             p_max_pu = ts[name_id],
-            p_nom_min = row['potential_capacity'], # The minimum allowed installed capacity if extendable=True
+            # p_nom_mod = row['potential_capacity'], # The minimum allowed installed capacity if extendable=True
             p_nom = 0,
             marginal_cost = marginal_cost , #row['vom'], # NOTE: Needs to synchronized
             capital_cost = row['capex'] * CAD_2_USD * 1e6, # NOTE: $/MW ; converting Mil. USD to CAD

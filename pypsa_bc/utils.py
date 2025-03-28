@@ -83,8 +83,10 @@ def get_datafield_from_networks(unique_generator_tag:str,
         filtered_gens = network_dict[network_name].generators[network_dict[network_name].generators.index.str.contains(unique_generator_tag)]
         col_name=network_name.split('_')[3][:3]+'_'+network_name.split('_')[4]
         filtered_df[col_name]= filtered_gens[data_filed]
+        
     print("'coo'= Coordinated, 'unc'= Uncoordinated, 'v2g'= Vehicle to grid")
     print(f"Extracted '{data_filed}' for Generators with '{unique_generator_tag}' tags:")
+    
     return filtered_df
 
 def get_networks(pypsa_results_path:str|Path="results/pypsa")->list:
