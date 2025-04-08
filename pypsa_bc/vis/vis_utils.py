@@ -3,6 +3,12 @@ from pathlib import Path
 from typing import Optional
 import plotly.express as px
 from pypsa_bc import utils
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import contextily as ctx
+import geopandas as gpd
+import matplotlib as mpl
+
 
 """
 def load_and_process_data(file_path, 
@@ -50,6 +56,7 @@ def load_and_process_data(file_path,
     return all_years, result_df
 
 def visualize_timeseries(data:pd.DataFrame,
+                         year:int,
                          type='area',
                          plot_title:str=None,
                          yaxis_title:str=None,
@@ -57,12 +64,13 @@ def visualize_timeseries(data:pd.DataFrame,
                          legend_title_text:str=None,
                          save_to:Optional[Path]=None,
                          show:Optional[bool]=True):
+    data.index = data.index.map(lambda x: x.replace(year=year))
     if type=='area':
         fig = px.area(data, title="Title" if plot_title is None else plot_title)
     if type=='line':
         fig = px.line(data, title="Title" if plot_title is None else plot_title)
     
-    fig.update_layout(xaxis_title='Time' if xaxis_title is None else xaxis_title , 
+    fig.update_layout(xaxis_title=None if xaxis_title is None else xaxis_title , 
                       yaxis_title='Variable' if yaxis_title is None else yaxis_title,
                       legend_title_text="" if legend_title_text is None else legend_title_text)
   
@@ -73,3 +81,96 @@ def visualize_timeseries(data:pd.DataFrame,
         utils.print_update(level=2,message=f'Plot save to :{save_to}')
     if show:
         fig.show()
+        
+
+
+
+
+
+def plot_inter_region_link_usage(year:int,
+                                 inter_region_line_with_usage:gpd.GeoDataFrame,
+                                 regional_boundaries_GADM_L2:gpd.GeoDataFrame,
+                                 plot_save_to:str|Path,
+                                 plot_dpi:int=300,
+                                 line_cmap:str='YlOrRd',
+                                 show:bool=False):
+
+    if 'Region' not in regional_boundaries_GADM_L2.columns:
+        regional_boundaries_GADM_L2 = regional_boundaries_GADM_L2.reset_index(inplace=True)
+    
+    boundary = regional_boundaries_GADM_L2
+    
+    # Assign a number to each region
+    boundary['Region_Number'] = range(1, len(boundary) + 1)
+
+    # Transform GeoDataFrames to match basemap CRS (EPSG:3857)
+    boundary = boundary.to_crs(epsg=3857)
+    inter_region_lines = inter_region_line_with_usage.to_crs(epsg=3857)
+
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Plot boundary and inter-region lines
+    boundary.plot(ax=ax, color='gray', edgecolor='k', linewidth=0.8, alpha=0.25)
+
+    # Set the bounds for the colorbar (can adjust these based on data range)
+    vmin, vmax = 0, 1
+
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    inter_region_lines.plot(column='usage', 
+                            cmap=line_cmap,
+                            linewidth=5,
+                            alpha=0.9,
+                            legend=False,  # We'll add a custom legend for the colorbar
+                            ax=ax,
+                            norm=norm)
+
+    # Annotate region numbers at centroids
+    for idx, row in boundary.iterrows():
+        centroid = row.geometry.centroid
+        ax.annotate(f"{row['Region_Number']}", 
+                    xy=(centroid.x, centroid.y), 
+                    horizontalalignment='center', fontsize=8, color='black',
+                    bbox=dict(facecolor='none', edgecolor='none'))
+
+    # Add basemap
+    ctx.add_basemap(ax, source=ctx.providers.Esri.WorldTerrain)
+
+    # Turn off the grid and axis
+    ax.axis('off')
+
+    # Create a ScalarMappable for the custom colorbar
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    sm = plt.cm.ScalarMappable(cmap=line_cmap, norm=norm)
+    sm.set_array([])  # The array is empty since we're just setting the colorbar
+
+    # Add colorbar with custom settings
+    cbar = fig.colorbar(sm, ax=ax, orientation='horizontal', shrink=0.5, pad=0.001, anchor=(.5, .8))
+    cbar.set_label('Usage', rotation=0, labelpad=5)
+    cbar.outline.set_visible(False)  # Remove colorbar border
+    cbar.ax.patch.set_alpha(0.7)  # Add transparency to colorbar
+
+    # Create custom legend for region number mapping
+    handles = [
+        Line2D([0], [0], marker=None, color='w', markerfacecolor=None, markersize=None,
+               label=f"{row['Region_Number']}: {row['Region']}",
+               ) 
+        for idx, row in boundary.iterrows()
+    ]
+
+    # Place the legend outside the plot
+    plt.legend(handles=handles, loc='upper left', bbox_to_anchor=(1, .98), frameon=False)
+
+    # Add title
+    plt.title(f'Inter Region Link Usage [Simulated for {year}]')
+
+    # Save the plot
+    plt.tight_layout()
+    
+    plot_save_to = Path(plot_save_to)
+    plot_save_to.parent.mkdir(exist_ok=True, parents=True)
+    plt.savefig(plot_save_to, dpi=plot_dpi)
+
+    if show:
+        plt.show()
+    return fig

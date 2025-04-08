@@ -63,7 +63,7 @@ def get_tpp_dict(site, gen_params, bus_dict, tpp_gen_types, cfg, province ='Not 
 def write_tpp_csv(tpp_assets, gen_generic, bus_dict, tpp_gen_types, cfg, province='Not Selected'):
     '''
     This function writes a dictionary containing the information needed to create the components for
-    existing vre facilities in PyPSA.
+    existing TPP facilities in PyPSA.
     '''
     tpp_dict = {}
 

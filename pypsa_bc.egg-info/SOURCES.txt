@@ -29,6 +29,7 @@ notebooks/turbine-vs-pdfs.ipynb
 notebooks/validate-hydro.ipynb
 pypsa_bc/__init__.py
 pypsa_bc/attributes_parser.py
+pypsa_bc/calc.py
 pypsa_bc/cli.py
 pypsa_bc/hydro.py
 pypsa_bc/solar_wind.py

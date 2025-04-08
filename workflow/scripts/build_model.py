@@ -54,7 +54,24 @@ def add_hydro_ror_water_assets(network, ror_water_dict):
         for comp in ror_comps.values():
             if not is_comp_in_network(comp,network): # Avoid duplicate error
                 network.add(**comp)
+                
+def add_nuclear_assets(network, nuclear_dict):    
+   network.add("Generator",
+        name="Nuclear1",
+        bus="PeaceRiver",
+        p_nom=1000,  # MW
+        p_nom_extendable=True,  # or True for planning models
+        efficiency=0.33,  # optional, for fuel modeling (not used if marginal_cost is $/MWh)
+        # fuel="uranium",  # optional, if modeling fuel flows
+        marginal_cost=2.5,  # $/MWh, mostly O&M for nuclear
+        capital_cost=1.3e6 * 10,  # $/MW, converted if needed
+        p_min_pu=0.3,  # nuclear can't usually run below 30% output
+        ramp_limit_up=0.1,  # optional ramping constraint (e.g., 10%/hr)
+        ramp_limit_down=0.1,
+        p_max_pu=1.0,  # or a timeseries with planned outages
+    )
 
+    
 
 def add_wind_assets(network, wind_dict):
     # add wind farms
@@ -352,6 +369,43 @@ def add_vre_expansion_sites(network,
             capital_cost = row['capex'] * CAD_2_USD * 1e6, # NOTE: Currently converting M$ USD to CAD $
             p_nom_extendable = False,
             p_nom_max = row["potential_capacity"]
+            )
+
+def add_nuc_expansion_sites(network, 
+                            sites,
+                            capacity_choice,
+                            bus_fix='PeaceRiver'):
+    """
+    Temporary function to add pypsa components of VRE expansion sites.
+    
+    Args:
+        network: pypsa network
+        sites(pd.Dataframe) ; Sites data
+        bus_fix (str): Bus name to be used for the new sites. Can be changed to any supported bus name in the network.
+        capacity_choice (str): 'investment' or 'full_potential'
+    """
+
+    CAD_2_USD = 1.3 # Same ratio used by the CODERS data NOTE: To be updated at a later date!
+    for idx,row in sites.iterrows():
+        name_id = idx # ID of the new sites
+        
+        capacity_choice_mapping = {'investment': 'invested_capacity_MW',
+                                    'full_potential':'potential_capacity'}
+        network.add(
+            class_name = "Generator",
+            name = "New {} {}".format('Nuclear', name_id),
+            type="Nuclear Power Plant",
+            # bus = ''.join(row['Region'].split(' ')), # Currently removes space before creating uniqut bus name
+            bus = bus_fix, # Testing for Different Regions for now
+            p_max_pu = 1.0,
+            p_min_pu=0.3,  # nuclear can't usually run below 30% output
+            p_nom = row[capacity_choice_mapping[capacity_choice]],
+            ramp_limit_up=0.1,  # optional ramping constraint (e.g., 10%/hr)
+            ramp_limit_down=0.1,
+            marginal_cost = row['vom'], # NOTE: Needs to synchronized
+            capital_cost = row['capex'] * CAD_2_USD * 1e6, # NOTE: Currently converting M$ USD to CAD $
+            p_nom_extendable = False,
+            # p_nom_max = row["potential_capacity"]
             )
 
 def add_vre_committed_sites(network, 
@@ -653,6 +707,7 @@ def add_reserves(n):
 
 def main(copperplate:bool=False,
          capacity_choice:str='investment',
+         tx_line_infinity:bool=False,
          year:int=2021,
          solved_network_save_to:Path=None):
     '''
@@ -661,6 +716,7 @@ def main(copperplate:bool=False,
     Args:
         copperplate (bool) : 'True ' or 'False
         capacity_choice (str): 'investment' or 'full_potential'
+        tx_line_infinity (Bool) : 'True' or 'False'
         year (int): 2021 to 2050
     
     1) Network structure
@@ -873,7 +929,7 @@ def main(copperplate:bool=False,
     resource_options_data = Path('data/processed_data')
     solar_resources=resource_options_data/'solar/potential'
     wind_resources=resource_options_data/'wind/potential'
-    
+
     pv_sites = pd.read_csv(solar_resources/f'resource_options_investments_solar_{year}.csv',index_col='cluster_id')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['solar']))
     pv_ts = pd.read_csv(solar_resources/'resource_options_solar_timeseries.csv',index_col='time', parse_dates=True)# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_CFts_topSites']['solar']))
     utils.print_update(level=3,message=f"Solar sites and profiles loaded from {solar_resources} ")
@@ -881,7 +937,7 @@ def main(copperplate:bool=False,
     wind_sites = pd.read_csv(wind_resources/f'resource_options_investments_wind_{year}.csv',index_col='cluster_id')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['wind']))
     wind_ts = pd.read_csv(wind_resources/'resource_options_wind_timeseries.csv',index_col='time', parse_dates=True)# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_CFts_topSites']['wind']))
     utils.print_update(level=3,message=f"Wind sites and profiles loaded from {wind_resources} ")
-
+    
 
     add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='Solar',capacity_choice=capacity_choice)
     add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind',capacity_choice=capacity_choice)
@@ -907,6 +963,17 @@ def main(copperplate:bool=False,
     
     utils.print_update(level=3,message="Resources options added to pypsa network.")
     
+    ### Add Nuclear Resource Options
+    utils.print_update(level=3,message="Loading Nuclear Resources")
+    nuc_resources=resource_options_data/'nuclear/potential'
+    
+    nuc_sites = pd.read_csv(nuc_resources/f'resource_options_investments_nuc_{year}.csv',index_col='name')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['solar']))
+    utils.print_update(level=3,message=f"Nuclear site(s) loaded from {nuc_resources} ")
+
+    add_nuc_expansion_sites(network, nuc_sites, capacity_choice=capacity_choice)
+
+# data/processed_data/nuclear/potential/resource_options_investments_nuc_2032.csv
+    
     # # (12) Add trade load
     # # NOTE: Needs to be updated in line with what is done in BC_Nexus
     # # add_trade(network, cfg)
@@ -919,7 +986,7 @@ def main(copperplate:bool=False,
     
     # Add Backstops
     # NOTE: Watch out for when cogen is added here....
-    utils.print_update(level=2,message="Creating BACKSTOP generators to the network...")
+    utils.print_update(level=100,message="Creating BACKSTOP generators to the network...")
     for bus in network.loads.bus.unique():
         network.add(class_name="Generator",
                     name='Backstop {}'.format(bus),
@@ -934,8 +1001,9 @@ def main(copperplate:bool=False,
     # Aggregate lines
     utils.print_update(level=2,message="Aggregating inter-zones lines...")
     aggregate_lines(network)
-
-    network=make_unlimited_line_capacity(network)
+    
+    if tx_line_infinity:
+        network=make_unlimited_line_capacity(network)
     
     # Solve network or save network below:
     utils.print_update(level=2,message="Optimizing the build network...")
