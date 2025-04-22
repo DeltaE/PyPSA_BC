@@ -397,7 +397,7 @@ def add_nuc_expansion_sites(network,
             type="Nuclear Power Plant",
             # bus = ''.join(row['Region'].split(' ')), # Currently removes space before creating uniqut bus name
             bus = bus_fix, # Testing for Different Regions for now
-            p_max_pu = 1.0,
+            p_max_pu = 0.9,
             p_min_pu=0.3,  # nuclear can't usually run below 30% output
             p_nom = row[capacity_choice_mapping[capacity_choice]],
             ramp_limit_up=0.1,  # optional ramping constraint (e.g., 10%/hr)
@@ -970,7 +970,7 @@ def main(copperplate:bool=False,
     nuc_sites = pd.read_csv(nuc_resources/f'resource_options_investments_nuc_{year}.csv',index_col='name')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['solar']))
     utils.print_update(level=3,message=f"Nuclear site(s) loaded from {nuc_resources} ")
 
-    add_nuc_expansion_sites(network, nuc_sites, capacity_choice=capacity_choice)
+    add_nuc_expansion_sites(network, nuc_sites, capacity_choice=capacity_choice, bus_fix='GreaterVancouver')
 
 # data/processed_data/nuclear/potential/resource_options_investments_nuc_2032.csv
     

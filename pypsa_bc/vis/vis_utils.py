@@ -8,7 +8,8 @@ from matplotlib.lines import Line2D
 import contextily as ctx
 import geopandas as gpd
 import matplotlib as mpl
-
+import pypsa
+from pypsa_bc import calc
 
 """
 def load_and_process_data(file_path, 
@@ -63,7 +64,7 @@ def visualize_timeseries(data:pd.DataFrame,
                          xaxis_title:str=None,
                          legend_title_text:str=None,
                          save_to:Optional[Path]=None,
-                         show:Optional[bool]=True):
+                         show:Optional[bool]=False):
     data.index = data.index.map(lambda x: x.replace(year=year))
     if type=='area':
         fig = px.area(data, title="Title" if plot_title is None else plot_title)
@@ -79,21 +80,27 @@ def visualize_timeseries(data:pd.DataFrame,
         save_to.parent.mkdir(parents=True, exist_ok=True)
         fig.write_html(save_to)
         utils.print_update(level=2,message=f'Plot save to :{save_to}')
+        
     if show:
         fig.show()
         
-
-
-
-
+    return fig
 
 def plot_inter_region_link_usage(year:int,
-                                 inter_region_line_with_usage:gpd.GeoDataFrame,
+                                 pypsa_network_path:str|Path,
                                  regional_boundaries_GADM_L2:gpd.GeoDataFrame,
                                  plot_save_to:str|Path,
                                  plot_dpi:int=300,
                                  line_cmap:str='YlOrRd',
+                                 plot_title=None,
                                  show:bool=False):
+    
+    title=f'Inter Region Link Usage [Simulated for {year}]' if plot_title is None else plot_title
+
+    
+    n = pypsa.Network()
+    pypsa.Network.import_from_netcdf(n=n, path=pypsa_network_path)
+    inter_region_line_with_usage=calc.get_line_usage(n,regional_boundaries_GADM_L2)
 
     if 'Region' not in regional_boundaries_GADM_L2.columns:
         regional_boundaries_GADM_L2 = regional_boundaries_GADM_L2.reset_index(inplace=True)
@@ -162,7 +169,7 @@ def plot_inter_region_link_usage(year:int,
     plt.legend(handles=handles, loc='upper left', bbox_to_anchor=(1, .98), frameon=False)
 
     # Add title
-    plt.title(f'Inter Region Link Usage [Simulated for {year}]')
+    plt.title(title)
 
     # Save the plot
     plt.tight_layout()
@@ -170,7 +177,5 @@ def plot_inter_region_link_usage(year:int,
     plot_save_to = Path(plot_save_to)
     plot_save_to.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(plot_save_to, dpi=plot_dpi)
-
-    if show:
-        plt.show()
+    plt.close(fig)
     return fig
