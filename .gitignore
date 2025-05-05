@@ -11,3 +11,4 @@ data/store/*
 
 workflow/scripts/__pycache__
 pypsa_bc/__pycache__
+pypsa_bc/vis/__pycache__/*.pyc
