@@ -481,7 +481,8 @@ def main():
     # B) process data
 
     # (0) Replace NaN for summer rating with 0
-    df_lines['summer_rating_in_mva'] = df_lines["summer_rating_in_mva"].fillna(0.)
+    df_lines['summer_rating_in_mva'] = df_lines["summer_rating_in_mva"].fillna(0.) # new data doesn't contain this column
+    # df_lines['summer_capacity'] = df_lines["summer_capacity"].fillna(0.) # changed to summer_capacity, new col. 2025 05 08 EL
 
     # (1) Correction to data
     utils.print_update(level=2,message="Checking and calibrating transmission lines data...")

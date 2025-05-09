@@ -2,7 +2,7 @@ from pypsa_bc import hydro
 from pypsa_bc import utils
 import pandas as pd
 import geopandas as gpd
-
+print_level_base = 1
 
 def main(): 
     
@@ -12,10 +12,9 @@ def main():
     # and each basins upstream basins.
     # Configuration inputs:
     config_file = r"config/data.yaml"
-    cfg_cmplt = utils.load_config(config_file)
-    cfg=cfg_cmplt['pypsa']
+    cfg = utils.load_config(config_file)
     
-    print("Preparing cutout...")
+    utils.print_update(level=print_level_base,message="Preparing cutout...")
     
     # By default read in hydro data
     na_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["na_file"]) 
@@ -27,7 +26,7 @@ def main():
     hydro_polygon = hydro.get_hydro_cutout_polygon(hydro_sites, basin_data)
 
     # Determine true largest bounds based on max/min of hydro_bounds and the regional bounds
-    gdf = gpd.read_file(cfg_cmplt['GADM']['country_file_L1'])
+    gdf = gpd.read_file(cfg['GADM']['country_file_L1'])
     
     region_map_2_gadm = {"BC":"BritishColumbia", "AB":"Alberta",
                          "SK":"Saskatchewan", "MB":"Manitoba"}  # update needed with region mapping set in cfg
@@ -41,11 +40,11 @@ def main():
     bounds = utils.get_bounds([hydro_polygon, region_polygon])
 
     # Get resolution for ERA5
-    if cfg_cmplt["cutout"]["module"][0] == "era5":
-        utils.create_era5_cutout(bounds, cfg_cmplt)
+    if cfg["cutout"]["module"][0] == "era5":
+        utils.create_era5_cutout(bounds, cfg)
     else:
-        source = cfg_cmplt["cutout"]["module"]
-        print(f"Creating cutouts for {source} has not been implemented yet!")
+        source = cfg["cutout"]["module"]
+        utils.print_update(level=print_level_base+1,message=f"Creating cutouts for {source} has not been implemented yet!")
 
 if __name__ == '__main__':
     main()
