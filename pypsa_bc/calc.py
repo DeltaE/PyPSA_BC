@@ -40,12 +40,22 @@ def get_line_usage(solved_network:pypsa.Network,
     
     for link in n.lines_t.p0.columns:
         max_value = n.lines_t.p0[link].apply(lambda x: x / n.lines.loc[link, 's_nom']).max()
-        link_usage.append({'Link': link, 'Max': abs(max_value)})
+        avg_value = n.lines_t.p0[link].apply(lambda x: x / n.lines.loc[link, 's_nom']).mean()
+        # min_value = n.lines_t.p0[link].apply(lambda x: x / n.lines.loc[link, 's_nom']).min()
+        # std_dev = n.lines_t.p0[link].apply(lambda x: x / n.lines.loc[link, 's_nom']).std()
+        link_usage.append({
+            'Link': link, 
+            'Max': abs(max_value), 
+            'Average': abs(avg_value), 
+            # 'Min': abs(min_value), 
+            # 'StdDev': abs(std_dev)
+        })
 
     link_usage_df = pd.DataFrame(link_usage)
     link_usage_df=link_usage_df.sort_values(by='Max',ascending=False)
     link_usage_df.set_index('Link',inplace=True)
-    inter_region_lines['usage'] = inter_region_lines.index.map(link_usage_df['Max'])
-    inter_region_lines=inter_region_lines.sort_values(by='usage',ascending=False)
+    inter_region_lines['usage_max'] = inter_region_lines.index.map(link_usage_df['Max'])
+    inter_region_lines['usage_avg'] = inter_region_lines.index.map(link_usage_df['Average'])
+    inter_region_lines=inter_region_lines.sort_values(by='usage_max',ascending=False)
     inter_region_lines
     return inter_region_lines

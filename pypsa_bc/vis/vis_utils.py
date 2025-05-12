@@ -87,20 +87,19 @@ def visualize_timeseries(data:pd.DataFrame,
     return fig
 
 def plot_inter_region_link_usage(year:int,
-                                 pypsa_network_path:str|Path,
+                                 pypsa_network:pypsa.Network,
                                  regional_boundaries_GADM_L2:gpd.GeoDataFrame,
-                                 plot_save_to:str|Path,
+                                 usage_statistics='usage_avg',
                                  plot_dpi:int=300,
-                                 line_cmap:str='YlOrRd',
+                                 line_cmap:str='Reds',
                                  plot_title=None,
-                                 show:bool=False):
+                                 show:bool=False,
+                                 plot_save_to:str|Path=None):
     
-    title=f'Inter Region Link Usage [Simulated for {year}]' if plot_title is None else plot_title
+    usage_type='Average' if 'avg' in usage_statistics else "Max"
+    title=f'Inter Region Link {usage_type} Usage [Simulated for {year}]' if plot_title is None else plot_title
 
-    
-    n = pypsa.Network()
-    pypsa.Network.import_from_netcdf(n=n, path=pypsa_network_path)
-    inter_region_line_with_usage=calc.get_line_usage(n,regional_boundaries_GADM_L2)
+    inter_region_line_with_usage=calc.get_line_usage(pypsa_network,regional_boundaries_GADM_L2)
 
     if 'Region' not in regional_boundaries_GADM_L2.columns:
         regional_boundaries_GADM_L2 = regional_boundaries_GADM_L2.reset_index(inplace=True)
@@ -113,21 +112,27 @@ def plot_inter_region_link_usage(year:int,
     # Transform GeoDataFrames to match basemap CRS (EPSG:3857)
     boundary = boundary.to_crs(epsg=3857)
     inter_region_lines = inter_region_line_with_usage.to_crs(epsg=3857)
-
+    
+    # Scale s_nom to line widths between 1 and 10
+    min_width, max_width = 2, 10
+    s_nom = inter_region_line_with_usage['s_nom']
+    scaled_width = (s_nom - s_nom.min()) / (s_nom.max() - s_nom.min())  # Normalize to 0-1
+    inter_region_line_with_usage['line_width'] = min_width + scaled_width * (max_width - min_width)
+    
     # Create figure and axis
     fig, ax = plt.subplots(figsize=(12, 8))
 
     # Plot boundary and inter-region lines
-    boundary.plot(ax=ax, color='gray', edgecolor='k', linewidth=0.8, alpha=0.25)
+    boundary.plot(ax=ax, color='None', edgecolor='k', linewidth=0.3, alpha=0.5)
 
     # Set the bounds for the colorbar (can adjust these based on data range)
     vmin, vmax = 0, 1
 
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-    inter_region_lines.plot(column='usage', 
+    inter_region_lines.plot(column=usage_statistics, 
                             cmap=line_cmap,
-                            linewidth=5,
-                            alpha=0.9,
+                            linewidth=inter_region_line_with_usage['line_width'],
+                            alpha=1,
                             legend=False,  # We'll add a custom legend for the colorbar
                             ax=ax,
                             norm=norm)
@@ -141,7 +146,7 @@ def plot_inter_region_link_usage(year:int,
                     bbox=dict(facecolor='none', edgecolor='none'))
 
     # Add basemap
-    ctx.add_basemap(ax, source=ctx.providers.Esri.WorldTerrain)
+    ctx.add_basemap(ax, source=ctx.providers.CartoDB.Positron)
 
     # Turn off the grid and axis
     ax.axis('off')
@@ -152,8 +157,8 @@ def plot_inter_region_link_usage(year:int,
     sm.set_array([])  # The array is empty since we're just setting the colorbar
 
     # Add colorbar with custom settings
-    cbar = fig.colorbar(sm, ax=ax, orientation='horizontal', shrink=0.5, pad=0.001, anchor=(.5, .8))
-    cbar.set_label('Usage', rotation=0, labelpad=5)
+    cbar = fig.colorbar(sm, ax=ax, orientation='horizontal', shrink=0.8, pad=0.001, anchor=(.5, .8))
+    cbar.set_label(f'{usage_type} Usage', rotation=0, labelpad=5,fontsize=12)
     cbar.outline.set_visible(False)  # Remove colorbar border
     cbar.ax.patch.set_alpha(0.7)  # Add transparency to colorbar
 
@@ -173,9 +178,9 @@ def plot_inter_region_link_usage(year:int,
 
     # Save the plot
     plt.tight_layout()
-    
-    plot_save_to = Path(plot_save_to)
-    plot_save_to.parent.mkdir(exist_ok=True, parents=True)
-    plt.savefig(plot_save_to, dpi=plot_dpi)
+    if plot_save_to:
+        plot_save_to = Path(plot_save_to)
+        plot_save_to.parent.mkdir(exist_ok=True, parents=True)
+        plt.savefig(plot_save_to, dpi=plot_dpi)
     plt.close(fig)
     return fig

@@ -1,5 +1,5 @@
 Metadata-Version: 2.1
-Name: pypsa_bc
+Name: pypsa-bc
 Version: 1.0
 Summary: A combined package tool to serve the requirement for the scripts of PypSA-BC model
 Home-page: https://github.com/DeltaE/PyPSA_BC

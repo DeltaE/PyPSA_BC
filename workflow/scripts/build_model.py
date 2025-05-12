@@ -479,6 +479,8 @@ def aggregate_lines(n):
 
     # 3) Add new lines
     for line in temp_dict.values():
+        line["s_nom_max"] = line["s_nom"]*2
+        line["s_nom_extendable"] = True  # Enable capacity optimization
         n.add(**line)
         # utils.print_update(level=4,message=f"Added line: {line}")
 
@@ -967,7 +969,7 @@ def main(copperplate:bool=False,
     utils.print_update(level=3,message="Loading Nuclear Resources")
     nuc_resources=resource_options_data/'nuclear/potential'
     
-    nuc_sites = pd.read_csv(nuc_resources/f'resource_options_investments_nuc_{year}.csv',index_col='name')# utils.read_pickle(os.path.join(temp_folder,cfg_complete['results']['linking']['clusters_topSites']['solar']))
+    nuc_sites = pd.read_csv(nuc_resources/f'resource_options_investments_nuc_{year}.csv',index_col='name')
     utils.print_update(level=3,message=f"Nuclear site(s) loaded from {nuc_resources} ")
 
     add_nuc_expansion_sites(network, nuc_sites, capacity_choice=capacity_choice, bus_fix='GreaterVancouver')

@@ -39,7 +39,41 @@ def print_update(level: int=None,
         prefix=" ─"
     
     print(f"{color}{prefix}> {message}{Style.RESET_ALL}")
+                
+def get_generators_data(pypsa_network:pypsa.Network,
+                        generator_types:list=None):
     
+    if generator_types is None:
+        generator_types = ['Discharge', 'RoR', 'Wind', 'Solar', 'Backstop', 'NG', 'biogas', 'biomass','Nuclear']
+        print_update(level=2,message=f"Plotting the default generator types: {generator_types}")
+    else:
+        print_update(level=2,message=f"Plotting the user choice generator types: {generator_types}")
+    
+    # Initiate Empty dataframe
+    generators_timeseries = pd.DataFrame()
+    n=pypsa_network
+    
+    for type in generator_types:
+        if type in ['Discharge', 'biomass', 'biogas', 'NG']:
+            if any(type in col for col in n.links_t.p1.columns):
+                discharge_links = [col for col in n.links_t.p1.columns if type in col]
+                discharge_links_df = n.links_t.p1[discharge_links]
+                discharge_links_aggregates = discharge_links_df.sum(axis=1)
+                generators_timeseries[type] = abs(discharge_links_aggregates)
+        else:
+            data = n.generators_t.p
+            data = data.loc[:, (data != 0).any(axis=0)]
+            
+            if any(type in col for col in data.columns):
+                columns = [col for col in data.columns if type in col]
+                data_for_type = data[columns]
+                data_type_aggregates = data_for_type.sum(axis=1)
+                generators_timeseries[type] = data_type_aggregates
+                
+        generators_timeseries_resampled_D_peak = generators_timeseries.resample('D').max()
+        generators_timeseries_resampled_D_avg=generators_timeseries.resample('D').mean()
+    return generators_timeseries,generators_timeseries_resampled_D_peak,generators_timeseries_resampled_D_avg
+
 def merge_assets(df,subset,sum_list):
     '''
     Function used to reduce hydroelectric datasets from turbines to an aggregate asset.
