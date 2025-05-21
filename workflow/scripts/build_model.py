@@ -1099,7 +1099,63 @@ def main(ev_charging:str,
             # c3 = name != "NorthernRockies"
             # if c1 and c2 and c3:
             network.add(**component)
+    elif charge_strat.str.contains("hybird"):
+        main_charge_strat ='coordinated'
+        # load data
+        ev_bus = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_bus.pickle".format(main_charge_strat,ev_penetration_prefix))
+        ev_load = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_load.pickle".format(main_charge_strat,ev_penetration_prefix))
+        ev_battery = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_battery.pickle".format(main_charge_strat,ev_penetration_prefix))
+        ev_charger = utils.read_pickle(ev_fleet_load_data_root + "{}_{}_ev_charger.pickle".format(main_charge_strat,ev_penetration_prefix))
+        # ev_discharger = utils.read_pickle(prefix + "ev/{}_ev_discharger.pickle".format(charge_strat))
 
+        for component in ev_bus:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_load:
+            name = component['name'].split('_')[0]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_battery:
+            name = component['name'].split('_')[2]
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+
+        for component in ev_charger:
+            name = component['bus0']  # noqa: F841
+            component["bus0"] = "BC"
+            # c1 = name != "CentralCoast"
+            # c2 = name != "Stikine"
+            # c3 = name != "NorthernRockies"
+            # if c1 and c2 and c3:
+            network.add(**component)
+            
+        complementary_charge_strat='uncoordinated'
+        complementary_ev_penetration_prefix=str(100-int(ev_penetration_prefix))
+        complementary_ev_load_list = utils.read_pickle(ev_fleet_load_data_root+"{}_{}_ev_load.pickle".format(complementary_charge_strat,
+                                                                                               complementary_ev_penetration_prefix))
+        for comp_dict in complementary_ev_load_list:
+            # if comp_dict['bus'] == 'CentralCoast':
+            #     continue
+            # if comp_dict['bus'] == 'Stikine':
+            #     continue
+            # if comp_dict['bus'] == "NorthernRockies":
+            #     continue
+            comp_dict['bus'] = "BC"
+            network.add(**comp_dict)
+            
+        
     elif charge_strat == 'uncoordinated':
         ev_load_list = utils.read_pickle(ev_fleet_load_data_root+"{}_{}_ev_load.pickle".format(charge_strat,ev_penetration_prefix))
         for comp_dict in ev_load_list:
@@ -1111,6 +1167,7 @@ def main(ev_charging:str,
             #     continue
             comp_dict['bus'] = "BC"
             network.add(**comp_dict)
+            
     else:
         utils.print_update(level=2,message="{charge_strat} not implemented yet!")
         exit(123)

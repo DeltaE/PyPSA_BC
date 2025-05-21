@@ -14,6 +14,10 @@ from typing import Optional, List, Dict
 from pathlib import Path
 import requests
 import warnings
+import time
+import psutil
+import subprocess
+
 warnings.filterwarnings("ignore")
 
 def print_update(level: int=None,
@@ -60,7 +64,42 @@ def load_network(network_path):
     network = pypsa.Network(override_component_attrs=get_multi_link_override())
     pypsa.Network.import_from_netcdf(network=network, path=network_path)
     return network
+def log_runtime_and_memory(scenario:str, 
+                            start_time:float, 
+                            memory_usage:float, 
+                            save_to:str|Path,
+                            machine_id:Optional[str]=None):
+    # Ensure the directory exists
+    log_dir_path = Path(save_to)
+    log_dir_path.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir_path / "runtime_memory_log.txt"
+    runtime = time.time() - start_time
 
+    # Get the number of CPU cores/threads used
+    cpu_count = psutil.cpu_count(logical=True)
+
+    with log_path.open("a") as log_file:
+        log_file.write(f"Scenario: {scenario}\n")
+        log_file.write(f"Runtime: {runtime:.2f} seconds ({runtime / 60:.2f} minutes)\n")
+        log_file.write(f"Run Start Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}\n")
+        log_file.write(f"Run End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n")
+        log_file.write(f"Memory Usage: {memory_usage / (1024 * 1024):.2f} MB\n")
+        try:
+            username = psutil.Process().username()
+            log_file.write(f"Linux User: {username}\n")
+        except AttributeError:
+            log_file.write("User:---\n")
+            
+        if machine_id is None:
+            try:
+                machine_id = subprocess.check_output("hostname", shell=True).decode().strip()
+            except subprocess.CalledProcessError as e:
+                log_file.write(f"Machine ID: Error retrieving ({e})\n")
+        else:
+            log_file.write(f"Machine ID: {machine_id}\n")
+        log_file.write(f"CPU Cores/Threads Used: {cpu_count}\n")
+        log_file.write("-" * 50 + "\n")
+        
 def get_datafield_from_networks(unique_generator_tag:str,
                                 data_filed:str,
                                 network_names:list,
