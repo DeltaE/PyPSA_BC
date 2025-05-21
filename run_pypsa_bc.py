@@ -58,6 +58,7 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
         end_date:str,
         ev_charging:str,
         ev_population:float,
+        set_vre_p_nom_mod:bool,
         total_load_scaling_factor:float,
         resource_options:str='full_potential',
         run_tag:Optional[int]=None,
@@ -102,6 +103,7 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
     'ev_charging': ev_charging,
     'ev_population':ev_population,
     'run_tag':run_tag,
+    'set_vre_p_nom_mod':set_vre_p_nom_mod
     }
     build_model.main(**build_main_args)
 

@@ -325,6 +325,7 @@ def add_vre_expansion_sites(network:pypsa.Network,
                             vre_type:str,
                             capacity_choice:str,
                             copperplate:bool,
+                            set_vre_p_nom_mod:bool,
                             sites_to_add:Optional[pd.DataFrame]=None):
     """
     Temporary function to add pypsa components of VRE expansion sites.
@@ -357,7 +358,7 @@ def add_vre_expansion_sites(network:pypsa.Network,
             type = vre_type.lower(),
             bus = 'BC' if copperplate else (''.join(row['Region'].split(' '))), # Currently removes space before creating unique bus name
             p_max_pu = ts[name_id],
-            # p_nom_mod = min(row[capacity_choice_mapping[capacity_choice]],p_nom_mod), ## some resources have a very low potential row[capacity_choice_mapping[capacity_choice]],
+            p_nom_mod = p_nom_mod if set_vre_p_nom_mod else 0, ## some resources have a very low potential row[capacity_choice_mapping[capacity_choice]],
             p_nom=0,
             marginal_cost = marginal_cost, # row['vom'], # NOTE: Needs to synchronized
             capital_cost = row['capex'] * CAD_2_USD * 1e6, # NOTE: Currently converting M$ USD to CAD $
@@ -675,6 +676,7 @@ def main(ev_charging:str,
          ev_population:float,
          copperplate:bool=False,
          capacity_choice:str='investment',
+         set_vre_p_nom_mod:bool=False,
          year:int=2021,
          run_tag:Optional[str]=None,
          solved_network_save_to:str|Path='results/pypsa'):
@@ -925,8 +927,8 @@ def main(ev_charging:str,
     utils.print_update(level=3,message=f"Wind sites and profiles loaded from {wind_resources} ")
 
 
-    add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='Solar',capacity_choice=capacity_choice,copperplate=copperplate)
-    add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind',capacity_choice=capacity_choice,copperplate=copperplate)
+    add_vre_expansion_sites(network, pv_sites, pv_ts, vre_type='Solar',capacity_choice=capacity_choice,copperplate=copperplate,set_vre_p_nom_mod=set_vre_p_nom_mod)
+    add_vre_expansion_sites(network, wind_sites, wind_ts, vre_type='Wind',capacity_choice=capacity_choice,copperplate=copperplate,set_vre_p_nom_mod=set_vre_p_nom_mod)
     
     committed_sites_solar=pd.read_csv('data/pypsa/processed_data/solar/committed/BCH_CFP24_solar.csv',index_col='project_name')
     committed_sites_solar_ts=pd.read_csv('data/pypsa/processed_data/solar/committed/BCH_CFP24_solar_ts.csv',index_col='time',parse_dates=True)
