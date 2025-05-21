@@ -120,15 +120,18 @@ def get_datafield_from_networks(unique_generator_tag:str,
     for network_name in network_names:
  
         filtered_gens = network_dict[network_name].generators[network_dict[network_name].generators.index.str.contains(unique_generator_tag)]
-        col_name=network_name.split('_')[3][:3]+'_'+network_name.split('_')[4]
+        if "hybrid" in network_name:
+            col_name=network_name.split('_')[3]+'_'+network_name.split('_')[6]
+        else:
+            col_name=network_name.split('_')[3]+'_'+network_name.split('_')[4]
         filtered_df[col_name]= filtered_gens[data_filed]
         
-    print("'coo'= Coordinated, 'unc'= Uncoordinated, 'v2g'= Vehicle to grid")
+    print("'hybrid'= X% Coordinated, (1-X%) Uncoordinated, 'coo'= Coordinated Charging only, 'unc'= Uncoordinated charging only, 'v2g'= Vehicle to grid")
     print(f"Extracted '{data_filed}' for Generators with '{unique_generator_tag}' tags:")
     
     return filtered_df
 
-def get_networks(pypsa_results_path:str|Path="results/pypsa")->list:
+def get_networks(run_tag:str,pypsa_results_path:str|Path="results/pypsa")->list:
     """
     Load all the networks in the folder and return a list of the network names
     
@@ -137,29 +140,31 @@ def get_networks(pypsa_results_path:str|Path="results/pypsa")->list:
     Returns:
         network_names (list): A list of the network names
     """
+    run_tag=str(run_tag)
     pypsa_results_path=Path(pypsa_results_path)
     network_names = []
     network_dict = {}
 
     # Loop over each file in the folder
     for file_name in os.listdir(pypsa_results_path):
-        if file_name.endswith('.nc'):  # Process only .nc files      
-            # pypsa_n_XXXX_coordinated_scale_YYYYMMDD.nc
-            network_name = file_name.rstrip('.nc')
-            network_name.split('_')[2]
-            network_name.split('_')[3]
-            network_name.split('_')[4]
-            network_name.split('_')[5]
+        if file_name.endswith('.nc'):  # Process only .nc files   
+            if run_tag in file_name:
+                # pypsa_n_XXXX_coordinated_scale_YYYYMMDD.nc
+                network_name = file_name.rstrip('.nc')
+                network_name.split('_')[2]
+                network_name.split('_')[3]
+                network_name.split('_')[4]
+                network_name.split('_')[5]
+                
+                # Load the network and store it in a dictionary
+                network_dict[network_name] = load_network(pypsa_results_path / file_name)
             
-            # Load the network and store it in a dictionary
-            network_dict[network_name] = load_network(pypsa_results_path / file_name)
-           
-            # Apply the load_network function and assign the result to the dynamically created variable
-            # globals()[network_name] = load_network(pypsa_results_path/file_name)
-            
-            network_names.append(network_name)
-            # Print the assigned variable name for verification
-            # print_update(level=3,message=f"Assigned: {network_name} = {pypsa_results_path/file_name}")
+                # Apply the load_network function and assign the result to the dynamically created variable
+                # globals()[network_name] = load_network(pypsa_results_path/file_name)
+                
+                network_names.append(network_name)
+                # Print the assigned variable name for verification
+                # print_update(level=3,message=f"Assigned: {network_name} = {pypsa_results_path/file_name}")
     return network_names, network_dict
 
 def ev_load_only(network:pypsa.Network,
