@@ -1,4 +1,6 @@
+import time
 import pandas as pd
+import psutil
 from pypsa_bc import utils
 import warnings
 from pathlib import Path
@@ -71,6 +73,13 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
         resource_options (str): 'investment' or 'full_potential'
         year (int): 2021 to 2050
     """
+        # Measure runtime and memory usage
+    start_time = time.time()
+    process = psutil.Process()
+
+    # Calculate runtime and memory usage
+    memory_usage = process.memory_info().rss  # Resident Set Size (RSS) in bytes
+    
     year:int= datetime.datetime.strptime(start_date, "%Y-%m-%d").year
     
     if update_data:
@@ -106,6 +115,12 @@ def main(copperplate:bool, # the EV load data is prepared for Copperplate (singl
     'set_vre_p_nom_mod':set_vre_p_nom_mod
     }
     build_model.main(**build_main_args)
+
+    log_scenario_name=f"{ev_charging} {str(ev_population*100)}"
+    runtime_log_save_to=Path('results/pypsa')
+    machine_id="LabPc" 
+    utils.log_runtime_and_memory(log_scenario_name, start_time, memory_usage, runtime_log_save_to, machine_id)
+
 
 
 if __name__ == '__main__':

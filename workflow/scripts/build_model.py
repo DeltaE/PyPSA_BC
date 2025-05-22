@@ -404,11 +404,11 @@ def add_vre_committed_sites(network:pypsa.Network,
             bus = 'BC' if copperplate else (''.join(row['Region'].split(' '))), # Currently removes space before creating uniqut bus name
             p_max_pu = ts[name_id],
             # p_nom_mod = row['potential_capacity'], # The minimum allowed installed capacity if extendable=True
-            p_nom = 0,
+            p_nom = row['potential_capacity'],
             marginal_cost = marginal_cost , #row['vom'], # NOTE: Needs to synchronized
             capital_cost = row['capex'] * CAD_2_USD * 1e6, # NOTE: $/MW ; converting Mil. USD to CAD
-            p_nom_extendable = True,
-            p_nom_max = row["potential_capacity"]
+            p_nom_extendable = False, # committed sites
+            # p_nom_max = row["potential_capacity"]
             ) 
         
 def aggregate_lines(n):
@@ -701,7 +701,7 @@ def main(ev_charging:str,
 
     '''
     solved_network_save_to=Path(solved_network_save_to)
-    run_tag=str(run_tag)
+    run_tag=str(datetime.now().strftime("%Y%m%d")) if run_tag is None else str(run_tag)
     
     utils.print_update(level=1,message=" PyPSA model building initiated...")
     utils.print_update(level=100,message="Disclaimer: This model supports upto 28 Regional Districts (administrative regions) as nodes. The detailed loads (if provided) will be aggregated to these regional nodes.")
@@ -999,6 +999,7 @@ def main(ev_charging:str,
     utils.print_update(level=3,message=f"Loading data for {charge_strat} charging scenario from {ev_fleet_load_data_root}")
     
     ev_penetration_prefix=str(int(ev_population*100))
+    
     #NOTE: Modified for a single region only! This should be updated later on! (CANNOT BE RUN FOR MULTIPLE REGIONS RIGHT NOW!!!!)
     if "hybrid" in charge_strat:
         main_charge_strat ='coordinated'
@@ -1185,7 +1186,7 @@ def main(ev_charging:str,
     # network.lopf(network.snapshots)
     
     solved_network_save_to.parent.mkdir(exist_ok=True,parents=True)
-    run_tag=str(datetime.now().strftime("%Y%m%d"))
+
     file_name='pypsa_n_'+ str(year) + '_'+charge_strat+'_'+ ev_penetration_prefix+'_'+run_tag+'.nc'
     file_path=solved_network_save_to/ file_name
     network.export_to_netcdf(file_path)

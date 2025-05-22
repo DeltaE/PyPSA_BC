@@ -50,7 +50,7 @@ def filter_networks_list(network_names, penetration=None, run_tag=None):
     filtered = []
     for name in network_names:
         parts = name.split('_')
-        if (penetration and str(penetration) not in parts) or (run_tag and not name.endswith(str(run_tag))):
+        if (penetration and str(penetration) not in parts) or (run_tag not in name):
             continue
         filtered.append(name)
     return filtered
