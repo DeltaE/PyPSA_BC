@@ -1019,7 +1019,7 @@ def main(ev_charging:str,
             network.add(**component)
 
         for component in ev_load:
-            name = component['name'].split('_')[0]
+            name = main_charge_strat+component['name'].split('_')[0]
             # c1 = name != "CentralCoast"
             # c2 = name != "Stikine"
             # c3 = name != "NorthernRockies"
@@ -1048,6 +1048,7 @@ def main(ev_charging:str,
         complementary_ev_load_list = utils.read_pickle(ev_fleet_load_data_root+"{}_{}_ev_load.pickle".format(complementary_charge_strat,
                                                                                                complementary_ev_penetration_prefix))
         for comp_dict in complementary_ev_load_list:
+            comp_dict['name'] = complementary_charge_strat + comp_dict['name']
             # if comp_dict['bus'] == 'CentralCoast':
             #     continue
             # if comp_dict['bus'] == 'Stikine':

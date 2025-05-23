@@ -77,28 +77,41 @@ def log_runtime_and_memory(scenario:str,
 
     # Get the number of CPU cores/threads used
     cpu_count = psutil.cpu_count(logical=True)
+    # Read existing log if it exists
+    if log_path.exists():
+        with log_path.open("r") as f:
+            old_content = f.read()
+    else:
+        old_content = ""
 
-    with log_path.open("a") as log_file:
-        log_file.write(f"Scenario: {scenario}\n")
-        log_file.write(f"Runtime: {runtime:.2f} seconds ({runtime / 60:.2f} minutes)\n")
-        log_file.write(f"Run Start Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}\n")
-        log_file.write(f"Run End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n")
-        log_file.write(f"Memory Usage: {memory_usage / (1024 * 1024):.2f} MB\n")
+    # Prepare new log entry
+    new_log = []
+    new_log.append(f"Scenario: {scenario}\n")
+    new_log.append(f"Runtime: {runtime:.2f} seconds ({runtime / 60:.2f} minutes)\n")
+    new_log.append(f"Run Start Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}\n")
+    new_log.append(f"Run End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}\n")
+    new_log.append(f"Memory Usage: {memory_usage / (1024 * 1024):.2f} MB\n")
+    try:
+        username = psutil.Process().username()
+        new_log.append(f"Linux User: {username}\n")
+    except AttributeError:
+        new_log.append("User:---\n")
+    if machine_id is None:
         try:
-            username = psutil.Process().username()
-            log_file.write(f"Linux User: {username}\n")
-        except AttributeError:
-            log_file.write("User:---\n")
-            
-        if machine_id is None:
-            try:
-                machine_id = subprocess.check_output("hostname", shell=True).decode().strip()
-            except subprocess.CalledProcessError as e:
-                log_file.write(f"Machine ID: Error retrieving ({e})\n")
-        else:
-            log_file.write(f"Machine ID: {machine_id}\n")
-        log_file.write(f"CPU Cores/Threads Used: {cpu_count}\n")
-        log_file.write("-" * 50 + "\n")
+            machine_id = subprocess.check_output("hostname", shell=True).decode().strip()
+            new_log.append(f"Machine ID: {machine_id}\n")
+        except subprocess.CalledProcessError as e:
+            new_log.append(f"Machine ID: Error retrieving ({e})\n")
+    else:
+        new_log.append(f"Machine ID: {machine_id}\n")
+    new_log.append(f"CPU Cores/Threads Used: {cpu_count}\n")
+    new_log.append("-" * 50 + "\n")
+    new_log_str = "".join(new_log)
+
+    # Write new log entry first, then old content
+    with log_path.open("w") as log_file:
+        log_file.write(new_log_str)
+        log_file.write(old_content)
         
 def get_datafield_from_networks(unique_generator_tag:str,
                                 data_filed:str,
