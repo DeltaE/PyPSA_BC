@@ -479,8 +479,9 @@ def aggregate_lines(n):
 
     # 3) Add new lines
     for line in temp_dict.values():
-        line["s_nom_max"] = line["s_nom"]*2
-        line["s_nom_extendable"] = True  # Enable capacity optimization
+        line["s_nom_min"] = line["s_nom"]
+        line["s_nom_max"] = line["s_nom"]*10
+        line["s_nom_extendable"] = False  # Enable capacity optimization
         n.add(**line)
         # utils.print_update(level=4,message=f"Added line: {line}")
 
@@ -710,7 +711,7 @@ def add_reserves(n):
 def main(copperplate:bool=False,
          capacity_choice:str='investment',
          tx_line_infinity:bool=False,
-         year:int=2021,
+         year:int=2025,
          solved_network_save_to:Path=None):
     '''
     This script is used to build the model.(Currently, designed to build the existing electricity system in BC. (with site-c))
@@ -740,7 +741,13 @@ def main(copperplate:bool=False,
 
     # (1) Load files
     utils.print_update(level=2,message='Customizing components attributes by Overriding the standard components of PyPSA')
-    network = pypsa.Network(override_component_attrs=utils.get_multi_link_override())
+
+    # Old way (PyPSA < 0.26)
+    # network = pypsa.Network(override_component_attrs=utils.get_multi_link_override())
+
+    # New way (PyPSA >= 0.30)
+    network = pypsa.Network()
+    # network.override_component_attrs = utils.get_multi_link_override()
     
     utils.print_update(level=2,message='Loading the prepared data-file paths for PyPSA-BC')
     network_path = cfg['output']['prepare_base_network']['folder'] 

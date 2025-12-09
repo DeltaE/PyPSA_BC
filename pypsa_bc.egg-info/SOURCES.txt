@@ -40,12 +40,12 @@ pypsa_bc.egg-info/SOURCES.txt
 pypsa_bc.egg-info/dependency_links.txt
 pypsa_bc.egg-info/top_level.txt
 pypsa_bc/vis/__init__.py
+pypsa_bc/vis/plot_demand.py
+pypsa_bc/vis/plot_pypsa_gen.py
 pypsa_bc/vis/vis_utils.py
 pypsa_bc/vis/dashboard/__init__.py
 pypsa_bc/vis/dashboard/app.py
 pypsa_bc/vis/dashboard/dash_components.py
-pypsa_bc/vis/dashboard/plot_demand.py
-pypsa_bc/vis/dashboard/plot_pypsa_gen.py
 resources/.gitkeep
 results/.gitkeep
 workflow/snakefile

@@ -1,11 +1,13 @@
-from pypsa_bc import utils,hydro
-import pandas as pd
-from pathlib import Path
+# import sys
 import warnings
-import sys
+
+# from pathlib import Path
+import pandas as pd
+from pypsa_bc import hydro, utils
 
 # handles the config loading centrally
 from pypsa_bc.attributes_parser import AttributesParser
+
 pypsa_aparser=AttributesParser()
 
 # Suppress all warnings
@@ -297,6 +299,25 @@ def custom_bridge_agg(df):
 
     return df
 
+def sync_data_update(cascade_data:pd.DataFrame) ->pd.DataFrame:
+    """
+    This function updates the substation and line dataframes to reflect changes in CODERS data.
+    """
+    
+    # Modified: 2024-10-01, Fix hydro cascade files to ensure naming matches coders updated asset names...
+    # Likely maintainers of CODERS will fix this issue in the future, however, manually fixed for time being.
+    # map of old to new gen_node_codes for the hydro cascade file
+    # Modification A: Cascade hydro file
+    bridge_codes = {'BC_BR0101_GEN':'BC_BR101_GEN','BC_BR0102_GEN':'BC_BR102_GEN','BC_BR0103_GEN':'BC_BR103_GEN','BC_BR0104_GEN':'BC_BR104_GEN',
+                   'BC_BR0201_GEN':'BC_BR201_GEN','BC_BR0202_GEN':'BC_BR202_GEN','BC_BR0203_GEN':'BC_BR203_GEN','BC_BR0204_GEN':'BC_BR204_GEN'}
+    mask = cascade_data['gen_node_code'].isin(bridge_codes)
+    cascade_data.loc[mask,'gen_node_code'] = cascade_data.loc[mask,'gen_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+
+    # Modification B: Existing hydro file
+    bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'}
+    mask = cascade_data['connecting_node_code'].isin(bridge_codes)
+    cascade_data.loc[mask,'connecting_node_code'] = cascade_data.loc[mask,'connecting_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+    return cascade_data
 
 def main():
     '''
@@ -324,20 +345,20 @@ def main():
     hydro_e_data = pd.read_csv(cfg["data"]["coders"]["hydro_existing"])
     cascade_data = pd.read_csv(cfg["data"]["coders"]["hydro_cascade"])
     
-    # Modified: 2024-10-01, Fix hydro cascade files to ensure naming matches coders updated asset names...
-    # Likely maintainers of CODERS will fix this issue in the future, however, manually fixed for time being.
-    # map of old to new gen_node_codes for the hydro cascade file
-    # Modification A: Cascade hydro file
-    bridge_codes = {'BC_BR0101_GEN':'BC_BR101_GEN','BC_BR0102_GEN':'BC_BR102_GEN','BC_BR0103_GEN':'BC_BR103_GEN','BC_BR0104_GEN':'BC_BR104_GEN',
-                   'BC_BR0201_GEN':'BC_BR201_GEN','BC_BR0202_GEN':'BC_BR202_GEN','BC_BR0203_GEN':'BC_BR203_GEN','BC_BR0204_GEN':'BC_BR204_GEN'}
-    mask = cascade_data['gen_node_code'].isin(bridge_codes)
-    cascade_data.loc[mask,'gen_node_code'] = cascade_data.loc[mask,'gen_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+    # # Modified: 2024-10-01, Fix hydro cascade files to ensure naming matches coders updated asset names...
+    # # Likely maintainers of CODERS will fix this issue in the future, however, manually fixed for time being.
+    # # map of old to new gen_node_codes for the hydro cascade file
+    # # Modification A: Cascade hydro file
+    # bridge_codes = {'BC_BR0101_GEN':'BC_BR101_GEN','BC_BR0102_GEN':'BC_BR102_GEN','BC_BR0103_GEN':'BC_BR103_GEN','BC_BR0104_GEN':'BC_BR104_GEN',
+    #                'BC_BR0201_GEN':'BC_BR201_GEN','BC_BR0202_GEN':'BC_BR202_GEN','BC_BR0203_GEN':'BC_BR203_GEN','BC_BR0204_GEN':'BC_BR204_GEN'}
+    # mask = cascade_data['gen_node_code'].isin(bridge_codes)
+    # cascade_data.loc[mask,'gen_node_code'] = cascade_data.loc[mask,'gen_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
 
-    # Modification B: Existing hydro file
-    bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'}
-    mask = cascade_data['connecting_node_code'].isin(bridge_codes)
-    cascade_data.loc[mask,'connecting_node_code'] = cascade_data.loc[mask,'connecting_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-    
+    # # Modification B: Existing hydro file
+    # bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'}
+    # mask = cascade_data['connecting_node_code'].isin(bridge_codes)
+    # cascade_data.loc[mask,'connecting_node_code'] = cascade_data.loc[mask,'connecting_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+    cascade_data = sync_data_update(cascade_data)
 
     # get templates
     data_dict = get_hydro_data_dict()
@@ -380,7 +401,6 @@ def main():
     # BC only implemented so far for this....
     res_wup_data.to_csv(df_res_path, index=False)
     utils.print_update(level=2,message=f"reservoir data saved to: {df_res_path}")
-
 
     # (viii)
     # Aggregate hydro turbines into singular assets.

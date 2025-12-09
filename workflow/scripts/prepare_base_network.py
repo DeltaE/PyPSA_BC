@@ -431,6 +431,32 @@ def create_transformer_types_df(df_transformers):
 
     return df_transformer_types
 
+def sync_data_update(df_sub:pd.DataFrame, 
+                     df_lines:pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    This function updates the substation and line dataframes to reflect changes in CODERS data.
+
+    Args:
+        df_sub (pd.DataFrame): _description_
+        df_lines (pd.DataFrame): _description_
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: _description_
+    """
+    # MODIFICATIONS 2024-10-01: Similar to create_hydro_asset fix for the bridge cascade. Here the substation name for the following is modified:
+    # BC_BR1_DFS modified to BC_BR1_GSS ; CODERS data update
+    bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'} # {old_code, new_code}
+     
+    # i)
+    mask = df_sub['node_code'].isin(bridge_codes)
+    df_sub.loc[mask,'node_code'] = df_sub.loc[mask,'node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+    # ii)
+    mask = df_lines['starting_node_code'].isin(bridge_codes)
+    df_lines.loc[mask,'starting_node_code'] = df_lines.loc[mask,'starting_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+    # iii) 
+    mask = df_lines['ending_node_code'].isin(bridge_codes)
+    df_lines.loc[mask,'ending_node_code'] = df_lines.loc[mask,'ending_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
+    return df_sub, df_lines
 
 def main():
     '''
@@ -443,11 +469,12 @@ def main():
     - transformer_types.csv
 
     '''
-    utils.print_update(level=1,message="Preparing base nework for PyPSA_BC")
+    utils.print_update(level=1,message="Preparing base network for PyPSA_BC")
     
     # get config
     cfg = pypsa_aparser.pypsa_cfg
     
+    #----------------------------------------------------------------------------------------------------------------------------------
     # A) load data
 
     transmission_line_path = cfg['data']["coders"]["lines"]
@@ -464,20 +491,8 @@ def main():
     df_sub = df_substations[df_substations["province"].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])].copy()
     df_lines = df_lines[df_lines["province"].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])].copy()
     
-    # MODIFICATIONS 2024-10-01: Similar to create_hydro_asset fix for the bridge cascade. Here the substation name for the following is modified:
-    # BC_BR1_DFS modified to BC_BR1_GSS ; CODERS data update
-    bridge_codes = {'BC_BR1_DFS':'BC_BR1_GSS'}
-     
-    # i)
-    mask = df_sub['node_code'].isin(bridge_codes)
-    df_sub.loc[mask,'node_code'] = df_sub.loc[mask,'node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-    # ii)
-    mask = df_lines['starting_node_code'].isin(bridge_codes)
-    df_lines.loc[mask,'starting_node_code'] = df_lines.loc[mask,'starting_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-    # iii) 
-    mask = df_lines['ending_node_code'].isin(bridge_codes)
-    df_lines.loc[mask,'ending_node_code'] = df_lines.loc[mask,'ending_node_code'].apply(lambda old_cold: bridge_codes[old_cold])
-
+    df_sub, df_lines = sync_data_update(df_sub, df_lines) # EL_2025-11-25: Added this method to address data update for CODERS changes.
+    #----------------------------------------------------------------------------------------------------------------------------------
     # B) process data
 
     # (0) Replace NaN for summer rating with 0
@@ -505,7 +520,6 @@ def main():
 
     # # (5) Create dataframe of BC buses from the lines and substations
     df_buses_bc = create_bus_df(lines, df_sub, generators) 
-    
     
 
     # ######### MODIFICATIONS: To adjust for the CODERS updates in naming. #####################
@@ -547,7 +561,7 @@ def main():
     # # Additional attributes
     df_buses_bc['substation_type'] = df_buses_bc['name'].apply(lambda x: x.split('_')[-1])
     buses = df_buses_bc 
-
+    #----------------------------------------------------------------------------------------------------------------------------------
     # C) record data
     root = cfg['output']['prepare_base_network']['folder']
     utils.check_path(root)
