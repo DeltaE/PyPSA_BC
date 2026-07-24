@@ -1,12 +1,13 @@
 import pypsa
 import sys
-from pypsa_bc import utils, hydro
+from Z_legacy.pypsa_bc import hydro
+from Z_legacy.pypsa_bc import utils
 import json
 import pandas as pd
-from pypsa_bc import utils
+from Z_legacy.pypsa_bc import utils
 
 # handles the config loading centrally
-from pypsa_bc.attributes_parser import AttributesParser
+from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 def is_terminal_stage(down_rid):

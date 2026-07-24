@@ -3,12 +3,12 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 import numpy as np
-from pypsa_bc import utils
+from Z_legacy.pypsa_bc import utils
 from pathlib import Path
 # handles the config loading centrally
 
 import warnings
-from pypsa_bc.attributes_parser import AttributesParser
+from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=FutureWarning)

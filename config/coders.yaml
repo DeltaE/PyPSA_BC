@@ -1,0 +1,36 @@
+coders:
+  # url_1: https://sesit.dev/ #depricated, EL_20270723
+  # url_2: http://206.12.95.102/ #depricated, EL_20270723
+  url: http://api.sesit.ca # updated, EL_20270723
+  api_documentation: https://coders.cme-emh.ca/
+  api_config: "data/downloaded_data/CODERS/coders_api.yaml"
+  root: data/downloaded_data/CODERS/data-pull
+  tables:
+    generators: supply
+    transmission_lines: network
+    substations: network
+    generation_generic: supply
+    existing_hydro: supply
+
+  # active_version: 2025OCT28   # optional; defaults to the LAST block defined below
+  version:
+    2025OCT28:
+      agreement: old_to_new # keys = canonical (your code), values = current CODERS field
+      transmission_lines:
+        starting_node_code: network_node_code_starting
+        ending_node_code: network_node_code_ending
+        summer_rating_mw: ttc_summer
+        winter_rating_mw: ttc_winter
+        reactance_ohm: Transmission_Line_Reactance
+        segment_reactance: Transmission_Line_Segment_Reactance
+        length_km: line_length_km
+        voltage_kV: voltage
+      generators:
+        connecting_node_code: network_node_code
+        generator_capacity: facility_installed_capacity
+        generator_fuel_type: gen_type
+
+  # Optional hard contract: fail at load if any canonical col is absent post-rename
+  required:
+    transmission_lines: [ starting_node_code, ending_node_code, summer_rating_mw, reactance_ohm, voltage_kV ]
+    substations: [ node_code ]

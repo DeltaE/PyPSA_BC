@@ -1,8 +1,8 @@
 import pandas as pd
-from pypsa_bc import utils
+from Z_legacy.pypsa_bc import utils
 
 # handles the config loading centrally
-from pypsa_bc.attributes_parser import AttributesParser
+from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 #This part builds the solar_assets data frame to be written into a CSV file

@@ -1,0 +1,44 @@
+# base_network.yaml — physical ASSUMPTIONS for the base electrical network.
+# Electrical constants for lines and transformers. No file paths here.
+# Accessed via AttributesParser.base_network_cfg  (flat keys, e.g. cfg['f_nom']).
+
+regions: [BC]          # provinces in modelling scope
+
+pf: 0.9                # power factor, used for MW <-> MVA conversion
+f_nom: 60              # nominal frequency (Hz), used for line rating
+
+# Line reactance lookup: nominal voltage (kV) -> reactance (ohm/km).
+# Source: adopted from Pierre; needs literature-review validation.
+voltage_to_reactance:
+  63:  0.3800
+  66:  0.3821
+  69:  0.3843
+  72:  0.3864
+  115: 0.4171
+  120: 0.4207
+  138: 0.4336
+  144: 0.4379
+  161: 0.4500
+  230: 0.4800
+  240: 0.4769
+  287: 0.4621
+  315: 0.4532
+  345: 0.4438
+  360: 0.4391
+  500: 0.3950
+  735: 0.3800
+  765: 0.3781
+
+# PyPSA transformer-type parameters (placeholders — refine per real nameplate).
+transformer:
+  s_nom: 2000          # MVA, rated apparent power
+  vsc: 10              # %, short-circuit (impedance) voltage u_k -> sets z
+  vscr: 0.3            # %, resistive part u_kr -> sets r (rest is x)
+  pfe: 30              # kW, iron/core no-load losses -> shunt conductance g
+  i0: 0.04             # %, no-load magnetising current -> shunt susceptance b
+  phase_shift: 150     # deg, HV->LV phase shift (vector-group clock 5, e.g. Dy5)
+  tap_side: 0          # 0 = HV side carries the tap changer
+  tap_neutral: 0       # tap position at nominal ratio
+  tap_min: -9          # tap range (19 positions)
+  tap_max: 9
+  tap_step: 1.5        # %, voltage change per tap (±9 x 1.5% = ±13.5%)

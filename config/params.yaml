@@ -1,0 +1,44 @@
+# params.yaml — modelling PARAMETERS and run-time options. No file paths here.
+# Accessed via AttributesParser.params_cfg  (and get_scenario / get_snapshot).
+
+scenario: Test                 # scenario label
+
+# Model snapshots (PyPSA time index). Lists, not scalars.
+snapshot:
+  start: ['2021-01-01 00:00:00']
+  end:   ['2021-12-31 23:00:00']
+  timezone_convert: 'Etc/GMT+7'   # Pacific Time
+  region_mapping: {}
+
+region:
+  name: BC
+
+# Atlite cutout build parameters (paths in data.yaml).
+cutout:
+  module: [era5]
+  dx: 0.25                     # deg, cutout grid cell arc length
+  dy: 0.25
+  snapshots:
+    start: ['2021-01-01 07:00:00']   # ERA5 is UTC
+    end:   ['2022-01-01 06:00:00']
+
+# Per-step workflow parameters (the values that used to sit in data.yaml output.*).
+workflow:
+  reservoir_inflows:
+    inflow_method: mean_inflow_calibrate
+    height: True
+    flowspeed: 1
+  ror_ps:
+    height: True
+    flowspeed: 1
+  wind_ts:
+    calibration: 1             # calibrate to annual generation average (1) or not (0)
+  solar_ts:
+    calibration: 0
+  tpp:
+    gas_grid: False            # unique gas bus at each thermal node
+    UC: False                  # unit commitment
+  build_model:
+    scenario: "0"              # EV penetration: 0 / 50 / 100
+    charge_strat: uncoordinated   # [uncoordinated, coordinated, v2g]
+    region_res: multiple

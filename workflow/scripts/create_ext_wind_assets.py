@@ -1,9 +1,9 @@
 import pandas as pd
 import json
-from pypsa_bc import utils
+from Z_legacy.pypsa_bc import utils
 
 # handles the config loading centrally
-from pypsa_bc.attributes_parser import AttributesParser
+from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 '''

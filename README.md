@@ -3,9 +3,16 @@ Host repository for BC PyPSA work for the PICS Decarbonization project.
 
 The project leverages BC infrastructure from CODERS.
 
-To setup your environment please have a distribution of conda installed. Now clone the repo.
+## Setup
 
-Once the repo has been cloned you will now want to create the conda environment `bc-power`. Run the following command:
+This project is packaged as `pypsa-bc` and managed with [uv](https://docs.astral.sh/uv/). Quick start:
 
-`conda env create --name bc-power --file environment.yml`
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # install uv
+git clone https://github.com/DeltaE/PyPSA_BC.git
+cd PyPSA_BC
+uv sync                                           # creates .venv and installs pypsa-bc + dependencies
+```
+
+See [docs/SETUP.md](docs/SETUP.md) for a full walkthrough, including running scripts (`uv run ...`) and managing dependencies.
 

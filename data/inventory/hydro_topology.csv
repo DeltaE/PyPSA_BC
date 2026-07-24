@@ -1,0 +1,27 @@
+facility,reservoir,cascade_group,cascade_order
+Aberfeldie,Aberfeldie_R1,Aberfeldie,1
+Lajoie,Bridge_R1,Bridge,1
+Bridge1,Bridge_R2,Bridge,2
+Bridge2,Bridge_R2,Bridge,2
+Seton,Bridge_R3,Bridge,3
+Strathcona,Campbell_R3,Campbell,1
+Ladore,Campbell_R2,Campbell,2
+John Hart,Campbell_R1,Campbell,3
+Clowhom,Clowhom_R1,Clowhom,1
+Cheakamus,Daisy_R1,Daisy,1
+Jordan River,Elliott_R1,Elliott,1
+Ash,Elsie_R1,Elsie,1
+Wahleach,Jones_R1,Jones,1
+Mica,Mica/Columbia_R2,Mica/Columbia,1
+Revelstoke,Mica/Columbia_R3,Mica/Columbia,2
+Walter Hardman,Mica/Columbia_R4,Mica/Columbia,2
+Whatshan,Mica/Columbia_R5,Mica/Columbia,2
+Arrow Lakes,Mica/Columbia_R1,Mica/Columbia,3
+GM Shrum,Peace_R1,Peace,1
+Peace Canyon,Peace_R2,Peace,2
+Site C,Peace_R3,Peace,2
+Seven Mile,Seven Mile_R1,Seven Mile,1
+Waneta,Seven Mile_R1,Seven Mile,2
+Alouette,Stave_R1,Stave,1
+Stave Falls,Stave_R3,Stave,2
+Ruskin,Stave_R2,Stave,3

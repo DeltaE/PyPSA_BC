@@ -1,0 +1,13 @@
+﻿asset_id,capacity,nominal_head,max_spill,max_water_discharge,min_water_discharge,min_storage,max_storage,cascade_group,cascade_order,sources,Notes
+BC_KMO_GSS,,790,inf,,0,,,Nechako,1,"nominal_head: https://en.wikipedia.org/wiki/Kemano_Generating_Station
+",16km long pipe a lot of the head is likely lost
+BC_GMS_GSS,,186,,,0,,,,,"nominal_head: https://en.wikipedia.org/wiki/W._A._C._Bennett_Dam
+",Head is height of dam
+BC_MCA_GSS,2805,183,,,,9875800000,24770700000,,,"nominal_head: https://www.nwd.usace.army.mil/Media/Fact-Sheets/Fact-Sheet-Article-View/Article/621046/mica-dam/
+capacity: https://en.wikipedia.org/wiki/Mica_Dam",Head is at full pool
+BC_PCN_GSS,,40.2,,,1018800,,,,,"nominal_head: https://open.library.ubc.ca/soa/cIRcle/collections/ubctheses/831/items/1.0063412
+max_spill: https://open.library.ubc.ca/soa/cIRcle/collections/ubctheses/831/items/1.0063412
+min_water_discharge: Peace Water Use Plan",Unable to find a min_storage value which should correspon to a min_level value.
+BC_REV_GSS,,126.8,,,,5089900000,5264800000,,,"nominal_head: https://cdnsciencepub-com.proxy.lib.sfu.ca/doi/abs/10.1139/l88-103
+max/min storage: Columbia River Project Water Use Plan Kinbasket Fish and Wildlife Information Management Plan",
+BC_STC_GSS,,60,,,,,,,,nominal_head: https://en.wikipedia.org/wiki/Site_C_dam,

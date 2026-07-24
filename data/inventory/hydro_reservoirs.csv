@@ -1,0 +1,25 @@
+reservoir,live_min_m3,live_max_m3,q_min_m3s,q_max_m3s,sill_elev_m,sill_datum,spill_max_m3s,flag_spill,flag_minstor,flag_dup,method,verified,source
+Aberfeldie_R1,0,510000,1,40,,unknown,923,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Bridge_R1,0,705600000,3,51,697.0,unknown,127,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Bridge_R2,0,10125000000,0,160,600.0,unknown,586,False,True,True,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Bridge_R3,0,14800000,5,143,232.0,unknown,359,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Campbell_R1,24280000,44700000,0,124,140.0,unknown,1238,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Campbell_R2,6400000,316000000,0,168,520.0,unknown,1266,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Campbell_R3,1579360000,2459000000,0,197,122.0,unknown,577,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Clowhom_R1,0,46550000,0,100,,unknown,1153,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Daisy_R1,0,55000000,5,65,340.0,unknown,100000000,True,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Elliott_R1,3500000,21700000,0,30,318.0,unknown,2500,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Elsie_R1,0,78000000,4,15,310.0,unknown,1370,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Jones_R1,0,60500000,0,13,,unknown,10000000,True,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Mica/Columbia_R1,0,8757708000,0,530,,unknown,10500,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Mica/Columbia_R2,6167400000,14801760000,0,1590,693.0,unknown,4290,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Mica/Columbia_R3,0,1850220000,0,1325,,unknown,7110,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Mica/Columbia_R4,240650,700000,0,4,,unknown,11,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Mica/Columbia_R5,0,122000000,0,34,216.0,unknown,279,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Peace_R1,0,39471000000,0,1968,628.0,unknown,9200,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Peace_R2,0,24690000,0,1982,426.0,unknown,10280,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Peace_R3,2145000000,2310000000,0,793,,unknown,10280,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Seven Mile_R1,0,60500000,0,1473,,unknown,2300,False,True,True,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Stave_R1,4650000,198650000,0,24,101.0,unknown,1257,False,False,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Stave_R2,0,42000000,0,348,,unknown,4430,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field
+Stave_R3,0,470000000,0,297,,unknown,2100,False,True,False,legacy_CODERS_hydro_cascade,False,CODERS hydro_cascade (withdrawn 2025); provenance not per-field

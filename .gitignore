@@ -12,3 +12,9 @@ data/store/*
 workflow/scripts/__pycache__
 pypsa_bc/__pycache__
 pypsa_bc/vis/__pycache__/*.pyc
+data/processed_data/
+notebooks/
+*/*/__pycache__
+Z_legacy
+logs
+

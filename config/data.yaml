@@ -1,292 +1,89 @@
+# data.yaml — file and directory locations ONLY. No parameters, no assumptions.
+# All paths are relative to the repo root. Accessed via AttributesParser.data_cfg.
+# Run-parameters live in params.yaml; electrical assumptions in base_network.yaml;
+# CODERS pull config in coders.yaml.
+
+roots:
+  downloaded: data/downloaded_data
+  processed: data/processed_data
+  custom: data/custom
+  results: results
+
+# ---------------------------------------------------------------- inputs
 GADM:
-  root: data/downloaded_data/GADM
-  processed: data/processed_data/regions
-  country_file_L1: "data/downloaded_data/GADM/gadm41_CAN_1.json" # Provincial level maps..
-  country_file_L2:  "data/downloaded_data/GADM/gadm41_CAN_2.json" # Administrative regions within provincial..
+  country_file_L1: data/downloaded_data/GADM/gadm41_CAN_1.json # provinces
+  country_file_L2: data/downloaded_data/GADM/gadm41_CAN_2.json # admin regions
 
-# Directories
-custom: # need to automate this or upload to repo. Pierre created this manually
-    gen_wup: "data/downloaded_data/custom/hydro_gen_wup_features.csv"
-    res_wup: "data/downloaded_data/custom/hydro_res_wup_features.csv"
-    inflow_tables: "data/downloaded_data/custom/inflow_stats" # Has standardized names inside which are assumed
-    line_table: "data/downloaded_data/custom/electric_power_generation_table_13_3a.xlsx" # Custom table for infering line parameters
-basin_files:  # need to automate this or upload to repo. Pierre created this manually
-    na_file: "data/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.shp"
-    artic_file: "data/downloaded_data/HydroBASINS_artic/hybas_ar_lev12_v1c.shp"
-data: #Temp
-  wind:
-    can_turbines: "data/downloaded_data/wind/canada_turbines.xlsx"
-    turbine_dict: "data/downloaded_data/wind/turbine_dict.json"
-    gwa_speed: "data/downloaded_data/wind/british_columbia_wspd_100m.tif"
-    gwa_geojson: "data/downloaded_data/wind/british_columbia.geojson"
+basin_files:
+  na_file: data/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.shp
+  arctic_file: data/downloaded_data/HydroBASINS_artic/hybas_ar_lev12_v1c.shp
+
+# BC Hydro / Water Use Plan derived, manually curated (see also params.yaml)
+inventory:
+  gen_wup: data/inventory/custom/hydro_gen_wup_features.csv
+  res_wup: data/inventory/custom/hydro_res_wup_features.csv
+  inflow_tables: data/inventory/custom/inflow_stats # dir of {reservoir_id}.csv
+  line_table: data/inventory/custom/electric_power_generation_table_13_3a.xlsx
+
+data:
+  # CODERS API pulls. Locations mirror coders.yaml (root + tables); keep in sync.
   coders:
-    gen_generic: "data/downloaded_data/CODERS/data-pull/supply/generation_generic.csv"
-    hydro_existing: "data/downloaded_data/CODERS/data-pull/supply/hydro_existing.csv"
-    generators: "data/downloaded_data/CODERS/data-pull/supply/generators.csv"
-    hydro_cascade: "data/downloaded_data/CODERS/data-pull/supply/hydro_cascade.csv"
-    lines: "data/downloaded_data/CODERS/data-pull/network/transmission_lines.csv"
-    substations: "data/downloaded_data/CODERS/data-pull/network/substations.csv"
+    generators: data/downloaded_data/CODERS/data-pull/supply/generators.csv
+    gen_generic: data/downloaded_data/CODERS/data-pull/supply/generation_generic.csv
+    hydro_existing: data/downloaded_data/CODERS/data-pull/supply/hydro_existing.csv
+    hydro_cascade: data/downloaded_data/CODERS/data-pull/supply/hydro_cascade.csv
+    lines: data/downloaded_data/CODERS/data-pull/network/transmission_lines.csv
+    substations: data/downloaded_data/CODERS/data-pull/network/substations.csv
+  wind:
+    can_turbines: data/downloaded_data/wind/canada_turbines.xlsx
+    turbine_dict: data/downloaded_data/wind/turbine_dict.json
+    gwa_speed: data/downloaded_data/wind/british_columbia_wspd_100m.tif
+    gwa_geojson: data/downloaded_data/wind/british_columbia.geojson
   load:
-    ceei: "data/downloaded_data/load/CEEI_2022.xlsx"
-    cee_transport: "data/downloaded_data/load/CEEI_TRA_2022.xlsx"
-    bch: "data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad" # 2021.xls
+    ceei: data/downloaded_data/load/CEEI_2022.xlsx
+    cee_transport: data/downloaded_data/load/CEEI_TRA_2022.xlsx
+    bch: data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad # + <year>.xls
+  cutout: data/downloaded_data/cutout/BC_2021_2022.nc
+
+# ---------------------------------------------------------------- outputs
+# Paths only. Any run-parameter that used to sit beside these lives in params.yaml.
 output:
-  prepare_base_network:
-    folder: "data/processed_data/network"
-    regions: # list of all regions to include in the model build
-      - "BC"
+  base_network: data/processed_data/network
+
   create_hydro_assets:
-    hydro_generation: "data/processed_data/hydro/existing/hydro_generation.csv"
-    hydro_reservoir: "data/processed_data/hydro/existing/hydro_reservoirs.csv"
-  create_cutout:
-    cutout: "data/downloaded_data/cutout/BC_2021_2022.nc" # Modifications needed to how the year is added
+    hydro_generation: data/processed_data/hydro/existing/hydro_generation.csv
+    hydro_reservoir: data/processed_data/hydro/existing/hydro_reservoirs.csv
+
   reservoir_inflows:
-    fname: "data/processed_data/hydro/existing/bc_ext_reservoir_inflows.csv" # path + name
-    inflow_method: "mean_inflow_calibrate"
-    height: True
-    flowspeed: 1 #WORKFLOW PARAM
+    fname: data/processed_data/hydro/existing/bc_ext_reservoir_inflows.csv
   ror_ps:
-    fname: "data/processed_data/hydro/existing/bc_ext_ror_ts.csv"
-    height: True
-    flowspeed: 1 #WORKFLOW PARAM
+    fname: data/processed_data/hydro/existing/bc_ext_ror_ts.csv
   create_ext_wind_assets:
-    fname: "data/processed_data/wind/existing/bc_ext_wind_assets.csv"
+    fname: data/processed_data/wind/existing/bc_ext_wind_assets.csv
   create_ext_wind_ts:
-    calibration: 1 # Used to select whether to calibrate with annual gen average or not #WORKFLOW PARAM
-    fname: "data/processed_data/wind/existing/bc_ext_wind_ts.csv" # for storing the timeseries for wind
+    fname: data/processed_data/wind/existing/bc_ext_wind_ts.csv
   create_ext_solar_assets:
-    fname: "data/processed_data/solar/existing/bc_ext_solar_assets.csv"
+    fname: data/processed_data/solar/existing/bc_ext_solar_assets.csv
   create_ext_solar_ts:
-    calibration: 0 # Used to select whether to calibrate with annual gen average or not #WORKFLOW PARAM
-    fname: "data/processed_data/solar/existing/bc_ext_solar_ts.csv" # for storing the timeseries for wind
-  pypsa_dict: # for all enrichment scripts
-    folder: "data/pypsa_data/" # Modified 2023-11-29
-    res: "hydro_reservoirs.pickle"
-    ror: "hydro_ror.pickle"
-    ror_water: "hydro_ror_water.pickle"
-    wind: "wind.pickle"
-    solar: "solar.pickle" # Change to solar
-    tpp: "tpp.pickle"
-    ff_infrastructure: "ff_infra.pickle"
-    cogen: "cogen.pickle"
-  enrich_format_wind: # snakemake usage only
-    vre_sel: "wind"
-  enrich_format_solar: # snakemake usage only
-    vre_sel: "solar"
-  enrich_format_tpp:
-    gas_grid: 0
-    UC: False # Unit commitment (T/F)
+    fname: data/processed_data/solar/existing/bc_ext_solar_ts.csv
   create_ext_tpp_assets:
-    gas_grid: False # True means the thermal generators will have unique gas bus at each of their nodes.
-    UC: False # unit commitment for thermal PPs
-    fname: "data/processed_data/tpp/existing/bc_ext_tpp_assets.csv"
+    fname: data/processed_data/tpp/existing/bc_ext_tpp_assets.csv
+
   disaggregate_load:
-    province_2_RD_proportions : 'data/processed_data/load/CEEI_RD_ELEC_proportions.csv'
-    res_path: "data/processed_data/load/hourly_res.csv" # output path
-    csmi_path: "data/processed_data/load/hourly_csmi.csv" # output path
+    province_2_RD_proportions: data/processed_data/load/CEEI_RD_ELEC_proportions.csv
+    res_path: data/processed_data/load/hourly_res.csv
+    csmi_path: data/processed_data/load/hourly_csmi.csv
+
+  pypsa_dict:
+    folder: data/pypsa_data/
+    res: hydro_reservoirs.pickle
+    ror: hydro_ror.pickle
+    ror_water: hydro_ror_water.pickle
+    wind: wind.pickle
+    solar: solar.pickle
+    tpp: tpp.pickle
+    ff_infrastructure: ff_infra.pickle
+    cogen: cogen.pickle
+
   build_model:
-    fname: "results/pypsa/prepared_net.nc"
-    scenario: "0" # 50 or 100 depending on EV penetration
-    charge_strat: "uncoordinated" #[uncoordinated, coordinated, v2g]
-    region_res: "multiple"
-    ng_prices: "data/Alberta/2021_ab_ng_prices.csv"
-
-CODERS:
-  url_1: https://sesit.dev/
-  url_2: http://206.12.95.102/
-  api_key:
-    contact_for_request: mailto:modellingteam.sesit@uvic.ca 
-    Elias: w0OksqQKMFMtKPbO  # please collect your personal API !!!
-  api_documentation: https://sesit.dev/api/docs
-  EMH_dashboard: https://coders.cme-emh.ca/dashboard/nodes
-  
-  data_pull:
-    cef:
-      - macro_indicators
-      - end_use_demand
-      - greenhouse_gas_emissions
-      - benchmark_prices
-
-    coders:
-      - transmission_lines
-      - substations
-      - generators
-      - hydro_cascade
-      - hydro_existing
-      - wind_generators
-      - forecasted_annual_demand
-      - forecasted_peak_demand
-      - provincial_demand
-      - storage
-      - generation_planning_reserve
-      - generation_generic
-      - transmission_generic
-
-GAEZ:
-  root: 'data/downloaded_data/GAEZ'
-  self.: 'https://s3.eu-west-1.amazonaws.com/data.gaezdev.aws.fao.org/LR.zip'
-  zip_file: 'LR.zip'
-  Rasters_in_use_direct: 'Rasters_in_use'
-  raster_types:
-    - name: 'land_cover'
-      raster: "faocmb_2010.tif"  # Dominant land cover/use ; 11 classes; (5 arc-minute)
-      zip_extract_direct: 'LR/lco'
-      color_map: 'YlGn'
-      class_inclusion:
-        solar: [2, 3, 5, 8, 9]
-        wind: [2, 3, 5, 8, 9]
-        
-    - name: 'terrain_resources'
-      raster: "slpmed05.tif" # Median terrain slope classes; 8 classes ; (5 arc-minute)
-      zip_extract_direct: 'LR/ter'
-      color_map: 'terrain'
-      class_exclusion:
-        solar: [9]
-        wind: [7, 8, 9]
-        buffer:
-          solar: 0 #m
-          wind: 500 #m
-
-    - name: 'exclusion_areas'
-      raster: "exclusion_2017.tif" # Exclusion areas defined by Int'l orgs ; 7 classes;
-      zip_extract_direct: 'LR/excl'
-      color_map: 'OrRd'
-      class_exclusion:
-        solar: [2, 3, 4, 5, 6, 7]
-        wind: [2, 3, 4, 5, 6, 7]
-        buffer: 
-          solar: 0 #m
-          wind: 0 #m
-          
-WorldPop:
-  root: 'data/downloaded_data/WorldPop'
-  source : 
-    population_density_CAN: 'https://data.worldpop.org/GIS/Population_Density/Global_2000_2020_1km_UNadj/2020/CAN/can_pd_2020_1km_UNadj_ASCII_XYZ.zip'
-    population_count_CAN: 'https://data.worldpop.org/GIS/Population/Global_2000_2020_1km_UNadj/2020/CAN/can_ppp_2020_1km_UNadj_ASCII_XYZ.zip'
-    weighted_population_density_EARTH: 'https://data.worldpop.org/GIS/Population_Weighted_Density/Unconstrained_Subnational/1km/PWD_1km_sub_national_geojson.zip'
-    # more_data : https://www.worldpop.org/datacatalog/
-        
-cutout:
-  root: data/downloaded_data/cutout/
-  module:
-    - era5
-    # - sarah
-  # year: 2022
-  # start_date: '2022-01-01'  #yyyy-mm-dd
-  # end_date: '2022-12-31' #yyyy-mm-dd
-  dx: 0.25 # Arc Length for cutout grids cells in Degrees
-  dy: 0.25 # Arc Length for cutout grids cells in Degrees
-
-  # the snapshots are given as a 'list', not 'values'. 
-  snapshots: 
-    start: # Must be formatted as 'YYYY-MM-DD' (ERA5 returns data in UTC)
-      - '2021-01-01 07:00:00' # YYYY-MM-DD "2021-01-01 07:00:00"
-    end:
-      - '2022-01-01 06:00:00' # 6 # YYYY-MM-DD "2022-01-01 06:00:00"
-
-GWA:
-  root: 'data/downloaded_data/GWA'
-  datafields: ['windspeed_gwa', 'CF_IEC2','CF_IEC3' ] #,'IEC_Class_ExLoads'
-  sources:
-    windspeed_gwa: 'https://globalwindatlas.info/api/gis/country/CAN/wind-speed/100'
-    # CF_IEC1: 'https://globalwindatlas.info/api/gis/country/CAN/capacity-factor_IEC1/'  #rotor dia 112m
-    CF_IEC2: 'https://globalwindatlas.info/api/gis/country/CAN/capacity-factor_IEC2' #rotor dia 126m
-    CF_IEC3: 'https://globalwindatlas.info/api/gis/country/CAN/capacity-factor_IEC3'   #rotor dia 136m
-    # IEC_Class_fatugue_loads: 'https://globalwindatlas.info/api/gis/country/CAN/IEC-class-fatigue-loads-incl-wake/'
-    # IEC_Class_ExLoads: 'https://globalwindatlas.info/api/gis/country/CAN/IEC-class-extreme-loads/' #IEC_Class_ExtremeLoads
-  rasters:
-    windspeed_gwa: 'Canada_wspd_100m.tif'
-    # CF_IEC1: 'CAN_capacity-factor_IEC1.tif'
-    CF_IEC2: 'CAN_capacity-factor_IEC2.tif'
-    CF_IEC3: 'CAN_capacity-factor_IEC3.tif'
-    # IEC_Class_ExLoads: 'CAN.IEC-class-extreme-loads.tif'
-  filter:
-    windspeed_low: 7 # meter/s
-    windspeed_high: 35 # meter/s
-
-province_mapping:
-
-  'AB': 
-    name: "Alberta"
-    land_area_km2: 642,317
-    land_area_mi2: 275,000
-    percentage_national_land_area: "7.1%"
-    timezone_convert: 'Etc/GMT-7' # Mountain Time Zone
-    region_mapping: {}
-    
-  'BC': 
-    name: "British Columbia"
-    land_area_km2: 925,186
-    land_area_mi2: 357,216
-    percentage_national_land_area: "10.4%"
-    snapshots_tz_BC: # Hardcoded alternate measures of 'timezone_convert', supported by Pypsa
-      start: 
-      - '2021-01-01 00:00:00' # YYYY-MM-DD "2021-01-01 07:00:00"
-      end: 
-      - '2021-12-31 23:00:00' # YYYY-MM-DD "2022-01-01 06:00:00"
-    timezone_convert: 'Etc/GMT+7' # Pacific Time Zone
-    region_mapping: {}
-    
-  'MB': 
-    name: "Manitoba"
-    land_area_km2: 553,556
-    land_area_mi2: 213,733
-    percentage_national_land_area: "6.1%"
-    timezone_convert: 'Etc/GMT-6' # Central Time Zone
-    region_mapping: {}
-
-  'NB': 
-    name: "New Brunswick"
-    land_area_km2: 71,450
-    land_area_mi2: 27,587
-    percentage_national_land_area: "0.8%"
-    timezone_convert: 'Etc/GMT-4' # Atlantic Time Zone
-    region_mapping: {}
-
-  'NL': 
-    name: "Newfoundland and Labrador"
-    land_area_km2: 373,872
-    land_area_mi2: 144,355
-    percentage_national_land_area: "4.1%"
-    timezone_convert: 'Etc/GMT-3.5' # Newfoundland Time Zone
-    region_mapping: {}
-
-  'NS': 
-    name: "Nova Scotia"
-    land_area_km2: 53,338
-    land_area_mi2: 20,594
-    percentage_national_land_area: "0.6%"
-    timezone_convert: 'Etc/GMT-4' # Atlantic Time Zone
-    region_mapping: {}
-
-  'ON': 
-    name: "Ontario"
-    land_area_km2: 917,741
-    land_area_mi2: 354,348
-    timezone_convert: 'Etc/GMT-5' # Eastern Time Zone
-    percentage_national_land_area: "10.1%"
-    region_mapping: {}
-
-  'PE': 
-    name: "Prince Edward Island"
-    land_area_km2: 5,660
-    land_area_mi2: 2,185
-    timezone_convert: 'Etc/GMT-4' # Atlantic Time Zone
-    percentage_national_land_area: "0.1%"
-    region_mapping: {}
-
-  'QC': 
-    name: "Quebec"
-    land_area_km2: 1,365,128
-    land_area_mi2: 527,088
-    timezone_convert: 'Etc/GMT-5' # Eastern Time Zone
-    percentage_national_land_area: "15.0%"
-    region_mapping: {}
-
-  'SK': 
-    name: "Saskatchewan"
-    land_area_km2: 591,670
-    land_area_mi2: 228,449
-    timezone_convert: 'Etc/GMT-6' # Central Time Zone (no DST in most areas)
-    percentage_national_land_area: "6.5%"
-    region_mapping: {}
+    fname: results/pypsa/prepared_net.nc

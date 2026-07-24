@@ -1,11 +1,12 @@
-from pypsa_bc import utils,hydro
+from Z_legacy.pypsa_bc import hydro
+from Z_legacy.pypsa_bc import utils
 import pandas as pd
 from pathlib import Path
 import warnings
 import sys
 
 # handles the config loading centrally
-from pypsa_bc.attributes_parser import AttributesParser
+from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 # Suppress all warnings
@@ -72,8 +73,8 @@ def add_generators_features(row, cid_dict):
     '''
     # asset_id conversion
 
-    cid_dict["asset_id"] = utils.convert_cid_2_aid(row['generation_unit_code'], row["connecting_node_code"])
-    cid_dict["connecting_node_code"] = row["connecting_node_code"]
+    cid_dict["asset_id"] = utils.convert_cid_2_aid(row['generation_unit_code'], row["network_node_code"])
+    cid_dict["network_node_code"] = row["network_node_code"]
     cid_dict["num_of_units"] = row["total_facility_generation_units"]
     cid_dict["latitude"] = row["latitude"]
     cid_dict["longitude"] = row["longitude"]
@@ -136,11 +137,12 @@ def add_gen_generic_features(row, cid_dict):
     cid_dict["average_fuel_price_CAD_per_MMBtu"] = row["average_fuel_price_CAD_per_MMBtu"]
     cid_dict["carbon_emissions_tCO2eq_per_MWh"] = row["carbon_emissions"]
 
-def get_features_generators(generators, component_dict, data_dict, hydro_types, cfg):
+def get_features_generators(generators, component_dict, data_dict, hydro_types, cfg=None):
     '''
     This function gets all features from the CODERS generators.csv file for only hydro assets.
     '''
-    mask = (generators['province'].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])) & (generators['gen_type'].apply(lambda x: x.lower() in hydro_types))
+    # mask = (generators['province'].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])) & (generators['gen_type'].apply(lambda x: x.lower() in hydro_types))
+    mask = generators['gen_type'].apply(lambda x: x.lower() in hydro_types)
     
     for idx,row in generators[mask].iterrows():
         cid = row["generation_unit_code"]
@@ -162,12 +164,12 @@ def get_feature_cascade(cascade_data, component_dict):
             break
         add_cascade_features(row, component_dict[cid])
 
-def get_feature_existing(hydro_e_data, component_dict, cfg):
+def get_feature_existing(hydro_e_data, component_dict, cfg=None):
     '''
     This function gets all features from the CODERS hydro_existing.csv
     '''
-    mask = (hydro_e_data['Province'].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])) 
-    for idx,row in hydro_e_data[mask].iterrows():
+    # mask = (hydro_e_data['Province'].apply(lambda x: x in cfg['output']['prepare_base_network']['regions'])) 
+    for idx,row in hydro_e_data.iterrows():
         for cid in component_dict.keys(): # many-to-one
             if cid not in component_dict:
                 print("ERROR Non-unique: Component ID already added.")
@@ -311,8 +313,7 @@ def main():
     
     # Read in configuration file
     # config_file = r"config/data.yaml"
-    cfg = pypsa_aparser.pypsa_cfg
-
+    cfg = pypsa_aparser.data_cfg 
 
     # write path + file
     df_hydro_path = cfg["output"]["create_hydro_assets"]["hydro_generation"]

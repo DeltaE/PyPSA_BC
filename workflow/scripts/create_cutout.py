@@ -1,5 +1,5 @@
-from pypsa_bc import hydro
-from pypsa_bc import utils
+from Z_legacy.pypsa_bc import hydro
+from Z_legacy.pypsa_bc import utils
 import pandas as pd
 import geopandas as gpd
 
