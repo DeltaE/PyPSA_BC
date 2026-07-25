@@ -45,6 +45,13 @@ data:
     bch: data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad # + <year>.xls
   cutout: data/downloaded_data/cutout/BC_2021_2022.nc
 
+# ---- remote inputs to fetch (workflow/scripts/fetch_inputs.py) ----
+# dest mirrors the local path above; url is the authoritative public source.
+remote:
+  can_turbines:
+    url: https://ftp.cartes.canada.ca/pub/nrcan_rncan/Wind-energy_Energie-eolienne/wind_turbines_database/Wind_Turbine_Database_FGP.xlsx
+    dest: data/downloaded_data/wind/canada_turbines.xlsx # Canadian Wind Turbine Database (NRCan, OGL-Canada)
+
 # ---------------------------------------------------------------- outputs
 # Paths only. Any run-parameter that used to sit beside these lives in params.yaml.
 output:

@@ -1,5 +1,5 @@
 import pandas as pd
-from Z_legacy.pypsa_bc import utils
+from pypsa_bc import utils
 from pathlib import Path
 import geopandas as gpd
 import pandas as pd
@@ -7,12 +7,12 @@ import folium
 
 import plotly.express as px
 import numpy as np
-from Z_legacy.pypsa_bc import utils
+from pypsa_bc import utils
 from typing import Optional
 import warnings
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 plot_save_to_root:Path=pypsa_aparser.get_visual_root
     

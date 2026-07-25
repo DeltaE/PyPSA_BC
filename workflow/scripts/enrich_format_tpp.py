@@ -1,8 +1,8 @@
-from Z_legacy.pypsa_bc import utils
+from pypsa_bc import utils
 import pandas as pd
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 def get_fuel_bus(site, fuel_type, cfg):

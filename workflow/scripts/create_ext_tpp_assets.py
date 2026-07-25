@@ -1,8 +1,9 @@
-from Z_legacy.pypsa_bc import utils
+from pypsa_bc import utils
 import pandas as pd
+from pathlib import Path
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 
@@ -100,16 +101,21 @@ def main():
     '''
     This script creates the dictionaries needed to instantiate the thermal power plants (TPP) in PyPSA_BC.
     '''
-    # get configuration file
-    cfg=pypsa_aparser.pypsa_cfg
+    # get configuration file (data.yaml = paths/dirs only)
+    cfg = pypsa_aparser.data_cfg
+    regions_cfg = pypsa_aparser.base_network_cfg['regions']   # regions moved to base_network.yaml
 
-    print(f"Preparing existing thermal power assets...")
+    utils.print_update(level=1, message="Preparing existing thermal power assets...")
 
 
-    gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])
-    gens = pd.read_csv(cfg["data"]["coders"]["generators"])
+    # Read CODERS via the shared client so coders.yaml aliasing applies
+    # (adds connecting_node_code alias for network_node_code, etc.).
+    from pypsa_bc.data.coders import get_coders
+    coders = get_coders()
+    gen_generic = coders.load_table("generation_generic", as_gdf=False)
+    gens = coders.load_table("generators", as_gdf=False)
     # hist_gen = pd.read_csv(cfg["output"]["create_tpp_assets"]["cogen_history"],parse_dates=True, index_col=0)
-    buses = pd.read_csv(cfg['output']['prepare_base_network']['folder'] + "/buses.csv")['name'].tolist()
+    buses = pd.read_csv(Path(cfg['output']['base_network']) / "buses.csv")['name'].tolist()
 
     # All generation types which are thermal PP in the CODERS dataset.
     tpp_gen_types = {'NG_CT':"NG", 'NG_CC':"NG", 'gasoline_CT':"NG",
@@ -131,34 +137,35 @@ def main():
     # (1) Write pickle dictionaries for the tpp assets.
     # per fuel type now to access specific costs for each
 
-    mask = (gens['province'] == 'BC') & (gens["gen_type"].apply(lambda x: x in tpp_gen_types ))
-    subset = ["connecting_node_code"]
-    sum_list = ["facility_installed_capacity","facility_average_annual_energy"]
-    gens[mask].groupby(subset, group_keys=False).apply(lambda x: utils.merge_assets(x, subset, sum_list))
+    # Aggregate thermal units that share a connecting node into one asset per node:
+    # sum capacity + annual energy, keep the first value of other attributes.
+    # Uses groupby.agg (robust to the pandas 2.x change where groupby.apply drops
+    # the grouping column, which broke the old merge_assets pattern here).
+    sum_cols = {"facility_installed_capacity": "sum",
+                "facility_average_annual_energy": "sum"}
 
-
-    for region in cfg['output']['prepare_base_network']['regions']:
-        mask = (gens["province"] == region) & (gens["gen_type"].apply(lambda x: x in tpp_gen_types ))
+    frames = []
+    for region in regions_cfg:
+        mask = (gens["province"] == region) & (gens["gen_type"].isin(tpp_gen_types))
         tpp_gens = gens[mask].copy()
+        if tpp_gens.empty:
+            continue
+        other_cols = {c: "first" for c in tpp_gens.columns
+                      if c not in sum_cols and c != "connecting_node_code"}
+        agg = (tpp_gens.groupby("connecting_node_code", as_index=False)
+                       .agg({**sum_cols, **other_cols}))
+        agg["node_code"] = agg["connecting_node_code"]
+        frames.append(agg)
 
-        # Code to aggregate tpp units
-        subset = ["connecting_node_code"]
-        sum_list = ["facility_installed_capacity","facility_average_annual_energy"]
-        tpp_gens['node_code'] = tpp_gens['connecting_node_code']
-        tpp_gens = tpp_gens[mask].groupby(subset, group_keys=False).apply(lambda x:
-                                        utils.merge_assets(x, subset, sum_list))
-        # Code to aggregate tpp units
-        tpp_gens["connecting_node_code"] = tpp_gens.index
-        tpp_gens.set_index('node_code', inplace=True)
-
-        ext_tpp_assets = utils.add_generic_columns_tpp(tpp_gens, gen_generic)
-
-        # write_tpp_csv(tpp_gens, gen_generic, bus_dict, tpp_gen_types, cfg, province = region)
+    ext_tpp_assets = pd.concat(frames, ignore_index=True) if frames else gens.iloc[0:0].copy()
+    ext_tpp_assets = utils.add_generic_columns_tpp(ext_tpp_assets, gen_generic)
 
     # Modified 2024-10-04: Fix for the node codes with no matching buses
     codes = {"BC_CRS_DSS":"BC_CRS_DFS", "BC_DGB_TSS":"BC_DGB_DSS"}
     utils.fix_coders_update(ext_tpp_assets,'connecting_node_code',codes)
-    ext_tpp_assets.to_csv(cfg['output']['create_ext_tpp_assets']['fname'],index=False)
+    out_fname = cfg['output']['create_ext_tpp_assets']['fname']
+    Path(out_fname).parent.mkdir(parents=True, exist_ok=True)
+    ext_tpp_assets.to_csv(out_fname, index=False)
     utils.print_update(level=2,message="Finished preparing existing thermal power assets.")
     
 if __name__ == '__main__':

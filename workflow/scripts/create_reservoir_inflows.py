@@ -1,11 +1,10 @@
-from Z_legacy.pypsa_bc import hydro
-from Z_legacy.pypsa_bc import utils
+from pypsa_bc import hydro, utils
 import atlite
 import pandas as pd
 import geopandas as gpd
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 def main():

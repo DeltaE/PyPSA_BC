@@ -1,11 +1,11 @@
 import sys
 import pandas as pd
 import atlite
-from Z_legacy.pypsa_bc import solar_wind
-from Z_legacy.pypsa_bc import utils
+from pypsa_bc import solar_wind
+from pypsa_bc import utils
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 def generate_solar_ts(solar_assets, cutout_path):

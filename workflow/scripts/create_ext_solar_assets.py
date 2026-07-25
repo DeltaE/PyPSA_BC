@@ -1,8 +1,9 @@
 import pandas as pd
-from Z_legacy.pypsa_bc import utils
+from pathlib import Path
+from pypsa_bc import utils
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 #This part builds the solar_assets data frame to be written into a CSV file
@@ -57,14 +58,15 @@ def generate_solar_assets(solar_df):
 #Does some input verification before generating the assets
 def main():
 
-    # load configuration files
-    cfg = pypsa_aparser.pypsa_cfg
+    # load configuration files (data.yaml = paths/dirs only)
+    cfg = pypsa_aparser.data_cfg
 
     utils.print_update(level=1,message="Preparing existing solar assets...")
     #Try reading the arguments passed in the terminal
     coders_generic_path = cfg['data']['coders']['gen_generic']
     coders_path = cfg["data"]['coders']['generators']
     output_path = cfg["output"]['create_ext_solar_assets']['fname']
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     # Try loading in the CSV file into a Pandas data frame
     coders = pd.read_csv(coders_path)

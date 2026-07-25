@@ -309,14 +309,25 @@ def create_standard_gen_bus_map(buses):
     Buses = ["230_ABN_GSS", "138_ABN_GSS","500_MCA_GSS", "63_MCA_GSS"] -> bus_dict = {ABN_GSS:138, MCA_GSS:63}
     '''
     bus_dict = {}
+    skipped = []
     # Assume generators are connected to lowest voltage bus at their given node_code
     for bus in buses:
+        # Skip nameless buses (NaN in buses.csv, e.g. unresolved intertie nodes)
+        if not isinstance(bus, str) or "_" not in bus:
+            skipped.append(bus)
+            continue
         node = "_".join(bus.split('_')[1:])
         voltage = int(bus.split('_')[0])
         if node not in bus_dict.keys():
             bus_dict[node] = voltage
         else:
-            bus_dict[node] = min(voltage,bus_dict[node])
+            bus_dict[node] = min(voltage, bus_dict[node])
+
+    if skipped:
+        from pypsa_bc.reporting.logger import get_logger
+        get_logger("utils").warning(
+            f"create_standard_gen_bus_map: skipped {len(skipped)} bus(es) with "
+            f"no valid name: {skipped}")
 
     return bus_dict
 
@@ -413,23 +424,33 @@ def add_generic_columns(assets, gen_generic, gen_type):
     This is needed before creating the .csv for OSeMOSYS via Otoole.
     # MODIFIED 2024-10-01 for CODERS update
     '''
-    columns_to_add = ['variable_om_cost_CAD_per_MWh',
-                      'average_fuel_price_CAD_per_MMBtu',
-                      'average_fuel_price_CAD_per_GJ',
-                      'carbon_emissions', # _tCO2eq_per_MWh
-                      'heat_rate', # _MMBtu_per_MWh
+    columns_to_add = ['variable_om_costs',  # CAD/MWh # checked with CODERS; EL_20260724
+                      'average_fuel_price_CAD_per_MMBtu', # checked with CODERS; EL_20260724
+                    #   'average_fuel_price_CAD_per_GJ', # checked with CODERS; EL_20260724  # Deprecated EL_20260724due to CODERS update
+                      'carbon_emissions', # _tCO2eq_per_MWh # checked with CODERS; EL_20260724
+                      'heat_rate', # _MMBtu_per_MWh # checked with CODERS; EL_20260724
                       'spinning_reserve_capability',
-                      'economic_life',
-                      'capital_cost_CAD_per_kW',
-                      'capital_overhead_CAD_per_kW',
-                      'overnight_capital_cost_CAD_per_kW',
-                      'interest_during_construction_CAD_per_kW',
-                      'annualized_capital_cost_CAD_per_MWyear',
-                      'total_project_cost_2020_CAD_per_kW',
+                      'economic_life', # checked with CODERS; EL_20260724
+                      'capital_cost_CAD_per_kW',# checked with CODERS; EL_20260724
+                    #   'capital_overhead_CAD_per_kW', # Deprecated EL_20260724due to CODERS update
+                    #   'overnight_capital_cost_CAD_per_kW',  # Deprecated EL_20260724 due to CODERS update
+                    #   'interest_during_construction_CAD_per_kW', # Deprecated EL_20260724 due to CODERS update
+                      'annualized_capital_cost_CAD_per_kwyear', # checked with CODERS; EL_20260724
+                      'total_project_cost_CAD_per_kW',# checked with CODERS; EL_20260724
                       ]
-    mask = gen_generic['gen_type'] == gen_type # "Wind_onshore"
+    # Callers pass either a CODERS gen_type (e.g. 'solar_PV', 'wind_onshore') or a
+    # gen_type_copper code (e.g. 'wind_ons'); match on whichever column holds it.
+    mask = gen_generic['gen_type'] == gen_type
+    if 'gen_type_copper' in gen_generic.columns:
+        mask = mask | (gen_generic['gen_type_copper'] == gen_type)
+    if not mask.any():
+        raise KeyError(
+            f"add_generic_columns: no generation_generic row for '{gen_type}'. "
+            f"gen_type values={sorted(gen_generic['gen_type'].dropna().unique())}; "
+            f"gen_type_copper values={sorted(gen_generic.get('gen_type_copper', pd.Series(dtype=str)).dropna().unique())}."
+        )
 
-    param_dict = gen_generic.loc[mask,columns_to_add].iloc[0].to_dict()
+    param_dict = gen_generic.loc[mask, columns_to_add].iloc[0].to_dict()
 
     enriched_wind_assets = assets.assign(**param_dict)
 
@@ -440,28 +461,30 @@ def add_generic_columns_tpp(assets, gen_generic):
     This functions adds generic columns of costs and efficiencies.
     This is needed before creating the .csv for OSeMOSYS via Otoole.
     '''
-    columns_to_add = ['variable_om_cost_CAD_per_MWh',
+    # Current generation_generic column names (Oct 2025 CODERS schema).
+    columns_to_add = ['variable_om_costs',              # was variable_om_cost_CAD_per_MWh
                       'average_fuel_price_CAD_per_MMBtu',
-                      'average_fuel_price_CAD_per_GJ',
                       'carbon_emissions',
                       'heat_rate',
                       'spinning_reserve_capability',
                       'economic_life',
                       'capital_cost_CAD_per_kW',
-                      'capital_overhead_CAD_per_kW',
-                      'overnight_capital_cost_CAD_per_kW',
-                      'interest_during_construction_CAD_per_kW',
-                      'annualized_capital_cost_CAD_per_MWyear',
-                      'total_project_cost_2020_CAD_per_kW',
+                      'annualized_capital_cost_CAD_per_kwyear',  # was ..._MWyear
+                      'total_project_cost_CAD_per_kW',           # was total_project_cost_2020_...
                       'ramp_rate_percent_per_min',
                       "min_up_time_hours",
                       "min_down_time_hours",
                       ]
-    
-    # Need to find the matching "generation_type" based on the 
-    # assets = assets.rename(columns={'gen_type': 'generation_type'}) 
-    df_new = pd.merge(assets, gen_generic[columns_to_add + ['gen_type']], on='gen_type', how='left')
+    # Defensive: only pull columns that exist, warn on the rest (don't hard-crash
+    # on a future CODERS generation_generic change).
+    have = [c for c in columns_to_add if c in gen_generic.columns]
+    missing = [c for c in columns_to_add if c not in gen_generic.columns]
+    if missing:
+        from pypsa_bc.reporting.logger import get_logger
+        get_logger("utils").warning(
+            f"add_generic_columns_tpp: generation_generic missing {missing}; skipped")
 
+    df_new = pd.merge(assets, gen_generic[have + ['gen_type']], on='gen_type', how='left')
 
     return df_new
 

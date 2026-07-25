@@ -22,11 +22,19 @@ META = {"module":  Path(__file__).stem ,
         "path": aparser.assumption_report_save_to}
 
 INTERTIE_SUFFIXES = {"IPT", "INT"}       # AB ties (IPT) and US/BPA ties (INT)
+INTERTIE_COORD = {"AB": (49.0, -114.0), "WA": (48.0, -117.0)}  # placeholder coordinates for intertie buses
 
 def node_role(code: str) -> str:
     return "intertie" if code.split("_")[-1] in INTERTIE_SUFFIXES else "internal"
 
+# map the border tag to your existing foreign/boundary bus
+INTERTIE_BUS = {"ABBC": "AB", "BPA": "WA"}   # extend as needed
 
+def resolve_bus(code, bus_dict):
+    if node_role(code) == "intertie":
+        tag = code.split("_")[1][:4]         # 'ABBC03' -> 'ABBC'
+        return INTERTIE_BUS.get(tag, "AB")   # terminate on the AB boundary bus
+    return get_gen_bus(code, bus_dict)       # your existing internal path
 
 def check_missing_buses(prepared_substations: pd.DataFrame, 
                         prepared_lines: pd.DataFrame):
@@ -61,13 +69,13 @@ def create_bus_df(prepared_lines: pd.DataFrame,
     # type = []
     # v_nom = []
     data_dict = {}
-
+    INTERTIE_COORD={}
     # (1) Add buses based on line nodes
     for _,line in prepared_lines.iterrows():
         # Search for match between line and substation
         for node_code in [line["starting_node_code"], line["ending_node_code"]]:
             # --- guard: intertie boundary nodes have no gen/sub and no coords ---
-            if node_code.split("_")[-1] in INTERTIE_SUFFIXES:
+            if node_code.split("_")[-1] in {"IPT", "INT"}:
                 # tag = node_code.split("_")[1][:4]              # 'ABBC03' -> 'ABBC'
                 # bus = INTERTIE_BUS.get(tag, "AB")              # AB / WA boundary bus
                 # x, y = INTERTIE_COORD[bus]                     # fixed placeholder coord
@@ -121,7 +129,7 @@ def get_bus_name_x_y(line, node_code, df_substations, generators):
     # print(f"Did not find exact match for line node: {node_code}") # To-be logged
 
     # (2) International and Interprovincial nodes
-    if node_code.split('_')[-1] in INTERTIE_SUFFIXES:
+    if node_code.split('_')[-1] in ["IPT","INT"]:
         bus_name = str(line["v_nom"]) + "_" + "_".join(node_code.split('_')[1:])
         if node_code == "PP_BCAB3_IPT":
             # ~ 50 km east

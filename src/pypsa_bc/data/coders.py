@@ -156,8 +156,14 @@ class CODERSData:
         return dict(mapping)
 
     def normalize_columns(self, df: pd.DataFrame, table_name: str) -> pd.DataFrame:
-        """Rename source columns to canonical names; warn loudly on schema drift."""
-        rmap = self._rename_map(table_name)
+        """Add canonical alias columns (keeping the raw source columns).
+
+        Additive by design: a canonical name is added as a copy of its source, so
+        code using EITHER the raw name or the canonical name works. This makes
+        coders.yaml the single place to absorb a CODERS column rename — no
+        consumer needs editing. Warns loudly if a mapped source column is absent.
+        """
+        rmap = self._rename_map(table_name)                     # {source: canonical}
         present = {src: canon for src, canon in rmap.items() if src in df.columns}
         missing = [src for src in rmap if src not in df.columns]
         key = self.active_version or (list(self.versions)[-1] if self.versions else "?")
@@ -166,12 +172,16 @@ class CODERSData:
                         f"(CODERS schema drift vs version '{key}'?): {missing}")
         else:
             log.debug(f"{table_name}: all mapped source columns present (version '{key}').")
-        df = df.rename(columns=present)
+
+        df = df.copy()
+        for src, canon in present.items():
+            if canon not in df.columns:      # add canonical alias, keep the raw column
+                df[canon] = df[src]
 
         need = self.required.get(table_name, [])
         lacking = [c for c in need if c not in df.columns]
         assert not lacking, (
-            f"{table_name}: required canonical column(s) missing after rename: {lacking}. "
+            f"{table_name}: required canonical column(s) missing after aliasing: {lacking}. "
             f"Update coders.version['{key}']['{table_name}'] to the current field names."
         )
         return df
@@ -219,6 +229,9 @@ class CODERSData:
             data = self.fetch_data(table_name, **filters)
             data.to_csv(path, index=False)  # disk cache of RAW source columns
             log.info(f"{table_name}: fetched {len(data)} {self.province} rows -> {path}")
+            from pypsa_bc.reporting.provenance import record_source
+            record_source(f"CODERS:{table_name}", f"{self.url}/{table_name}?province={self.province}",
+                          path, detail=f"{len(data)} {self.province} rows")
 
         # Normalize on every load so a config edit re-maps without re-fetching.
         data = self.normalize_columns(data, table_name)

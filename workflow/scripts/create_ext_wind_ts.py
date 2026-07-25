@@ -1,12 +1,11 @@
 import rasterio as rio
 import pandas as pd
-from Z_legacy.pypsa_bc import solar_wind, utils
 import geojson as gj
 import atlite
-from Z_legacy.pypsa_bc import wind
+from pypsa_bc import wind, solar_wind, utils
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 #This part builds the wind_ts data frame to be written into a CSV file (NO CALIBRATION WITH CODERS AAG DATA)

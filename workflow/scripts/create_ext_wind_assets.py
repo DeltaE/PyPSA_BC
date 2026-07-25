@@ -1,9 +1,10 @@
 import pandas as pd
 import json
-from Z_legacy.pypsa_bc import utils
+from pathlib import Path
+from pypsa_bc import utils
 
 # handles the config loading centrally
-from Z_legacy.pypsa_bc.attributes_parser import AttributesParser
+from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
 '''
@@ -13,6 +14,43 @@ pypsa_aparser=AttributesParser()
 
 ====================================================================================================
 '''
+
+
+# Canonical CWTD schema; on-disk headers are mapped to these case-insensitively
+# so the curated export ('Project name') and the raw FGP file ('Project Name')
+# both work.
+_CWTD_CANON = [
+    "OBJECTID", "Province/Territory", "Project name", "Total project capacity (MW)",
+    "Turbine identifier", "Turbine number in project", "Turbine rated capacity (kW)",
+    "Rotor diameter (m)", "Hub height (m)", "Manufacturer", "Model",
+    "Commissioning date", "Latitude", "Longitude", "Notes",
+]
+_CWTD_BY_LOWER = {c.lower(): c for c in _CWTD_CANON}
+
+
+def _canon_col(c) -> str:
+    base = str(c).strip().split(" / ")[0].strip()   # drop bilingual ' / Nom...' suffix
+    return _CWTD_BY_LOWER.get(base.lower(), base)    # map any casing to canonical
+
+
+def load_cwtd(path):
+    """Load the Canadian Wind Turbine Database robustly (curated or raw FGP).
+
+    Scans sheets for the turbine table and canonicalises headers (whitespace,
+    case, bilingual). Raises a clear error naming the columns if not found.
+    """
+    xl = pd.ExcelFile(path)
+    for sheet in xl.sheet_names:
+        df = pd.read_excel(path, sheet_name=sheet)
+        df = df.rename(columns={c: _canon_col(c) for c in df.columns})
+        if {"Project name", "Model", "Manufacturer"}.issubset(df.columns):
+            return df
+    first = pd.read_excel(path, sheet_name=xl.sheet_names[0])
+    raise KeyError(
+        f"CWTD at {path}: no sheet with 'Project name'/'Model'/'Manufacturer'. "
+        f"Sheets={xl.sheet_names}; first-sheet columns="
+        f"{[str(c).strip() for c in first.columns]}."
+    )
 
 
 #This part builds the wind_assets data frame to be written into a CSV file
@@ -88,17 +126,17 @@ def generate_wind_assets(wind_assets, turbines, turbine_dict, province):
             turbine = turbines[mask]
             row['Model'] = turbine_dict[turbine['Model'].mode().iloc[0]]
             row['Manufacturer'] = turbine['Manufacturer'].mode().iloc[0]
-            row['Turbine rated capacity (kW)'] = turbine['Turbine rated capacity (kW)'].mode().iloc[0]
-            row['Rotor diameter (m)'] = turbine['Rotor diameter (m)'].mode().iloc[0]
-            row['Hub height (m)'] = turbine['Hub height (m)'].mode().iloc[0]
+            row['Turbine Rated Capacity (kW)'] = turbine['Turbine rated capacity (kW)'].mode().iloc[0]
+            row['Rotor Diameter (m)'] = turbine['Rotor diameter (m)'].mode().iloc[0]
+            row['Hub Height (m)'] = turbine['Hub height (m)'].mode().iloc[0]
             row['config_oedb'] = turbine_dict[turbine['Model'].mode().iloc[0]]
         else:
             # Default solution
             row['Model'] = "V100/1800"
             row['Manufacturer'] = "Vestas"
-            row['Turbine rated capacity (kW)'] = 1800
-            row['Rotor diameter (m)'] = 100
-            row['Hub height (m)'] = 100
+            row['Turbine Rated Capacity (kW)'] = 1800
+            row['Rotor Diameter (m)'] = 100
+            row['Hub Height (m)'] = 100
             row['config_oedb'] = "V100/1800*134"
         
         new_wind.append(row)
@@ -180,7 +218,8 @@ def generate_wind_assets(wind_assets, turbines, turbine_dict, province):
 # Does some input verification before generating the assets
 def main():
 
-    cfg = pypsa_aparser.pypsa_cfg
+    cfg = pypsa_aparser.data_cfg                       # data.yaml = paths/dirs only
+    regions_cfg = pypsa_aparser.base_network_cfg['regions']   # regions moved to base_network.yaml
 
     utils.print_update(level=1,message="Preparing existing wind assets...")
 
@@ -188,13 +227,14 @@ def main():
     #Try reading the arguments passed in the terminal
     coders_path = cfg["data"]['coders']['generators']
     coders_generic_path = cfg['data']['coders']['gen_generic']
-    canada_turbine_path = cfg["data"]['wind']['can_turbines'] 
-    turbine_dict_path = cfg["data"]['wind']['turbine_dict'] 
-    output_path = cfg["output"]['create_ext_wind_assets']['fname'] 
+    canada_turbine_path = cfg["data"]['wind']['can_turbines']
+    turbine_dict_path = cfg["data"]['wind']['turbine_dict']
+    output_path = cfg["output"]['create_ext_wind_assets']['fname']
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     #Try loading in the CSV file and XLSX file into Pandas data frames
     coders = pd.read_csv(coders_path)
-    canada_turbine = pd.read_excel(canada_turbine_path)
+    canada_turbine = load_cwtd(canada_turbine_path)   # canonicalises headers (curated or FGP)
 
     #Try loading in the JSON file as a dictionary
     with open(turbine_dict_path) as f:
@@ -205,20 +245,20 @@ def main():
                          'SK':'Saskatchewan', 'MB':'Manitoba'}
 
 
-    wind_df = coders.loc[(coders['province'].apply(lambda x: x in cfg['output']['prepare_base_network']['regions']))
+    wind_df = coders.loc[(coders['province'].apply(lambda x: x in regions_cfg))
                           & coders.gen_type_copper.eq('wind_ons')]
 
 
-    regions = set([prov_code_2_name[region] for region in cfg['output']['prepare_base_network']['regions']
+    regions = set([prov_code_2_name[region] for region in regions_cfg
                if region in prov_code_2_name.keys()])
-    
+
     #All is good, start generating wind_assets.csv
-    province =  cfg['output']['prepare_base_network']['regions'][0]
+    province =  regions_cfg[0]
     wind_assets = generate_wind_assets(wind_df, canada_turbine, turbine_dict, province)
 
     # Add in CODERS data for the wind asssets
     gen_generic = pd.read_csv(coders_generic_path)
-    to_wind_assets_csv = utils.add_generic_columns(wind_assets, gen_generic, gen_type="wind_ons")
+    to_wind_assets_csv = utils.add_generic_columns(wind_assets, gen_generic, gen_type="wind_onshore") # gen_type code synced with CWTD, EL_20260724
 
     #Write wind_assets.csv
     to_wind_assets_csv.to_csv(output_path, index=False)
