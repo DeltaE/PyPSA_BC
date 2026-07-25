@@ -522,7 +522,7 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg,
                                                 flowspeed=float(cfg["output"]['reservoir_inflows']['flowspeed']))
     
     # File path + name for reading in inflow tables
-    fpath = cfg["custom"]["inflow_tables"]
+    fpath = cfg["inventory"]["inflow_tables"]
 
     # 1) normalize inflow time series for selected reservoirs
     reservoirs = hydro_sites[hydro_sites['hydro_type'] == "reservoir"]['upper_reservoir_id'].unique().tolist() # TRY Unique it

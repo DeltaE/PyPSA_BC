@@ -51,11 +51,11 @@ def get_hydro_data_dict():
                 "planned_outage_rate":"DEFAULT",
                 "start_up_cost_cold":"DEFAULT",
                 "shutdown_cost":"DEFAULT",
-                "typical_plant_size_MW":"DEFAULT",
+                # "typical_plant_size_MW":"DEFAULT", # deprecated in CODERS, EL_20270724
                 "capital_cost_CAD_per_kW":"DEFAULT",
                 "service_life_years":"DEFAULT",
-                "fixed_om_cost_CAD_per_MWyear":"DEFAULT",
-                "variable_om_cost_CAD_per_MWh":"DEFAULT",
+                "fixed_om_costs":"DEFAULT",
+                "variable_om_costs":"DEFAULT",
                 "average_fuel_price_CAD_per_MMBtu":"DEFAULT",
                 "carbon_emissions_tCO2eq_per_MWh":"DEFAULT",
                 "start_year":"DEFAULT",
@@ -105,10 +105,16 @@ def add_hydro_existing_features(row, cid_dict):
     from CODERS to dictionary which is merging hydro relevant data to create a
     hydro assets file.
     '''
-    cid_dict["upper_reservoir_id"] = row["upper_storage_name"]
-    cid_dict["lower_reservoir_id"] = row["lower_storage_name"]
-    cid_dict["max_level"] = row["maximum_level"]
-    cid_dict["min_level"] = row["minimum_level"]
+    # Defensive: the current CODERS hydro_existing may lack these columns
+    # (reservoir topology + levels now come from the WUP files). Set only what exists.
+    if "upper_storage_name" in row:
+        cid_dict["upper_reservoir_id"] = row["upper_storage_name"]
+    if "lower_storage_name" in row:
+        cid_dict["lower_reservoir_id"] = row["lower_storage_name"]
+    if "maximum_level" in row:
+        cid_dict["max_level"] = row["maximum_level"]
+    if "minimum_level" in row:
+        cid_dict["min_level"] = row["minimum_level"]
 
 def add_gen_generic_features(row, cid_dict):
     '''
@@ -128,11 +134,11 @@ def add_gen_generic_features(row, cid_dict):
     cid_dict["planned_outage_rate"] = row["planned_outage_rate"]
     cid_dict["start_up_cost_cold"] = row["startup_cost"]
     cid_dict["shutdown_cost"] = row["shutdown_cost"]
-    cid_dict["typical_plant_size_MW"] = row["typical_plant_size_MW"]
+    # cid_dict["typical_plant_size_MW"] = row["typical_plant_size_MW"] # deprecated in CODERS, EL_20270724
     cid_dict["capital_cost_CAD_per_kW"] = row["capital_cost_CAD_per_kW"]
     cid_dict["service_life_years"] = row["service_life"]
-    cid_dict["fixed_om_cost_CAD_per_MWyear"] = row["fixed_om_cost_CAD_per_MWyear"]
-    cid_dict["variable_om_cost_CAD_per_MWh"] = row["variable_om_cost_CAD_per_MWh"]
+    cid_dict["fixed_om_costs"] = row["fixed_om_costs"]
+    cid_dict["variable_om_costs"] = row["variable_om_costs"]
     cid_dict["average_fuel_price_CAD_per_MMBtu"] = row["average_fuel_price_CAD_per_MMBtu"]
     cid_dict["carbon_emissions_tCO2eq_per_MWh"] = row["carbon_emissions"]
 
@@ -199,7 +205,7 @@ def create_df_hydro_gen(component_dict, cfg):
     df_hydro_gen.reset_index(inplace=True)
     df_hydro_gen.rename({"index":"component_id"}, inplace=True, axis=1)
     
-    if "BC" in cfg['output']['prepare_base_network']['regions']:  
+    if "BC" in pypsa_aparser.base_network_cfg['regions']:  # regions moved to base_network.yaml
         cid_2_aid_dict = {"BC_USR00_GEN":"BC_USR_GSS","BC_USR02_GEN":"BC_LMN_GSS"} # custom fix
         for cid,aid in cid_2_aid_dict.items():
             ind = df_hydro_gen[df_hydro_gen["component_id"] == cid].index[0]
@@ -280,7 +286,9 @@ def custom_bridge_agg(df):
     NOTE: The hydro_cascade.csv file and the generators.csv file have not both been updated simulataneously.
           This causes an issue with the connection node codes not matching for the same assets between the 2 files.
     '''
-    # 1) Identify
+    # 1) Identify (skip gracefully if the bridge pair isn't present)
+    if 'BC_BR1_GSS' not in df.index or 'BC_BR2_GSS' not in df.index:
+        return df
     update_idx = df[df.index == 'BC_BR1_GSS'].index[0]
     remove_idx = df[df.index == 'BC_BR2_GSS'].index[0]
 
@@ -313,16 +321,21 @@ def main():
     # Read in configuration file
     # config_file = r"config/data.yaml"
     cfg = pypsa_aparser.data_cfg 
-
+    
+    
     # write path + file
     df_hydro_path = cfg["output"]["create_hydro_assets"]["hydro_generation"]
     df_res_path = cfg["output"]["create_hydro_assets"]["hydro_reservoir"]
 
-    # Read in files
-    gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])
-    generators = pd.read_csv(cfg["data"]["coders"]["generators"])
-    hydro_e_data = pd.read_csv(cfg["data"]["coders"]["hydro_existing"])
-    cascade_data = pd.read_csv(cfg["data"]["coders"]["hydro_cascade"])
+    # Read CODERS via the shared client (coders.yaml aliasing applies)
+    from pypsa_bc.data.coders import get_coders
+    coders = get_coders()
+    gen_generic = coders.load_table("generation_generic", as_gdf=False)
+    generators = coders.load_table("generators", as_gdf=False)
+    # hydro_existing = hydro subset of generators (from the coders module, aliased);
+    # hydro_cascade  = reconstructed table (produced by prepare_hydro via to_legacy_cascade).
+    hydro_e_data = coders.existing_hydro
+    cascade_data = pd.read_csv(cfg["output"]["create_hydro_assets"]["hydro_cascade"])
     
     # Modified: 2024-10-01, Fix hydro cascade files to ensure naming matches coders updated asset names...
     # Likely maintainers of CODERS will fix this issue in the future, however, manually fixed for time being.
@@ -360,16 +373,22 @@ def main():
     # (ii) get features from hydro_cascade.csv
     get_feature_cascade(cascade_data, component_dict)
     
-    gen_wup_data = pd.read_csv(cfg["custom"]["gen_wup"]) # EL: source ???
-    res_wup_data = pd.read_csv(cfg["custom"]["res_wup"]) # EL: source ???
-    inflow_tables = cfg["custom"]["inflow_tables"] # EL: source ???
+    gen_wup_data = pd.read_csv(cfg["inventory"]["gen_wup"]) # EL: source ???
+    res_wup_data = pd.read_csv(cfg["inventory"]["res_wup"]) # EL: source ???
+    inflow_tables = cfg["inventory"]["inflow_tables"] # EL: source ???
     # (vi) 
     # a) update hydro technical parameters based on Water Use Plan (WUP) generation data
     # b) create csv of hydro generation assets
     for ind,row in gen_wup_data.iterrows():
         temp_mask = df_hydro_gen["asset_id"] == row["asset_id"]
         for ser_ind,ser_val in row[row.notnull()].items():
-            df_hydro_gen.loc[temp_mask,ser_ind] = ser_val # Use non-empty values from the generation WUP extacted data
+            if ser_ind not in df_hydro_gen.columns:
+                continue  # skip provenance/junk WUP columns (sources, Notes, Unnamed:*)
+            # Template columns start as strings ("DEFAULT"); allow numeric WUP overrides
+            # (pandas 2.x StringDtype rejects setting a float into a string column).
+            if df_hydro_gen[ser_ind].dtype != object:
+                df_hydro_gen[ser_ind] = df_hydro_gen[ser_ind].astype(object)
+            df_hydro_gen.loc[temp_mask, ser_ind] = ser_val  # non-empty WUP overrides
     
     # (vii)
     # a) code determines what type of time-series and modelling structure is required for each asset
@@ -378,23 +397,28 @@ def main():
     add_hydro_type(df_hydro_gen, res_wup_data, inflow_tables)
 
     # BC only implemented so far for this....
+    from pathlib import Path as _Path
+    _Path(df_res_path).parent.mkdir(parents=True, exist_ok=True)
     res_wup_data.to_csv(df_res_path, index=False)
     utils.print_update(level=2,message=f"reservoir data saved to: {df_res_path}")
 
 
     # (viii)
-    # Aggregate hydro turbines into singular assets.
-    # NOTE: Some functionality in create_ror_ps and create_reservoir_inflows will now become redundant.
-    subset =["asset_id", "latitude", "longitude"]
-    sum_list = ["capacity"]#, "annual_avg_energy"]
-    df_hydro_gen_final = df_hydro_gen.groupby(by="asset_id", group_keys=False).apply(lambda x: hydro.merge_assets(x, subset, sum_list))
-
+    # Aggregate hydro turbines into singular assets (sum capacity, first for the rest).
+    # groupby.agg is robust to the pandas 2.x change where groupby.apply drops the key.
+    sum_cols = {"capacity": "sum"}
+    other_cols = {c: "first" for c in df_hydro_gen.columns
+                  if c not in sum_cols and c != "asset_id"}
+    df_hydro_gen_final = (df_hydro_gen.groupby("asset_id", as_index=False)
+                          .agg({**sum_cols, **other_cols})).set_index("asset_id")
 
     # (ix)
     # Custom aggregation of parallel generation assets in the bridge cascade
     df_hydro_gen_final = custom_bridge_agg(df_hydro_gen_final)
 
     # Write files
+    from pathlib import Path as _Path
+    _Path(df_hydro_path).parent.mkdir(parents=True, exist_ok=True)
     df_hydro_gen_final.to_csv(df_hydro_path)
     utils.print_update(level=2,message=f"hydro generator data saved to: {df_hydro_path}")
  

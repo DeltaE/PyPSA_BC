@@ -40,7 +40,7 @@ log = get_logger("coders")
 PROVINCE = "BC"  # this model is BC-only; retarget the whole module here
 CODERS_API_PATH = "data/downloaded_data/CODERS/coders_api.yaml"
 CODERS_CONFIG_PATH = "config/coders.yaml"
-NO_FILTER_TABLES = ["generation_generic"]  # tables that don't support extra filters
+NO_FILTER_TABLES = ["generation_generic","hydro_greenfield"]  # tables that don't support extra filters
 
 def load_config(file_path):
     with open(file_path, "r") as f:

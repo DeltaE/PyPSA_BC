@@ -24,14 +24,14 @@ inventory:
   res_wup: data/inventory/custom/hydro_res_wup_features.csv
   inflow_tables: data/inventory/custom/inflow_stats # dir of {reservoir_id}.csv
   line_table: data/inventory/custom/electric_power_generation_table_13_3a.xlsx
-
+  cascade_reference: data/inventory/custom/cascade_reference.csv
 data:
   # CODERS API pulls. Locations mirror coders.yaml (root + tables); keep in sync.
   coders:
     generators: data/downloaded_data/CODERS/data-pull/supply/generators.csv
     gen_generic: data/downloaded_data/CODERS/data-pull/supply/generation_generic.csv
-    hydro_existing: data/downloaded_data/CODERS/data-pull/supply/hydro_existing.csv
-    hydro_cascade: data/downloaded_data/CODERS/data-pull/supply/hydro_cascade.csv
+    hydro_existing: data/downloaded_data/CODERS/data-pull/supply/existing_hydro.csv
+    # hydro_cascade: data/downloaded_data/CODERS/data-pull/supply/hydro_cascade.csv # CODERS doesn't have this, EL_20270724
     lines: data/downloaded_data/CODERS/data-pull/network/transmission_lines.csv
     substations: data/downloaded_data/CODERS/data-pull/network/substations.csv
   wind:
@@ -60,6 +60,7 @@ output:
   create_hydro_assets:
     hydro_generation: data/processed_data/hydro/existing/hydro_generation.csv
     hydro_reservoir: data/processed_data/hydro/existing/hydro_reservoirs.csv
+    hydro_cascade: data/processed_data/hydro/existing/hydro_cascade.csv
 
   reservoir_inflows:
     fname: data/processed_data/hydro/existing/bc_ext_reservoir_inflows.csv
