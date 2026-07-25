@@ -21,3 +21,4 @@ data/processed_data
 .gitignore
 src/pypsa_bc/data/__pycache__/*
 src/pypsa_bc/reporting/__pycache__/*.pyc
+workflow/scripts/__pycache__/*.*.pyc

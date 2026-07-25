@@ -90,17 +90,19 @@ def generate_wind_ts(wind_assets, cutout_path):
 #Does some input verification before generating the time series
 def main():
 
-    cfg = pypsa_aparser.pypsa_cfg
+    # Load configuration (paths from data.yaml, params from params.yaml)
+    data = pypsa_aparser.data_cfg
+    params = pypsa_aparser.params_cfg
 
     utils.print_update(level=1,message="Preparing timeseries for existing wind assets...")
 
     #Try reading the arguments passed in the terminal
-    assets_path = cfg["output"]['create_ext_wind_assets']['fname']
-    cutout_path = utils.get_cutout_path(cfg)
-    wind_atlas_path = cfg["data"]['wind']['gwa_speed']
-    wind_geojson_path = cfg["data"]['wind']['gwa_geojson']
-    calibration_flag = cfg["output"]['create_ext_wind_ts']['calibration'] # 0 for no calibration, 1 for calibration
-    output_path = cfg['output']['create_ext_wind_ts']['fname']
+    assets_path = data["output"]['create_ext_wind_assets']['fname']
+    cutout_path = data["data"]['cutout']
+    wind_atlas_path = data["data"]['wind']['gwa_speed']
+    wind_geojson_path = data["data"]['wind']['gwa_geojson']
+    calibration_flag = params["workflow"]['wind_ts']['calibration'] # 0 no calibration, 1 calibration
+    output_path = data['output']['create_ext_wind_ts']['fname']
 
 
     #Correct number of arguments
@@ -120,7 +122,7 @@ def main():
 
 
     #Start by appending the Global Wind Atlas wind speeds to assets
-    province = cfg['output']['prepare_base_network']['regions'][0]
+    province = pypsa_aparser.base_network_cfg['regions'][0]  # regions moved to base_network.yaml
     assets['GWA wind speed'] = wind.get_wind_coords(assets, wind_atlas, wind_geojson, province)
     utils.print_update(level=2,message="collecting wind speed for assets")
 

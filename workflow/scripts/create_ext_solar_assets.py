@@ -68,8 +68,9 @@ def main():
     output_path = cfg["output"]['create_ext_solar_assets']['fname']
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    # Try loading in the CSV file into a Pandas data frame
-    coders = pd.read_csv(coders_path)
+    # Load CODERS via the shared client so coders.yaml aliasing applies
+    from pypsa_bc.data.coders import get_coders
+    coders = get_coders().load_table("generators", as_gdf=False)
 
     # prov_code_2_name =  {'BC': "British Columbia", "AB": "Alberta"}
 
@@ -80,8 +81,8 @@ def main():
     # Start generating solar_assets.csv
     solar_assets = generate_solar_assets(solar_assets)
 
-    # Add in CODERS data for the wind asssets
-    gen_generic = pd.read_csv(coders_generic_path)
+    # Add in CODERS data for the solar assets
+    gen_generic = get_coders().load_table("generation_generic", as_gdf=False)
 
     to_solar_assets_csv = utils.add_generic_columns(solar_assets, gen_generic, "solar_PV")
 

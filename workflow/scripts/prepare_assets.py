@@ -10,14 +10,14 @@ Hydro is added last, once create_hydro_assets is migrated.
     tpp     CODERS tables -> tpp assets   (needs base-network buses.csv)
 """
 
-from workflow.scripts import prepare_wind, prepare_solar, prepare_tpp
+from workflow.scripts import prepare_wind, prepare_solar, prepare_tpp, prepare_hydro
 
 
 def main(force_download: bool = False):
     prepare_wind.main(force_download=force_download)
     prepare_solar.main()
     prepare_tpp.main()
-    # TODO (last): prepare_hydro.main()
+    prepare_hydro.main()
 
 
 if __name__ == "__main__":

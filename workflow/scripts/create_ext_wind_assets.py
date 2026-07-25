@@ -232,8 +232,9 @@ def main():
     output_path = cfg["output"]['create_ext_wind_assets']['fname']
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    #Try loading in the CSV file and XLSX file into Pandas data frames
-    coders = pd.read_csv(coders_path)
+    #Load CODERS via the shared client (coders.yaml aliasing applies), CWTD via robust loader
+    from pypsa_bc.data.coders import get_coders
+    coders = get_coders().load_table("generators", as_gdf=False)
     canada_turbine = load_cwtd(canada_turbine_path)   # canonicalises headers (curated or FGP)
 
     #Try loading in the JSON file as a dictionary
@@ -257,7 +258,7 @@ def main():
     wind_assets = generate_wind_assets(wind_df, canada_turbine, turbine_dict, province)
 
     # Add in CODERS data for the wind asssets
-    gen_generic = pd.read_csv(coders_generic_path)
+    gen_generic = get_coders().load_table("generation_generic", as_gdf=False)
     to_wind_assets_csv = utils.add_generic_columns(wind_assets, gen_generic, gen_type="wind_onshore") # gen_type code synced with CWTD, EL_20260724
 
     #Write wind_assets.csv

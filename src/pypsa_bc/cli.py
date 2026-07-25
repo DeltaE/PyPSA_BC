@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
-import subprocess
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
+
 from bc_combined_modelling.clews.runner import RunModel
 
 

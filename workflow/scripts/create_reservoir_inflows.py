@@ -11,17 +11,27 @@ def main():
     # Description: main script for creating the hydro cutout based on hydro site locations and the basins they are located within
     # and each basins upstream basins.
 
-    # (i) get configuration  
-    cfg = pypsa_aparser.pypsa_cfg
+    # (i) get configuration — paths from data.yaml, run params from params.yaml
+    data = pypsa_aparser.data_cfg
+    params = pypsa_aparser.params_cfg
+    cfg = {
+        "basin_files": data["basin_files"],
+        "inventory": data["inventory"],
+        "output": {
+            "create_hydro_assets": data["output"]["create_hydro_assets"],
+            "reservoir_inflows": {**data["output"]["reservoir_inflows"],
+                                  **params["workflow"]["reservoir_inflows"]},
+        },
+    }
 
     utils.print_update(level=1,message="Preparing inflows for reservoirs...")
 
 
-    # (ii) Read basin and site data. (Basins NA and Artic)
+    # (ii) Read basin and site data. (Basins NA and Arctic)
     na_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["na_file"])
-    ar_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["artic_file"])
+    ar_basin_data = hydro.load_hydro_basins(cfg["basin_files"]["arctic_file"])
     basin_data = gpd.GeoDataFrame(pd.concat([na_basin_data, ar_basin_data]))
-    cutout = atlite.Cutout(path=utils.get_cutout_path(cfg))
+    cutout = atlite.Cutout(path=data["data"]["cutout"])
 
     # 1) Load in hydroelectric generation sites
     # 2) Load in reservoirs

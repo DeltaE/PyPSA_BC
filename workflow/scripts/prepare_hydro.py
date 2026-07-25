@@ -18,7 +18,7 @@ from pypsa_bc.data import to_legacy_cascade
 from pypsa_bc.data.coders import get_coders
 from pypsa_bc.reporting.logger import Pipeline
 
-STATIC_DIR = "data/inventory"
+STATIC_DIR = "data/static"
 
 
 def _rows(path) -> int | str:

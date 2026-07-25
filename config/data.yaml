@@ -11,12 +11,12 @@ roots:
 
 # ---------------------------------------------------------------- inputs
 GADM:
-  country_file_L1: data/downloaded_data/GADM/gadm41_CAN_1.json # provinces
-  country_file_L2: data/downloaded_data/GADM/gadm41_CAN_2.json # admin regions
+  country_file_L1: data/downloaded_data/GADM/gadm41_CAN_1.geojson # provinces
+  country_file_L2: data/downloaded_data/GADM/gadm41_CAN_2.geojson # admin regions
 
 basin_files:
   na_file: data/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.shp
-  arctic_file: data/downloaded_data/HydroBASINS_artic/hybas_ar_lev12_v1c.shp
+  arctic_file: data/downloaded_data/HydroBASINS_arctic/hybas_ar_lev12_v1c.shp
 
 # BC Hydro / Water Use Plan derived, manually curated (see also params.yaml)
 inventory:
@@ -51,6 +51,12 @@ remote:
   can_turbines:
     url: https://ftp.cartes.canada.ca/pub/nrcan_rncan/Wind-energy_Energie-eolienne/wind_turbines_database/Wind_Turbine_Database_FGP.xlsx
     dest: data/downloaded_data/wind/canada_turbines.xlsx # Canadian Wind Turbine Database (NRCan, OGL-Canada)
+  HydroBASINS:
+    url: https://data.hydrosheds.org/file/hydrobasins/standard/hybas_na_lev01-12_v1c.zip
+    dest: data/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.zip
+  HydroBASINS_arctic:
+    url: https://data.hydrosheds.org/file/hydrobasins/standard/hybas_ar_lev01-12_v1c.zip
+    dest: data/downloaded_data/HydroBASINS_arctic/hybas_ar_lev12_v1c.zip
 
 # ---------------------------------------------------------------- outputs
 # Paths only. Any run-parameter that used to sit beside these lives in params.yaml.

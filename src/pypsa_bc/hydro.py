@@ -102,7 +102,7 @@ def get_hydro_cutout_polygon(sites,basin_data):
     basins = Basins(plant_basins, meta.loc[unique_basins], shapes.loc[unique_basins])
 
     # cutout bounds
-    west_lon, south_lat, east_lon, north_lat = shapes.loc[basins.plants.hid[0]].bounds # initialize
+    west_lon, south_lat, east_lon, north_lat = shapes.loc[basins.plants.hid.iloc[0]].bounds # initialize
     for ppl in basins.plants.itertuples():
         for hid in ppl.upstream:
             min_lon, min_lat, max_lon, max_lat = shapes.loc[hid].bounds
@@ -522,7 +522,7 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg,
                                                 flowspeed=float(cfg["output"]['reservoir_inflows']['flowspeed']))
     
     # File path + name for reading in inflow tables
-    fpath = cfg["inventory"]["inflow_tables"]
+    fpath = cfg["custom"]["inflow_tables"]
 
     # 1) normalize inflow time series for selected reservoirs
     reservoirs = hydro_sites[hydro_sites['hydro_type'] == "reservoir"]['upper_reservoir_id'].unique().tolist() # TRY Unique it

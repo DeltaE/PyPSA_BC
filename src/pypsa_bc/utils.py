@@ -175,31 +175,20 @@ def load_config(config_file):
     with open(config_file, 'r') as file:
         cfg = yaml.safe_load(file)
     return cfg
-
-def check_path(dir=str|Path):
-    '''
-    This wrapper handles missing folders and creates them if they do not exist.
-    '''
-    Path(dir).mkdir(parents=True, exist_ok=True)
     
 
 def get_region_polygon(geometry):
     '''
-    This function finds a bounding box of the region and creates a polygon for it.
-    Returns a polygon of the regions max/min bounds in terms of lats and lons.
+    Create an axis-aligned bounding-box polygon around the input geometry.
+
+    The returned polygon is a rectangular extent (minx, miny, maxx, maxy),
+    not the original region shape.
     '''
-    if len(geometry) == 1:
-        west_lon= geometry.bounds['minx'].iloc[0]
-        south_lat  = geometry.bounds['miny'].iloc[0]
-        east_lon = geometry.bounds['maxx'].iloc[0]
-        north_lat = geometry.bounds['maxy'].iloc[0]
-        bbox = (west_lon, south_lat, east_lon, north_lat)
-        polygon = shapely.geometry.box(*bbox, ccw=True)
-    else:
-        print('There remains multiple geometries')
-        exit(1)
-    
-    return polygon
+    if len(geometry) == 0:
+        raise ValueError('get_region_polygon received empty geometry.')
+
+    west_lon, south_lat, east_lon, north_lat = geometry.total_bounds
+    return shapely.geometry.box(west_lon, south_lat, east_lon, north_lat, ccw=True)
 
 def get_bounds(polygon_list):
     '''
@@ -232,6 +221,7 @@ def get_cutout_path(cfg):
         suffix = "_".join([start_year, end_year])
         file = "_".join([prefix, suffix + ".nc"])
 
+    Path(file).parent.mkdir(parents=True, exist_ok=True)
     return file
 
 def create_era5_cutout(bounds, cfg):
@@ -255,7 +245,10 @@ def create_era5_cutout(bounds, cfg):
                     dy=dy,
                     time=time_horizon)
 
-    cutout.prepare()
+    cutout.prepare(monthly_requests=True, 
+                    concurrent_requests=False,
+                    show_progress=True,
+                    data_format="netcdf")
 
 def convert_cid_2_aid(cid,old_aid):
     '''

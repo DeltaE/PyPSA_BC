@@ -34,18 +34,18 @@ def generate_solar_ts(solar_assets, cutout_path):
 #Does some input verification before generating the time series
 def main():
     
-    # Load configuration files
-    cfg = pypsa_aparser.pypsa_cfg
-
+    # Load configuration (paths from data.yaml, params from params.yaml)
+    data = pypsa_aparser.data_cfg
+    params = pypsa_aparser.params_cfg
 
     utils.print_update(level=1,message="Preparing timeseries for existing solar assets...")
 
 
     # Try reading the arguments passed in the terminal
-    assets_path = cfg["output"]["create_ext_solar_assets"]["fname"] # Path to solar assets
-    cutout_path = utils.get_cutout_path(cfg) # Path to cutout
-    calibration_flag = cfg["output"]["create_ext_solar_ts"]["calibration"] # 0 for no calibration, 1 for calibration
-    output_path = cfg["output"]["create_ext_solar_ts"]["fname"]
+    assets_path = data["output"]["create_ext_solar_assets"]["fname"] # Path to solar assets
+    cutout_path = data["data"]["cutout"] # Path to cutout
+    calibration_flag = params["workflow"]["solar_ts"]["calibration"] # 0 no calibration, 1 calibration
+    output_path = data["output"]["create_ext_solar_ts"]["fname"]
 
 
     #Load the solar_assets
