@@ -1,10 +1,57 @@
 import atlite
 import numpy as np
 import pandas as pd
+import re
+from pathlib import Path
 
 '''
 FUNCTIONS USED IN create_wind_assets.py
 '''
+
+
+def _infer_rated_kw_from_model(model: str):
+    model = str(model)
+
+    # Common form: MM114/3200 -> 3200 kW
+    m = re.search(r"/(\d{3,5})\b", model)
+    if m:
+        return float(m.group(1))
+
+    # Common form: V90/3MW -> 3000 kW
+    m = re.search(r"/(\d+(?:\.\d+)?)\s*MW\b", model, flags=re.IGNORECASE)
+    if m:
+        return float(m.group(1)) * 1000.0
+
+    # Common form: GE3.2-103 -> 3.2 MW
+    m = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*-", model)
+    if m and float(m.group(1)) <= 30:
+        return float(m.group(1)) * 1000.0
+
+    return None
+
+
+def _fallback_local_windturbine_config(model: str):
+    """
+    Fallback for turbine models not present in OEDB: choose the closest local
+    atlite turbine by rated power (favor non-offshore names).
+    """
+    rated_kw = _infer_rated_kw_from_model(model)
+    candidates = []
+    for name, cfg_val in atlite.resource.windturbines.items():
+        if isinstance(cfg_val, (str, Path)):
+            cfg = atlite.resource.get_windturbineconfig(name)
+        else:
+            cfg = cfg_val
+        p_kw = float(cfg["P"]) * 1000.0
+        penalty = 5e5 if "offshore" in name.lower() else 0.0
+        score = (abs(p_kw - rated_kw) if rated_kw is not None else 0.0) + penalty
+        candidates.append((score, name, cfg))
+
+    if not candidates:
+        raise RuntimeError("No local atlite wind turbine configurations available for fallback.")
+
+    _, name, cfg = min(candidates, key=lambda x: x[0])
+    return cfg
 
 #Get power capacity P for a wind turbine model, which is required for calculating the install capacity for a wind farm
 #Used in generate_wind_assets()
@@ -19,7 +66,23 @@ def get_power_cap(config_oedb):
             return add['P']
 
     
-    add = atlite.resource.get_oedb_windturbineconfig(config[0])
+    try:
+        add = atlite.resource.get_oedb_windturbineconfig(config[0])
+    except RuntimeError as err:
+        # Some model names map to multiple OEDB entries; fall back to first id.
+        if "use `id` for an unambiguous search" in str(err):
+            ids = [
+                int(x)
+                for x in re.findall(r"^\s*\d+\s+(\d+)\s+", str(err), flags=re.MULTILINE)
+            ]
+            if ids:
+                add = atlite.resource.get_oedb_windturbineconfig(config[0], id=ids[0])
+            else:
+                raise
+        elif "No turbine found" in str(err):
+            add = _fallback_local_windturbine_config(config[0])
+        else:
+            raise
     return add['P']
 
 
@@ -137,9 +200,38 @@ def get_config(config_oedb, h):
         if int(config[1]) >= 0:
             add = atlite.resource.get_oedb_windturbineconfig(config[0], id=int(config[1]))
         else:
-            add = atlite.resource.get_oedb_windturbineconfig(config[0])
+            try:
+                add = atlite.resource.get_oedb_windturbineconfig(config[0])
+            except RuntimeError as err:
+                if "use `id` for an unambiguous search" not in str(err):
+                    if "No turbine found" in str(err):
+                        add = _fallback_local_windturbine_config(config[0])
+                    else:
+                        raise
+                else:
+                    ids = [
+                        int(x)
+                        for x in re.findall(r"^\s*\d+\s+(\d+)\s+", str(err), flags=re.MULTILINE)
+                    ]
+                    if not ids:
+                        raise
+                    add = atlite.resource.get_oedb_windturbineconfig(config[0], id=ids[0])
     else:
-        add = atlite.resource.get_oedb_windturbineconfig(config[0])
+        try:
+            add = atlite.resource.get_oedb_windturbineconfig(config[0])
+        except RuntimeError as err:
+            if "use `id` for an unambiguous search" in str(err):
+                ids = [
+                    int(x)
+                    for x in re.findall(r"^\s*\d+\s+(\d+)\s+", str(err), flags=re.MULTILINE)
+                ]
+                if not ids:
+                    raise
+                add = atlite.resource.get_oedb_windturbineconfig(config[0], id=ids[0])
+            elif "No turbine found" in str(err):
+                add = _fallback_local_windturbine_config(config[0])
+            else:
+                raise
 
     add['hub_height'] = h #This hub height affects generation when cutout.wind
     return add

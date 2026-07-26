@@ -1,3 +1,6 @@
+from pathlib import Path
+import json
+
 import rasterio as rio
 import pandas as pd
 import geojson as gj
@@ -7,6 +10,57 @@ from pypsa_bc import wind, solar_wind, utils
 # handles the config loading centrally
 from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
+
+
+def _geometry_to_wind_coords(geometry: dict):
+    """
+    Convert GeoJSON Polygon/MultiPolygon geometry to the nested coordinates
+    structure expected by wind.get_wind_coords().
+    """
+    gtype = geometry.get("type")
+    coords = geometry.get("coordinates")
+    if gtype == "Polygon":
+        return [coords]
+    if gtype == "MultiPolygon":
+        return coords
+    raise ValueError(f"Unsupported geometry type for wind outline: {gtype}")
+
+
+def _load_wind_outline(gwa_geojson_path: str, gadm_l1_path: str, province: str):
+    """
+    Load wind boundary coordinates from GWA geojson; if invalid, fall back to
+    GADM L1 geometry for the requested province.
+    """
+    try:
+        with open(gwa_geojson_path) as f:
+            payload = gj.load(f)
+        if isinstance(payload, dict):
+            if "geometry" in payload:
+                return _geometry_to_wind_coords(payload["geometry"])
+            if payload.get("type") == "Feature" and "geometry" in payload:
+                return _geometry_to_wind_coords(payload["geometry"])
+            if payload.get("type") == "FeatureCollection" and payload.get("features"):
+                return _geometry_to_wind_coords(payload["features"][0]["geometry"])
+        raise ValueError("GWA geojson does not contain a usable geometry.")
+    except (json.JSONDecodeError, ValueError, KeyError, TypeError):
+        province_map = {
+            "BC": "British Columbia",
+            "MB": "Manitoba",
+        }
+        target_name = province_map.get(province, province)
+
+        with open(gadm_l1_path) as f:
+            gadm = json.load(f)
+        if gadm.get("type") != "FeatureCollection":
+            raise ValueError(f"Invalid GADM L1 file format: {gadm_l1_path}")
+
+        for feat in gadm.get("features", []):
+            if feat.get("properties", {}).get("NAME_1") == target_name:
+                return _geometry_to_wind_coords(feat["geometry"])
+
+        raise ValueError(
+            f"Could not find province '{target_name}' in GADM L1 file: {gadm_l1_path}"
+        )
 
 #This part builds the wind_ts data frame to be written into a CSV file (NO CALIBRATION WITH CODERS AAG DATA)
 #Used in main()
@@ -87,6 +141,8 @@ def generate_wind_ts(wind_assets, cutout_path):
 
     return wind_generation
 
+
+
 #Does some input verification before generating the time series
 def main():
 
@@ -99,12 +155,21 @@ def main():
     #Try reading the arguments passed in the terminal
     assets_path = data["output"]['create_ext_wind_assets']['fname']
     cutout_path = data["data"]['cutout']
+    
     wind_atlas_path = data["data"]['wind']['gwa_speed']
     wind_geojson_path = data["data"]['wind']['gwa_geojson']
     calibration_flag = params["workflow"]['wind_ts']['calibration'] # 0 no calibration, 1 calibration
     output_path = data['output']['create_ext_wind_ts']['fname']
+    from . import fetch_inputs
 
+    if Path(wind_atlas_path).is_file() == False:
+        utils.print_update(level=2,message="Global Wind Atlas wind speed data not found, downloading...")
+        fetch_inputs.main(only=["GWA_wind_speed"])
 
+    if Path(wind_geojson_path).is_file() == False:
+        utils.print_update(level=2,message="Global Wind Atlas geojson data not found, downloading...")
+        fetch_inputs.main(only=["GWA_geojson"])
+        
     #Correct number of arguments
     #Load the wind_assets
     utils.print_update(level=2,message="Loading wind assets...")
@@ -115,14 +180,10 @@ def main():
         wind_atlas = f.read(1)
         f.close()
 
-    #Load in the Global Wind Atlas geojson
-    with open(wind_geojson_path) as f:
-        wind_geojson = gj.load(f)['geometry']['coordinates']
-        f.close()
-
-
-    #Start by appending the Global Wind Atlas wind speeds to assets
+    # Start by appending the Global Wind Atlas wind speeds to assets
     province = pypsa_aparser.base_network_cfg['regions'][0]  # regions moved to base_network.yaml
+    gadm_l1_path = data["GADM"]["country_file_L1"]
+    wind_geojson = _load_wind_outline(wind_geojson_path, gadm_l1_path, province)
     assets['GWA wind speed'] = wind.get_wind_coords(assets, wind_atlas, wind_geojson, province)
     utils.print_update(level=2,message="collecting wind speed for assets")
 

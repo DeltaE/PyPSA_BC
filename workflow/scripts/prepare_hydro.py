@@ -18,7 +18,7 @@ from pypsa_bc.data import to_legacy_cascade
 from pypsa_bc.data.coders import get_coders
 from pypsa_bc.reporting.logger import Pipeline
 
-STATIC_DIR = "data/static"
+INVENTORY = "data/inventory"
 
 
 def _rows(path) -> int | str:
@@ -38,8 +38,8 @@ def main():
 
     # Pre-flight: the reconstruction needs the static inventory + the WUP files.
     need = {
-        "hydro_topology.csv": Path(STATIC_DIR) / "hydro_topology.csv",
-        "hydro_reservoirs.csv": Path(STATIC_DIR) / "hydro_reservoirs.csv",
+        "hydro_topology.csv": Path(INVENTORY) / "hydro_topology.csv",
+        "hydro_reservoirs.csv": Path(INVENTORY) / "hydro_reservoirs.csv",
         "gen_wup": Path(dcfg["inventory"]["gen_wup"]),
         "res_wup": Path(dcfg["inventory"]["res_wup"]),
         "inflow_tables": Path(dcfg["inventory"]["inflow_tables"]),
@@ -65,7 +65,7 @@ def main():
         with pipe.stage("hydro cascade"):
             existing_hydro_csv = coders.table_path("existing_hydro")
             to_legacy_cascade.to_legacy_cascade(
-                str(existing_hydro_csv), STATIC_DIR, hydro_cascade_out)
+                str(existing_hydro_csv), INVENTORY, hydro_cascade_out)
             pipe.deliver("hydro_cascade.csv", hydro_cascade_out, _rows(hydro_cascade_out))
 
         with pipe.stage("hydro assets"):

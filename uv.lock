@@ -693,6 +693,15 @@ wheels = [
 ]
 
 [[package]]
+name = "geojson"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/a9/bd61eee2c7904947094b74866b569f3fd5a8d6ac907ecdfecef74b19d459/geojson-3.3.0.tar.gz", hash = "sha256:92e83b9cb378a450b42f1207bb9b2a031f9fc89185f335153c44369b8b8b71fd", size = 25141, upload-time = "2026-05-28T21:48:08.214Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/aa/5e/fdd72167b57158d743353f71d453200719744d1e75f18b1c8230508db370/geojson-3.3.0-py3-none-any.whl", hash = "sha256:a2d885187eeaa8b357600b3fcc9d963cb4300d1694196636dbd7eddc82fd0825", size = 15181, upload-time = "2026-05-28T21:48:06.648Z" },
+]
+
+[[package]]
 name = "geopandas"
 version = "1.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1918,6 +1927,7 @@ dependencies = [
     { name = "atlite" },
     { name = "colorama" },
     { name = "dask" },
+    { name = "geojson" },
     { name = "geopandas" },
     { name = "matplotlib" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -1947,6 +1957,7 @@ requires-dist = [
     { name = "atlite", specifier = ">=0.2.12" },
     { name = "colorama", specifier = ">=0.4.6" },
     { name = "dask", specifier = ">=2024.1" },
+    { name = "geojson", specifier = ">=3.3.0" },
     { name = "geopandas", specifier = ">=0.14" },
     { name = "matplotlib", specifier = ">=3.8" },
     { name = "numpy", specifier = ">=1.26" },

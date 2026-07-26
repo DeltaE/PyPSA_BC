@@ -25,7 +25,13 @@ def _rows(path) -> int | str:
         return ""
 
 
-def main():
+def main(
+    run_wind_ts: bool = True,
+    run_solar_ts: bool = True,
+    run_ror_power: bool = True,
+    run_reservoir_inflows: bool = True,
+    force_update: bool = False,
+):
     from workflow.scripts import (
         create_ext_wind_ts, create_ext_solar_ts,
         create_ror_ps, create_reservoir_inflows,
@@ -34,33 +40,117 @@ def main():
     dcfg = AttributesParser().data_cfg
     out = dcfg["output"]
 
-    cutout = Path(dcfg["data"]["cutout"])
-    if not cutout.exists():
+    stage_cfg = {
+        "wind ts": {
+            "enabled": run_wind_ts,
+            "output": Path(out["create_ext_wind_ts"]["fname"]),
+            "runner": create_ext_wind_ts.main,
+            "artifact": "bc_ext_wind_ts.csv",
+            "needs": {
+                "cutout": Path(dcfg["data"]["cutout"]),
+                "wind assets": Path(out["create_ext_wind_assets"]["fname"]),
+            },
+        },
+        "solar ts": {
+            "enabled": run_solar_ts,
+            "output": Path(out["create_ext_solar_ts"]["fname"]),
+            "runner": create_ext_solar_ts.main,
+            "artifact": "bc_ext_solar_ts.csv",
+            "needs": {
+                "cutout": Path(dcfg["data"]["cutout"]),
+                "solar assets": Path(out["create_ext_solar_assets"]["fname"]),
+            },
+        },
+        "ror power": {
+            "enabled": run_ror_power,
+            "output": Path(out["ror_ps"]["fname"]),
+            "runner": create_ror_ps.main,
+            "artifact": "bc_ext_ror_ts.csv",
+            "needs": {
+                "cutout": Path(dcfg["data"]["cutout"]),
+                "hydro generation": Path(out["create_hydro_assets"]["hydro_generation"]),
+                "na basins": Path(dcfg["basin_files"]["na_file"]),
+                "arctic basins": Path(dcfg["basin_files"]["arctic_file"]),
+            },
+        },
+        "reservoir inflows": {
+            "enabled": run_reservoir_inflows,
+            "output": Path(out["reservoir_inflows"]["fname"]),
+            "runner": create_reservoir_inflows.main,
+            "artifact": "bc_ext_reservoir_inflows.csv",
+            "needs": {
+                "cutout": Path(dcfg["data"]["cutout"]),
+                "hydro generation": Path(out["create_hydro_assets"]["hydro_generation"]),
+                "hydro reservoirs": Path(out["create_hydro_assets"]["hydro_reservoir"]),
+                "na basins": Path(dcfg["basin_files"]["na_file"]),
+                "arctic basins": Path(dcfg["basin_files"]["arctic_file"]),
+                "inflow tables": Path(dcfg["inventory"]["inflow_tables"]),
+            },
+        },
+    }
+
+    # Preflight only for stages that will actually execute.
+    missing = {}
+    for cfg in stage_cfg.values():
+        if not cfg["enabled"]:
+            continue
+        if cfg["output"].exists() and not force_update:
+            continue
+        for name, path in cfg["needs"].items():
+            if not path.exists():
+                missing[name] = str(path)
+
+    if missing:
         raise FileNotFoundError(
-            f"prepare_profiles: cutout not found ({cutout}). Build the ERA5 cutout "
-            f"first (create_cutout), and run prepare_assets so the asset CSVs exist."
+            "prepare_profiles: missing required inputs for selected stages. "
+            f"Missing: {missing}"
         )
 
-    with Pipeline("Profiles", ["wind ts", "solar ts", "ror power", "reservoir inflows"]) as pipe:
+    stages = ["wind ts", "solar ts", "ror power", "reservoir inflows"]
+    with Pipeline("Profiles", stages) as pipe:
         with pipe.stage("wind ts"):
-            create_ext_wind_ts.main()
-            f = out["create_ext_wind_ts"]["fname"]
-            pipe.deliver("bc_ext_wind_ts.csv", f, _rows(f))
+            cfg = stage_cfg["wind ts"]
+            f = str(cfg["output"])
+            if not cfg["enabled"]:
+                pipe.deliver(cfg["artifact"], f, "skipped (disabled)")
+            elif cfg["output"].exists() and not force_update:
+                pipe.deliver(cfg["artifact"], f, f"{_rows(f)} (exists locally)")
+            else:
+                cfg["runner"]()
+                pipe.deliver(cfg["artifact"], f, _rows(f))
 
         with pipe.stage("solar ts"):
-            create_ext_solar_ts.main()
-            f = out["create_ext_solar_ts"]["fname"]
-            pipe.deliver("bc_ext_solar_ts.csv", f, _rows(f))
+            cfg = stage_cfg["solar ts"]
+            f = str(cfg["output"])
+            if not cfg["enabled"]:
+                pipe.deliver(cfg["artifact"], f, "skipped (disabled)")
+            elif cfg["output"].exists() and not force_update:
+                pipe.deliver(cfg["artifact"], f, f"{_rows(f)} (exists locally)")
+            else:
+                cfg["runner"]()
+                pipe.deliver(cfg["artifact"], f, _rows(f))
 
         with pipe.stage("ror power"):
-            create_ror_ps.main()
-            f = out["ror_ps"]["fname"]
-            pipe.deliver("bc_ext_ror_ts.csv", f, _rows(f))
+            cfg = stage_cfg["ror power"]
+            f = str(cfg["output"])
+            if not cfg["enabled"]:
+                pipe.deliver(cfg["artifact"], f, "skipped (disabled)")
+            elif cfg["output"].exists() and not force_update:
+                pipe.deliver(cfg["artifact"], f, f"{_rows(f)} (exists locally)")
+            else:
+                cfg["runner"]()
+                pipe.deliver(cfg["artifact"], f, _rows(f))
 
         with pipe.stage("reservoir inflows"):
-            create_reservoir_inflows.main()
-            f = out["reservoir_inflows"]["fname"]
-            pipe.deliver("bc_ext_reservoir_inflows.csv", f, _rows(f))
+            cfg = stage_cfg["reservoir inflows"]
+            f = str(cfg["output"])
+            if not cfg["enabled"]:
+                pipe.deliver(cfg["artifact"], f, "skipped (disabled)")
+            elif cfg["output"].exists() and not force_update:
+                pipe.deliver(cfg["artifact"], f, f"{_rows(f)} (exists locally)")
+            else:
+                cfg["runner"]()
+                pipe.deliver(cfg["artifact"], f, _rows(f))
 
 
 if __name__ == "__main__":

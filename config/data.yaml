@@ -37,8 +37,8 @@ data:
   wind:
     can_turbines: data/downloaded_data/wind/canada_turbines.xlsx
     turbine_dict: data/downloaded_data/wind/turbine_dict.json
-    gwa_speed: data/downloaded_data/wind/british_columbia_wspd_100m.tif
-    gwa_geojson: data/downloaded_data/wind/british_columbia.geojson
+    gwa_speed: data/downloaded_data/wind/CAN_wind-speed_100m.tif
+    gwa_geojson: data/downloaded_data/wind/CAN.geojson
   load:
     ceei: data/downloaded_data/load/CEEI_2022.xlsx
     cee_transport: data/downloaded_data/load/CEEI_TRA_2022.xlsx
@@ -57,6 +57,12 @@ remote:
   HydroBASINS_arctic:
     url: https://data.hydrosheds.org/file/hydrobasins/standard/hybas_ar_lev01-12_v1c.zip
     dest: data/downloaded_data/HydroBASINS_arctic/hybas_ar_lev12_v1c.zip
+  GWA_wind_speed:
+    url: https://gwa.cdn.nazkamapps.com/country_tifs_v4/CAN_wind-speed_100m.tif
+    dest: data/downloaded_data/wind/CAN_wind-speed_100m.tif
+  GWA_geojson:
+    url: https://globalwindatlas.info/c52f880d-d656-491d-bd95-94ec154cab07
+    dest: data/downloaded_data/wind/CAN.geojson
 
 # ---------------------------------------------------------------- outputs
 # Paths only. Any run-parameter that used to sit beside these lives in params.yaml.

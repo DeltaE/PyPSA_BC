@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PyPSA-BC model documentation: setup, architecture, assumptions, data, workflows and learning resources.">
+  <title>PyPSA-BC · Model documentation</title>
+  <style>
+    :root{--ink:#10251f;--muted:#5c6d67;--paper:#f7f8f3;--card:#fff;--forest:#0b5d4b;--hero:#063f35;--hero2:#0b6956;--teal:#1b8a79;--lime:#cbe66b;--line:#d8e0d8;--amber:#b56a12;--red:#a13e36;--blue:#2c6686;--shadow:0 14px 40px rgba(16,37,31,.09);--radius:14px}
+    body[data-theme="pacific"]{--forest:#155a78;--hero:#082f49;--hero2:#0d6683;--teal:#188ba0;--lime:#84e0ce;--paper:#f4f8f9;--line:#d5e2e6}
+    body[data-theme="graphite"]{--forest:#344348;--hero:#172328;--hero2:#405257;--teal:#738f92;--lime:#e1b85b;--paper:#f5f4ef;--line:#dedbd1}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:82px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 Georgia,"Times New Roman",serif}a{color:var(--forest)}button,input{font:inherit}.shell{max-width:1240px;margin:auto;padding:0 26px}
+    .top{position:sticky;top:0;z-index:9;background:rgba(247,248,243,.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}.topin{min-height:76px;display:flex;align-items:center;gap:20px}.topnav{display:flex;gap:17px;font:700 13px Arial,sans-serif}.topnav a{text-decoration:none;color:var(--muted)}.head-actions{display:flex;align-items:center;gap:13px;margin-left:auto}.repo-btn{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:5px;text-decoration:none;color:var(--ink);font:800 12px Arial,sans-serif;background:white}.repo-btn svg{width:17px;height:17px}.partner{width:74px;height:36px;object-fit:contain;background:transparent;padding:0;border-radius:0;filter:brightness(0) saturate(100%);opacity:.72}
+    .hero{background:linear-gradient(125deg,var(--hero) 0%,var(--hero) 48%,var(--hero2) 150%);color:white;padding:52px 0 56px;position:relative;overflow:hidden;transition:background .35s}.hero:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(90deg,transparent 20%,black)}.hero:after{content:"";position:absolute;width:620px;height:620px;border:1px solid rgba(255,255,255,.12);border-radius:50%;right:-160px;top:-320px;box-shadow:0 0 0 88px rgba(255,255,255,.028),0 0 0 176px rgba(255,255,255,.018)}.hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(310px,.72fr);gap:50px;align-items:center}.hero-logo{width:min(510px,86%);height:188px;object-fit:contain;object-position:left center;filter:brightness(1.35) saturate(.9) drop-shadow(0 14px 25px rgba(0,0,0,.18));margin:0 0 10px}.eyebrow,.kicker{font:800 12px Arial,sans-serif;text-transform:uppercase;letter-spacing:.16em;color:var(--lime)}h1,h2,h3,h4{font-family:Arial,sans-serif;line-height:1.12}h1{font-size:clamp(42px,5.7vw,76px);max-width:760px;margin:13px 0 20px;letter-spacing:-.045em}h1 span{color:var(--lime)}.lede{font-size:20px;max-width:760px;color:#e1eee8}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:5px;background:var(--lime);color:var(--ink);font:800 14px Arial,sans-serif;text-decoration:none}.btn.alt{background:transparent;color:white;border:1px solid rgba(255,255,255,.45)}.btn svg{width:17px}.meta{display:flex;gap:30px;flex-wrap:wrap;margin-top:42px;font:13px Arial,sans-serif;color:#c8ddd5}.meta b{display:block;color:white;font-size:20px;margin-bottom:2px}.network-art{position:relative;min-height:500px;border-left:1px solid rgba(255,255,255,.15);padding-left:30px}.network-art svg{width:100%;height:410px;overflow:visible}.network-art .route{fill:none;stroke:rgba(255,255,255,.34);stroke-width:1.5}.network-art .pulse{fill:none;stroke:var(--lime);stroke-width:2;stroke-dasharray:6 12;animation:flowline 9s linear infinite}.network-art .station{fill:var(--hero);stroke:var(--lime);stroke-width:2}.network-art .load{fill:var(--lime)}.art-label{font:700 11px Arial,sans-serif;fill:white;letter-spacing:.08em}.art-note{font:11px Arial,sans-serif;color:#c8ddd5;max-width:260px}.theme-switch{display:flex;align-items:center;gap:8px;margin-top:20px;font:700 10px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#c8ddd5}.swatch{width:20px;height:20px;border:1px solid rgba(255,255,255,.55);border-radius:50%;cursor:pointer;padding:0}.swatch[data-set="forest"]{background:#0b6956}.swatch[data-set="pacific"]{background:#155a78}.swatch[data-set="graphite"]{background:#405257}@keyframes flowline{to{stroke-dashoffset:-180}}
+    .layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:54px;padding-top:52px;padding-bottom:80px}.side{position:sticky;top:98px;align-self:start;font:13px Arial,sans-serif}.side strong{display:block;text-transform:uppercase;letter-spacing:.13em;font-size:11px;margin-bottom:12px}.side a{display:block;padding:6px 0;color:var(--muted);text-decoration:none;border-left:2px solid transparent;padding-left:10px}.side a:hover,.side a.active{color:var(--forest);border-color:var(--teal)}main section{padding:6px 0 55px;border-bottom:1px solid var(--line)}main section:last-child{border:0}.sectionhead{display:grid;grid-template-columns:100px 1fr;gap:20px;align-items:start;margin-bottom:24px}.num{font:800 48px Arial,sans-serif;color:#d4ddd3;letter-spacing:-.05em}.kicker{color:var(--teal)}h2{font-size:34px;letter-spacing:-.025em;margin:4px 0 6px}h3{font-size:21px;margin:28px 0 8px}h4{font-size:15px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em}.intro{font-size:19px;color:#334a43;max-width:820px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:0 2px 0 rgba(16,37,31,.02)}.card p:last-child{margin-bottom:0}.tag{display:inline-block;font:800 11px Arial,sans-serif;text-transform:uppercase;letter-spacing:.09em;background:#e5f1ed;color:var(--forest);padding:4px 7px;border-radius:3px}.callout{border-left:4px solid var(--amber);background:#fff8ed;padding:16px 19px;margin:22px 0}.callout.red{border-color:var(--red);background:#fff1ef}.callout.green{border-color:var(--teal);background:#eef8f4}.callout strong{font-family:Arial,sans-serif}
+    table{width:100%;border-collapse:collapse;margin:16px 0 26px;font-size:14px;background:white}th{font:800 12px Arial,sans-serif;text-align:left;text-transform:uppercase;letter-spacing:.05em;background:#e7efea}th,td{padding:11px 12px;border:1px solid var(--line);vertical-align:top}code,pre{font-family:Consolas,"Courier New",monospace}code{background:#e9eeea;padding:2px 5px;border-radius:3px;font-size:.9em}pre{background:#112821;color:#e4eee9;padding:18px;border-radius:8px;overflow:auto;font-size:13px;line-height:1.55}.copy{float:right;background:transparent;color:#bad7cd;border:1px solid #58766b;border-radius:3px;cursor:pointer;font:700 11px Arial,sans-serif;padding:5px 8px}
+    .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin:25px 0}.step{position:relative;background:white;border-top:4px solid var(--teal);padding:16px;border-radius:0 0 8px 8px;box-shadow:var(--shadow)}.step:not(:last-child):after{content:"→";position:absolute;right:-23px;top:40%;font:26px Arial;color:var(--teal)}.step small{font:800 10px Arial,sans-serif;color:var(--teal);letter-spacing:.12em}.step b{display:block;font:700 16px Arial,sans-serif;margin:5px 0}.schematic{background:#112821;color:white;padding:25px;border-radius:10px;display:grid;gap:12px}.lane{display:grid;grid-template-columns:1fr 38px 1fr 38px 1fr;align-items:center;gap:8px;text-align:center}.node{border:1px solid #608177;padding:12px 8px;border-radius:6px;background:#18372e;font:700 13px Arial,sans-serif}.arrow{color:var(--lime);font:24px Arial}.source-list a{display:block;padding:11px 0;border-bottom:1px solid var(--line);text-decoration:none}.status{font:800 11px Arial,sans-serif;padding:3px 7px;border-radius:10px;white-space:nowrap}.done{background:#dff2e8;color:#176445}.verify{background:#fff0d6;color:#8b5311}.planned{background:#e8edf0;color:#51626a}.search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:5px;background:white;margin-bottom:22px}.hide{display:none!important}
+    .hero{padding:58px 0 50px}.hero:after{display:none}.hero-grid{grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:64px}.hero-logo{width:min(390px,74%);height:132px;margin-bottom:22px}.hero h1{font-size:clamp(42px,5vw,66px);max-width:660px}.hero .lede{max-width:650px;font-size:18px;line-height:1.65}.hero-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hero-card{min-height:132px;padding:18px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);backdrop-filter:blur(6px);border-radius:8px}.hero-card.wide{grid-column:1/-1;min-height:auto}.hero-card small{display:block;font:800 10px Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#b9d5cc;margin-bottom:12px}.hero-card b{display:block;font:800 27px Arial,sans-serif;color:white;margin-bottom:3px}.hero-card p{margin:0;font:13px/1.5 Arial,sans-serif;color:#d6e5df}.hero-card.notice{border-color:rgba(203,230,107,.45)}.hero-card.notice b{font-size:15px;color:var(--lime)}.hero .actions{margin-top:24px}.hero .theme-switch{margin-top:22px}
+    footer{background:#10251f;color:#c7d8d1;padding:38px 0;font:13px Arial,sans-serif}footer .shell{display:flex;justify-content:space-between;gap:20px}footer img{width:55px;vertical-align:middle;margin-right:10px}.mobile{display:none}
+    @media(max-width:1050px){.topnav{display:none}.hero-grid{grid-template-columns:1fr}.hero-cards{max-width:700px}}
+    @media(max-width:900px){.side{display:none}.mobile{display:block;margin-left:auto}.layout{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.flow{grid-template-columns:1fr 1fr}.step:nth-child(2):after{display:none}.sectionhead{grid-template-columns:62px 1fr}.lane{grid-template-columns:1fr}.arrow{transform:rotate(90deg)}}
+    @media(max-width:680px){.repo-btn span{display:none}.partner{width:58px}}
+    @media(max-width:580px){.shell{padding:0 17px}.hero{padding-top:38px}.hero-logo{width:82%;height:105px}.hero-cards{grid-template-columns:1fr}.hero-card.wide{grid-column:auto}.grid,.flow{grid-template-columns:1fr}.step:after{display:none}.sectionhead{display:block}.num{font-size:30px}h2{font-size:28px}footer .shell{display:block}.head-actions{gap:8px}}
+    @media print{.top,.side,.actions,.search,.copy{display:none}.hero{background:white;color:var(--ink);padding:25px 0}.hero .lede,.meta{color:var(--ink)}.layout{display:block}.card,.step{box-shadow:none}main section{break-inside:avoid}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="shell topin">
+  <nav class="topnav" aria-label="Primary"><a href="#start">Get started</a><a href="#model">Model</a><a href="#workflow">Workflow</a><a href="#assumptions">Assumptions</a><a href="#learn">Learn</a></nav>
+  <div class="head-actions">
+    <a class="repo-btn" href="https://github.com/DeltaE/PyPSA_BC" target="_blank" rel="noreferrer" aria-label="View DeltaE PyPSA-BC source on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.47.11-3.05 0 0 .96-.31 3.16 1.18a10.9 10.9 0 0 1 5.75 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.76.11 3.05.74.81 1.18 1.83 1.18 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg><span>GitHub source</span></a>
+    <img class="partner" src="assets/delta-e.png" alt="Delta E plus logo">
+  </div>
+</div></header>
+<div id="top" class="hero"><div class="shell hero-grid"><div>
+  <img class="hero-logo" src="assets/pypsa-bc.svg" alt="PyPSA-BC">
+  <div class="eyebrow">Open power-system modelling · British Columbia</div>
+  <h1>Hourly operations for a <span>hydro-rich grid.</span></h1>
+  <p class="lede">An open PyPSA model of British Columbia’s electricity system—network, demand, hydro, renewables and thermal generation.</p>
+  <div class="actions"><a class="btn" href="#start">Get started</a><a class="btn alt" href="https://github.com/eliasinul" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .7a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.47.11-3.05 0 0 .96-.31 3.16 1.18a10.9 10.9 0 0 1 5.75 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.76.11 3.05.74.81 1.18 1.83 1.18 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"/></svg>Developer</a></div>
+  <div class="theme-switch">Landing palette <button class="swatch" data-set="forest" aria-label="Forest palette"></button><button class="swatch" data-set="pacific" aria-label="Pacific blue palette"></button><button class="swatch" data-set="graphite" aria-label="Graphite and amber palette"></button></div>
+</div><div class="hero-cards" aria-label="Key model information">
+  <div class="hero-card"><small>Resolution</small><b>8,760</b><p>Hourly snapshots</p></div>
+  <div class="hero-card"><small>Weather year</small><b>2021</b><p>ERA5 and BC load</p></div>
+  <div class="hero-card"><small>Framework</small><b>PyPSA</b><p>Economic dispatch</p></div>
+  <div class="hero-card"><small>Version</small><b>0.2.0</b><p>Python 3.11+</p></div>
+  <div class="hero-card wide notice"><small>Status</small><b>Active development</b><p>Publications are in preparation. Contact the developer for full access and current features.</p></div>
+</div></div></div>
+<div class="shell layout">
+<aside class="side"><strong>On this page</strong><a href="#about">About</a><a href="#start">Getting started</a><a href="#model">Model scope</a><a href="#network">Network</a><a href="#hydro">Hydro</a><a href="#workflow">Data workflow</a><a href="#schematics">Schematics</a><a href="#assumptions">Assumptions</a><a href="#validation">Validation</a><a href="#learn">Learning resources</a><a href="#reference">Code reference</a></aside>
+<main>
+<input id="search" class="search" type="search" placeholder="Filter documentation sections…" aria-label="Filter documentation">
+
+<section id="about"><div class="sectionhead"><div class="num">01</div><div><div class="kicker">About the model</div><h2>From planning portfolios to feasible hourly operation</h2></div></div>
+<p class="intro">The model asks whether a capacity portfolio can meet demand hour by hour while respecting transmission, renewable availability, thermal limits and stored-water dynamics.</p>
+<div class="grid"><div class="card"><span class="tag">Purpose</span><h3>Operational dispatch</h3><p>Build and assess a full-year PyPSA network: congestion, dispatch, spill, curtailment, prices and adequacy.</p></div><div class="card"><span class="tag">System context</span><h3>Integrated modelling</h3><p>Designed to receive long-term investment choices and demand trajectories from BC-Nexus, with spatial VRE inputs from RESource.</p></div><div class="card"><span class="tag">Boundary</span><h3>Not a production grid model</h3><p>A research model with imputed electrical parameters and ongoing baseline calibration. Results require scenario-specific validation.</p></div></div>
+<h3>Integrated framework</h3>
+<div class="flow"><div class="step"><small>SPATIAL</small><b>RESource</b>Candidate VRE sites and hourly resource</div><div class="step"><small>PLANNING</small><b>BC-Nexus</b>Capacity mix and demand trajectory</div><div class="step"><small>OPERATIONS</small><b>PyPSA-BC</b>Hourly dispatch and network feasibility</div><div class="step"><small>FEEDBACK</small><b>Thresholds</b>Capacity, storage and transmission signals</div></div>
+</section>
+
+<section id="start"><div class="sectionhead"><div class="num">02</div><div><div class="kicker">Getting started</div><h2>Install, configure, prepare, build</h2></div></div>
+<div class="callout green"><strong>Recommended environment.</strong> The repository is a PEP 621 project using a <code>src/</code> layout. <code>uv</code> is the documented runner; dependencies include PyPSA, atlite, GeoPandas, pandas, xarray and plotting libraries.</div>
+<h3>1 · Create the environment</h3><pre><button class="copy">Copy</button>uv sync</pre>
+<h3>2 · Review configuration</h3><table><thead><tr><th>File</th><th>Responsibility</th></tr></thead><tbody><tr><td><code>config/params.yaml</code></td><td>Scenario, snapshots, cutout resolution and stage parameters.</td></tr><tr><td><code>config/data.yaml</code></td><td>Input, output and remote-data paths only.</td></tr><tr><td><code>config/base_network.yaml</code></td><td>Power factor, frequency, line reactance and transformer assumptions.</td></tr><tr><td><code>config/coders.yaml</code></td><td>CODERS API tables, schemas and aliases.</td></tr></tbody></table>
+<h3>3 · Run staged preparation</h3><pre><button class="copy">Copy</button>uv run python -m workflow.scripts.prepare_base_network
+uv run python -m workflow.scripts.prepare_assets
+uv run python -m workflow.scripts.prepare_profiles</pre>
+<h3>4 · Build the network</h3><pre><button class="copy">Copy</button>uv run python -m workflow.scripts.build_model</pre>
+<div class="callout"><strong>Runner status.</strong> <code>workflow/run_pypsa_bc.py</code> remains available as a legacy all-in-one path, but it hard-codes the 2021 load input and calls older preparation functions. Prefer the staged entry points while the workflow migration is completed.</div>
+<h3>Expected outputs</h3><p>Prepared network tables are written under <code>data/processed_data/network/</code>; technology profiles under <code>data/processed_data/</code>; PyPSA component dictionaries under <code>data/pypsa_data/</code>; and the default assembled network to <code>results/pypsa/prepared_net.nc</code>.</p>
+</section>
+
+<section id="model"><div class="sectionhead"><div class="num">03</div><div><div class="kicker">Scope & formulation</div><h2>What is represented</h2></div></div>
+<table><thead><tr><th>Dimension</th><th>Current representation</th></tr></thead><tbody>
+<tr><td>Objective</td><td>PyPSA economic dispatch / linear network optimization assembled by <code>build_model.py</code>.</td></tr>
+<tr><td>Time</td><td>Default: hourly, 1 Jan–31 Dec 2021; 8,760 snapshots. ERA5 cutout uses UTC bounds corresponding to Pacific time.</td></tr>
+<tr><td>Space</td><td>Detailed CODERS substation/line network prepared first; the build can aggregate BC assets to GADM level-2 regional districts and add external trade nodes.</td></tr>
+<tr><td>Supply</td><td>Reservoir and run-of-river hydro, wind, solar, thermal, cogeneration, optional nuclear expansion, imports and a feasibility/backstop supply.</td></tr>
+<tr><td>Demand</td><td>BC Hydro balancing-authority profile spatially disaggregated with CEEI residential and commercial/SMI weights.</td></tr>
+<tr><td>Expansion</td><td>Committed and candidate VRE/nuclear sites can be added; transmission is typically fixed unless explicitly overridden.</td></tr>
+<tr><td>Unit commitment</td><td>Disabled by default (<code>UC: false</code>); thermal dispatch is therefore normally continuous rather than integer commitment.</td></tr>
+</tbody></table>
+<h3>Primary components</h3><div class="grid"><div class="card"><h4>Bus</h4><p>Electrical voltage nodes, aggregated regional buses, external trade nodes, fuel buses and water buses.</p></div><div class="card"><h4>Line / transformer</h4><p>AC transmission and voltage conversion from the prepared CODERS topology.</p></div><div class="card"><h4>Generator / Link / Store</h4><p>Electric generation, multi-port energy conversion and reservoir energy storage.</p></div></div>
+</section>
+
+<section id="network"><div class="sectionhead"><div class="num">04</div><div><div class="kicker">Network structure</div><h2>CODERS topology, enriched for PyPSA</h2></div></div>
+<p>The reusable network package prepares lines, derives buses from line endpoints, and inserts transformers where a substation spans voltage levels. The build stage can remap component buses to administrative regions and collapse parallel inter-regional corridors.</p>
+<div class="flow"><div class="step"><small>INPUT</small><b>CODERS lines</b>Node codes, voltage, length, ratings</div><div class="step"><small>CLEAN</small><b>Sanitize & repair</b>Aliases, missing WAX link, duplicates</div><div class="step"><small>ENRICH</small><b>Electrical types</b>Ratings, r/x/c, bus names</div><div class="step"><small>ASSEMBLE</small><b>PyPSA network</b>Lines, buses and transformers</div></div>
+<table><thead><tr><th>Parameter</th><th>Current rule</th><th>Confidence</th></tr></thead><tbody>
+<tr><td>Line capacity</td><td>CODERS summer MVA where present; otherwise MW converted with configured power factor. The assumption log currently records <code>ttc_summer</code> as proxy.</td><td><span class="status verify">Verify</span></td></tr>
+<tr><td>Reactance</td><td>Voltage-to-reactance lookup in <code>base_network.yaml</code>.</td><td><span class="status verify">Literature check</span></td></tr>
+<tr><td>Resistance / conductor</td><td>Closest ampacity match to the custom Chapter 13 line table.</td><td><span class="status verify">Imputed</span></td></tr>
+<tr><td>Shunt capacitance</td><td>8.85 nF/km.</td><td><span class="status verify">Assumed</span></td></tr>
+<tr><td>Transformer</td><td>Generic 2,000 MVA type; 10% short-circuit voltage, 0.3% resistance and configured tap range.</td><td><span class="status verify">Placeholder</span></td></tr>
+</tbody></table>
+<div class="callout red"><strong>Interpretation limit.</strong> The base network is suitable for research screening, but missing nameplate impedance and transformer data mean voltage-specific electrical parameters are partly inferred. Do not treat corridor flows as utility-grade power-flow validation.</div>
+</section>
+
+<section id="hydro"><div class="sectionhead"><div class="num">05</div><div><div class="kicker">Hydro architecture</div><h2>Water is routed explicitly through cascades</h2></div></div>
+<p>Reservoir hydro is represented with water buses, Stores and Links rather than a single PyPSA <code>StorageUnit</code>. This supports upstream/downstream cascade routing, turbine conversion, reservoir energy and spill.</p>
+<div class="schematic"><div class="lane"><div class="node">ERA5 runoff / calibrated inflow<br><small>Generator on water bus</small></div><div class="arrow">→</div><div class="node">GSS water bus<br><small>inflow and routing junction</small></div><div class="arrow">→</div><div class="node">Downstream GSS<br><small>release / spill link</small></div></div><div class="lane"><div class="node">Reservoir Store<br><small>MWh-water, cyclic option</small></div><div class="arrow">↔</div><div class="node">RES water bus<br><small>stored-water node</small></div><div class="arrow">→</div><div class="node">AC bus<br><small>turbine discharge link</small></div></div></div>
+<h3>Hydro data contract</h3><p>Static physics—reservoir storage, discharge and cascade order—is separated from volatile CODERS fleet attributes. A versioned static inventory is joined to each CODERS release, then converted to the legacy cascade schema consumed by <code>create_hydro_assets</code>. GRanD/GDW and Water Use Plan data can replace frozen legacy values as they are verified.</p>
+<div class="callout"><strong>Capacity convention.</strong> The legacy convention applies no derating; the optional live convention uses CODERS derates and was documented as reducing effective cascade capacity by roughly 7%. Record the chosen convention for every scenario.</div>
+</section>
+
+<section id="workflow"><div class="sectionhead"><div class="num">06</div><div><div class="kicker">Data & workflow</div><h2>A reproducible path from sources to network</h2></div></div>
+<div class="flow"><div class="step"><small>STAGE 1</small><b>Base network</b>Lines → buses → transformers</div><div class="step"><small>STAGE 2</small><b>Assets</b>Wind, solar, thermal and hydro</div><div class="step"><small>STAGE 3</small><b>Profiles</b>ERA5 VRE, RoR and reservoir inflows</div><div class="step"><small>STAGE 4</small><b>Build model</b>Load, components, trade and scenarios</div></div>
+<table><thead><tr><th>Source</th><th>Use</th><th>Key handling</th></tr></thead><tbody>
+<tr><td>CODERS</td><td>Generators, existing hydro, lines, substations</td><td>Central alias/required-column layer in <code>config/coders.yaml</code>; local table cache.</td></tr>
+<tr><td>ERA5 + atlite</td><td>Wind, solar, runoff and cutout</td><td>0.25° default grid; 2021 weather year.</td></tr>
+<tr><td>HydroBASINS</td><td>Catchments and hydro routing</td><td>North American and Arctic level-12 basin files.</td></tr>
+<tr><td>GADM</td><td>Province and regional-district polygons</td><td>Level 1 scope; level 2 spatial aggregation/disaggregation.</td></tr>
+<tr><td>BC Hydro / CEEI</td><td>Hourly demand and sectoral spatial weights</td><td>Profile repair, normalization and annual-total scaling.</td></tr>
+<tr><td>NRCan CWTD / Global Wind Atlas</td><td>Turbine inventory, model crosswalk, siting checks</td><td>Public fetch plus turbine power-curve dictionary.</td></tr>
+</tbody></table>
+</section>
+
+<section id="schematics"><div class="sectionhead"><div class="num">07</div><div><div class="kicker">System schematics</div><h2>How information and energy move</h2></div></div>
+<h3>Model assembly</h3><div class="schematic"><div class="lane"><div class="node">Static network<br><small>Bus · Line · Transformer</small></div><div class="arrow">+</div><div class="node">Asset dictionaries<br><small>Generator · Link · Store</small></div><div class="arrow">+</div><div class="node">Hourly profiles<br><small>Load · availability · inflow</small></div></div><div class="lane"><div class="node">Scenario controls<br><small>capacity · trade · EV</small></div><div class="arrow">→</div><div class="node">PyPSA Network<br><small>8,760 snapshots</small></div><div class="arrow">→</div><div class="node">Operational results<br><small>dispatch · flow · price · storage</small></div></div></div>
+<h3>Demand disaggregation</h3><div class="flow"><div class="step"><small>TEMPORAL</small><b>BC Hydro</b>Provincial hourly shape</div><div class="step"><small>SPATIAL</small><b>CEEI sectors</b>Regional electricity shares</div><div class="step"><small>SCALE</small><b>Scenario annual load</b>Normalize and multiply</div><div class="step"><small>OUTPUT</small><b>Regional loads</b>Hourly <code>p_set</code> by bus</div></div>
+</section>
+
+<section id="assumptions"><div class="sectionhead"><div class="num">08</div><div><div class="kicker">Assumptions register</div><h2>What must be known before interpreting results</h2></div></div>
+<table><thead><tr><th>Area</th><th>Assumption / default</th><th>Consequence</th></tr></thead><tbody>
+<tr><td>Temporal</td><td>Single 2021 weather/load shape; hourly resolution.</td><td>No inter-annual hydrology or climate variability unless rerun with another cutout.</td></tr>
+<tr><td>Reservoir initial state</td><td>Current assumption log records <code>e_initial = 0</code>; cyclic storage may be enabled in built networks.</td><td>Cold-start and cyclic conditions must be checked on the actual network file.</td></tr>
+<tr><td>Hydro head</td><td>Dam height may proxy rated head; turbine efficiency converts volume to energy.</td><td>Reservoir energy capacity inherits head uncertainty.</td></tr>
+<tr><td>Transmission security</td><td>Older model documentation cites an 85% loading/security threshold; verify whether <code>s_max_pu</code> is set in each built network.</td><td>Do not assume N-1 security solely from nominal ratings.</td></tr>
+<tr><td>Thermal operations</td><td>Unit commitment off; gas-grid flag off by default.</td><td>No binary start/stop physics in the default run.</td></tr>
+<tr><td>Load</td><td>Regional CEEI weights applied to a provincial hourly shape.</td><td>Local temporal diversity is not independently observed.</td></tr>
+<tr><td>Backstop</td><td>Feasibility generation may be added.</td><td>Any dispatch indicates unmet capacity or deliverability, not real generation.</td></tr>
+</tbody></table>
+<p>The machine-maintained source of record is <code>docs/ASSUMPTION_REPORT.md</code>, populated through <code>pypsa_bc.reporting.assumptions</code>. Scenario runs should append assumptions rather than overwrite the register.</p>
+</section>
+
+<section id="validation"><div class="sectionhead"><div class="num">09</div><div><div class="kicker">Validation & readiness</div><h2>Use evidence, not polish, as the release gate</h2></div></div>
+<div class="callout red"><strong>Research release disclaimer.</strong> This documentation describes a model that is still evolving. Related publications are under preparation, and some data, scenarios, calibration material, or advanced features may not be included in a public website release. Contact the model developer before relying on results or to request full model access and feature availability.</div>
+<table><thead><tr><th>Capability</th><th>Status</th><th>Required check</th></tr></thead><tbody>
+<tr><td>Package/config split</td><td><span class="status done">Implemented</span></td><td>Confirm all scripts now read migrated parameters from the correct YAML.</td></tr>
+<tr><td>Base network preparation</td><td><span class="status done">Implemented</span></td><td>Resolve CODERS transmission data gaps and validate imputed electrical values.</td></tr>
+<tr><td>Hydro static/volatile pipeline</td><td><span class="status done">Implemented</span></td><td>Increase independently verified reservoir inventory and record capacity convention.</td></tr>
+<tr><td>2021 baseline</td><td><span class="status planned">Target</span></td><td>Reproduce annual/monthly load, hydro generation, trade and observed operational ranges.</td></tr>
+<tr><td>Threshold feedback</td><td><span class="status verify">Adaptation needed</span></td><td>Read spill from Links and state of charge from Stores, not StorageUnits.</td></tr>
+</tbody></table>
+<h3>Minimum run QA</h3><div class="grid"><div class="card"><h4>Energy balance</h4><p>Annual load, generation, imports/exports, losses and storage change reconcile.</p></div><div class="card"><h4>Adequacy</h4><p>Backstop dispatch is zero for a feasible baseline; investigate every non-zero hour.</p></div><div class="card"><h4>Hydro</h4><p>Seasonal storage, spill, inflow calibration and generation match credible ranges.</p></div><div class="card"><h4>Network</h4><p>Line loading, congestion duration and nodal prices are plausible and traceable.</p></div><div class="card"><h4>VRE</h4><p>Capacity factors, profiles, asset locations and curtailment are checked for anomalies.</p></div><div class="card"><h4>Provenance</h4><p>Input versions, scenario controls and modelling assumptions are recorded.</p></div></div>
+</section>
+
+<section id="learn"><div class="sectionhead"><div class="num">10</div><div><div class="kicker">Learning resources</div><h2>A reading path for users and contributors</h2></div></div>
+<div class="source-list">
+<a href="https://pypsa.readthedocs.io/" target="_blank" rel="noreferrer"><strong>PyPSA documentation ↗</strong><br>Network components, optimization and time-series conventions.</a>
+<a href="https://atlite.readthedocs.io/" target="_blank" rel="noreferrer"><strong>atlite documentation ↗</strong><br>ERA5 cutouts and renewable resource conversion.</a>
+<a href="PyPSA_BC_Model_Documentation.md"><strong>Existing model report</strong><br>Scenario-oriented network, dispatch and post-processing interpretation.</a>
+<a href="hydro_data_pipeline.md"><strong>Hydro data pipeline</strong><br>Static inventory, CODERS refresh, legacy adapter and capacity convention.</a>
+<a href="coders_schema.md"><strong>CODERS schema runbook</strong><br>Aliases, required fields, version changes and provenance.</a>
+<a href="Baseline_Calibration_Roadmap.md"><strong>Baseline calibration roadmap</strong><br>2021 targets, data needs and post-solve checks.</a>
+<a href="PACKAGE_STRUCTURE.md"><strong>Package structure</strong><br>Separation of reusable package, orchestration and configuration.</a>
+<a href="Hydro_Cascade_Blueprint_DataContract.md"><strong>Hydro cascade data contract</strong><br>Region-agnostic turbine, reservoir, flow and policy tables.</a>
+</div>
+</section>
+
+<section id="reference"><div class="sectionhead"><div class="num">11</div><div><div class="kicker">Code map</div><h2>Where to look when extending the model</h2></div></div>
+<table><thead><tr><th>Area</th><th>Location</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td>Configuration</td><td><code>src/pypsa_bc/attributes_parser.py</code></td><td>Single access point for the four YAML configuration files.</td></tr>
+<tr><td>Network</td><td><code>src/pypsa_bc/network/</code></td><td>Bus, line and transformer sanitation, enrichment and tables.</td></tr>
+<tr><td>Hydrology</td><td><code>src/pypsa_bc/hydro.py</code></td><td>Basins, cutouts, inflows, calibration, RoR and cascade calculations.</td></tr>
+<tr><td>Data clients</td><td><code>src/pypsa_bc/data/</code></td><td>CODERS, downloads, hydro inventory builders and adapters.</td></tr>
+<tr><td>Reporting</td><td><code>src/pypsa_bc/reporting/</code></td><td>Logging, assumptions and data provenance.</td></tr>
+<tr><td>Workflow</td><td><code>workflow/scripts/</code></td><td>Preparation, formatting and network assembly entry points.</td></tr>
+<tr><td>Visualization</td><td><code>src/pypsa_bc/vis/</code></td><td>Plot helpers and the Dash results viewer.</td></tr>
+</tbody></table>
+<div class="callout green"><strong>Contributor rule.</strong> Reusable computation belongs in <code>src/pypsa_bc</code>; workflow modules should orchestrate configuration, package calls and outputs. Paths belong in <code>data.yaml</code>, physical assumptions in <code>base_network.yaml</code>, and run controls in <code>params.yaml</code>.</div>
+</section>
+</main></div>
+<footer><div class="shell"><div>PyPSA-BC model documentation</div><div>Prepared from repository documentation, <code>src/</code>, configuration and workflow scripts · July 2026</div></div></footer>
+<script>
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',()=>{navigator.clipboard.writeText(b.parentElement.innerText.replace('Copy','').trim());b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200)}));
+const sections=[...document.querySelectorAll('main section')], links=[...document.querySelectorAll('.side a')];
+sections.forEach(s=>{new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id))}),{rootMargin:'-20% 0px -70%'}).observe(s)});
+document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.toLowerCase();sections.forEach(s=>s.classList.toggle('hide',q&&!s.innerText.toLowerCase().includes(q)))});
+document.querySelectorAll('.swatch').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.set;document.body.dataset.theme=t==='forest'?'':t;document.querySelectorAll('.swatch').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))}));
+</script>
+</body>
+</html>

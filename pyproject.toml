@@ -24,6 +24,7 @@ dependencies = [
     "tqdm>=4.66",
     "colorama>=0.4.6",
     "pygadm>=0.5.3",
+    "geojson>=3.3.0",
 ]
 
 [project.optional-dependencies]

@@ -221,7 +221,6 @@ def get_cutout_path(cfg):
         suffix = "_".join([start_year, end_year])
         file = "_".join([prefix, suffix + ".nc"])
 
-    Path(file).parent.mkdir(parents=True, exist_ok=True)
     return file
 
 def create_era5_cutout(bounds, cfg):
@@ -235,7 +234,7 @@ def create_era5_cutout(bounds, cfg):
 
     # get path + filename for the cutout
     file = get_cutout_path(cfg)
-
+    Path(file).parent.mkdir(parents=True, exist_ok=True)
     # Create the cutout based on bounds found from above
     cutout = atlite.Cutout(path=file,
                     module=cfg["cutout"]["module"],

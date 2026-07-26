@@ -15,6 +15,32 @@ from shapely.validation import make_valid
 
 Basins = namedtuple("Basins", ["plants", "meta", "shapes"])
 
+def _as_bool(value):
+    '''
+    Robust boolean parser for configuration values.
+    Handles bools, numeric-like values and common true/false strings.
+    '''
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+    return bool(value)
+
+
+def _safe_make_valid(geom):
+    '''
+    Best-effort geometry cleanup that avoids hard-failing on malformed records.
+    '''
+    if geom is None:
+        return geom
+    try:
+        return make_valid(geom)
+    except Exception:
+        try:
+            return geom.buffer(0)
+        except Exception:
+            return geom
+
 def load_hydro_basins(source_file):
     '''
     This function loads in a HydroBASINS shape file.
@@ -169,7 +195,7 @@ def prepare_basins(sites, basin_data):
     '''
     # seperate components of the basin_data
     meta = basin_data[basin_data.columns.difference(("geometry",))]
-    shapes = basin_data["geometry"].apply(lambda x: make_valid(x))
+    shapes = basin_data["geometry"].apply(_safe_make_valid)
 
     # get dataframe of the hid and upstream hids for each plant/site
     plant_basins = get_site_basins(sites, meta, shapes)
@@ -292,7 +318,7 @@ def calculate_basin_inflows(basins, cutout, height=True):
     result.load()
     return result
 
-def calculate_plant_inflows(basin_inflows, basins, flowspeed=1):
+def calculate_plant_inflows(basin_inflows, basins, flowspeed=1.0):
     '''
     Calculate inflow timeseries at hydroelectric plants by temporally shifting and aggregating
     the inflows at all upstream inflows for each basin.
@@ -334,6 +360,8 @@ def calculate_ror_power(sites, inflow_series):
     n_itr = 300 # gives 100 iterations to converge
     power_series = inflow_series.copy() # Store power availability series
     for ind,row in sites.iterrows():
+        i = -1
+        f = np.nan
 
         # initialize value for first points of evaluation
         const = row['annual_avg_energy'] * 1000 / inflow_series[ind].sum()
@@ -364,7 +392,7 @@ def calculate_ror_power(sites, inflow_series):
             # conditon check
         if i == (n_itr-1): # Convergence
             print('Newton Method did not converge for RoR power series.')
-            print('Asset ID: {}'.format(row['asset_id']))
+            print(f'Asset ID: {ind}')
             print(f'Final function value is {f}')
             exit(2)
 
@@ -375,22 +403,45 @@ def create_ror_power(sites_prep, basin_data, cutout, cfg):
     '''
     This function is used to calculate RoR power based on the potential energy approach.
     '''
-    # Reduce assets to only asset_id since asset_id is 1-to-1 with inflows
-    subset =["asset_id", "lat", "lon"]
-    sum_list = ["capacity", "annual_avg_energy"]
-    sites = sites_prep.groupby(by="asset_id", group_keys=False).apply(lambda x:
-                                                                     merge_assets(x, subset, sum_list))
-        
-    """ for future version of pandas 
-        sites = sites_prep.groupby(by="asset_id", group_keys=False, include_groups=False).apply(
-        lambda x: merge_assets(x, subset, sum_list)
+    required = {"asset_id", "lat", "lon", "capacity", "annual_avg_energy"}
+    missing = required - set(sites_prep.columns)
+    if missing:
+        raise ValueError(f"create_ror_power: missing required columns: {sorted(missing)}")
+
+    sites_prep = sites_prep.copy()
+
+    # Ensure numeric fields are clean
+    for col in ["lat", "lon", "capacity", "annual_avg_energy"]:
+        sites_prep[col] = pd.to_numeric(sites_prep[col], errors="coerce")
+
+    # Drop invalid rows early to avoid geometry/index errors later
+    sites_prep = sites_prep.dropna(subset=["asset_id", "lat", "lon", "capacity", "annual_avg_energy"])
+    if sites_prep.empty:
+        raise ValueError("create_ror_power: no valid RoR sites after cleaning.")
+
+    # Aggregate to asset-level since asset_id is 1-to-1 with inflows
+    sites = (
+        sites_prep.groupby("asset_id", as_index=True)
+        .agg(
+            lat=("lat", "mean"),
+            lon=("lon", "mean"),
+            capacity=("capacity", "sum"),
+            annual_avg_energy=("annual_avg_energy", "sum"),
+        )
     )
-    """
 
     # (i) Calculated the inflows for each site
     basins = prepare_basins(sites, basin_data)
-    basin_inflows = calculate_basin_inflows(basins, cutout, height=bool(cfg["output"]['ror_ps']['height']))
-    site_inflows = calculate_plant_inflows(basin_inflows, basins, flowspeed=cfg["output"]['ror_ps']['flowspeed'])
+    basin_inflows = calculate_basin_inflows(
+        basins,
+        cutout,
+        height=_as_bool(cfg["output"]['ror_ps']['height'])
+    )
+    site_inflows = calculate_plant_inflows(
+        basin_inflows,
+        basins,
+        flowspeed=float(cfg["output"]['ror_ps']['flowspeed'])
+    )
 
     # (ii) Compute the power availability series for each site based on capacity, inflow series, and
     # annual energy production
@@ -515,14 +566,21 @@ def create_cascade_inflow(reservoir_sites, basin_data, cutout, hydro_sites, cfg,
 
     utils.print_update(level=3, message="calculating basin inflows...")
     basin_inflows = calculate_basin_inflows(basins, cutout,
-                                                height=bool(cfg["output"]['reservoir_inflows']['height']))
+                                                height=_as_bool(cfg["output"]['reservoir_inflows']['height']))
 
     utils.print_update(level=3, message="calculating hydro plant inflows...")
     site_inflows = calculate_plant_inflows(basin_inflows, basins,
                                                 flowspeed=float(cfg["output"]['reservoir_inflows']['flowspeed']))
     
-    # File path + name for reading in inflow tables
-    fpath = cfg["custom"]["inflow_tables"]
+    # File path + name for reading inflow tables
+    if "inventory" in cfg and "inflow_tables" in cfg["inventory"]:
+        fpath = cfg["inventory"]["inflow_tables"]
+    elif "custom" in cfg and "inflow_tables" in cfg["custom"]:
+        fpath = cfg["custom"]["inflow_tables"]
+    else:
+        raise KeyError(
+            "create_cascade_inflow: missing inflow_tables path in cfg['inventory'] or cfg['custom']"
+        )
 
     # 1) normalize inflow time series for selected reservoirs
     reservoirs = hydro_sites[hydro_sites['hydro_type'] == "reservoir"]['upper_reservoir_id'].unique().tolist() # TRY Unique it

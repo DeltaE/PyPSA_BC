@@ -4,6 +4,8 @@ Provenance of external inputs (auto-maintained by pypsa_bc). One row per dataset
 
 | Dataset | Source | Retrieved | Path | Detail |
 | --- | --- | --- | --- | --- |
+| CAN | https://globalwindatlas.info/c52f880d-d656-491d-bd95-94ec154cab07 | 2026-07-25 | data/downloaded_data/wind/CAN.geojson | 0.0 MB |
+| CAN_wind-speed_100m | https://gwa.cdn.nazkamapps.com/country_tifs_v4/CAN_wind-speed_100m.tif | 2026-07-25 | data/downloaded_data/wind/CAN_wind-speed_100m.tif | 1292.8 MB |
 | CODERS:generation_generic | http://api.sesit.ca/generation_generic?province=BC | 2026-07-24 | data/downloaded_data/CODERS/data-pull/supply/generation_generic.csv | 30 BC rows |
 | CODERS:generators | http://api.sesit.ca/generators?province=BC | 2026-07-24 | data/downloaded_data/CODERS/data-pull/supply/generators.csv | 268 BC rows |
 | CODERS:substations | http://api.sesit.ca/substations?province=BC | 2026-07-24 | data/downloaded_data/CODERS/data-pull/network/substations.csv | 644 BC rows |

@@ -8,6 +8,14 @@ from pypsa_bc import wind, utils
 GENERATING POWER TIME SERIES HERE
 '''
 
+
+def _get_hub_height(cluster):
+    """Return hub height from known schema variants."""
+    for key in ("Hub Height (m)", "Hub height (m)", "hub_height", "hub_height_m"):
+        if key in cluster and pd.notna(cluster[key]):
+            return cluster[key]
+    raise KeyError("Missing hub height column. Expected one of: Hub Height (m), Hub height (m), hub_height, hub_height_m")
+
 #Function to calculate the generation profiles from the cutout, for a given farm
 #Used in generate_wind_ts(), generate_solar_ts()
 #cutout = Cutout object
@@ -21,7 +29,8 @@ def calculate_MW(cutout, cluster, type):
     '''
     if type == 'wind':
         # print(cluster['config_oedb'])
-        cap_factors = cutout.wind(turbine=wind.get_config(cluster['config_oedb'], cluster['Hub height (m)']), capacity_factor=True)
+        hub_height = _get_hub_height(cluster)
+        cap_factors = cutout.wind(turbine=wind.get_config(cluster['config_oedb'], hub_height), capacity_factor=True)
     elif type == 'solar': # PV Panel
         cap_factors = cutout.pv(panel='CdTe', orientation='latitude_optimal', capacity_factor=True)
     else:
@@ -57,7 +66,8 @@ def calculate_MW(cutout, cluster, type):
     # Returns the power generation of the generators for each location
     # The data is returned as an xarray with shape of (timesteps, generators)
     if type == 'wind':
-        power_generation = cutout.wind(turbine=wind.get_config(cluster['config_oedb'], cluster['Hub height (m)']),
+        hub_height = _get_hub_height(cluster)
+        power_generation = cutout.wind(turbine=wind.get_config(cluster['config_oedb'], hub_height),
                                         layout = layout,
                                         shapes = cells_generation.geometry,
                                         add_cutout_windspeed=True,

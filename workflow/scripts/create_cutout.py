@@ -67,7 +67,8 @@ def ensure_shp_from_zip(zip_path: Path, shp_path: Path, remove_zip: bool = True)
     return extracted_shp
 
 def get_basin_data(data_cfg):
-    from workflow.scripts import fetch_inputs
+    # from workflow.scripts import fetch_inputs
+    from . import fetch_inputs  # Importing fetch_inputs directly to avoid circular import issues
     
     na_basin_zip_path = Path(data_cfg["remote"]["HydroBASINS"]['dest'])
     ar_basin_zip_path = Path(data_cfg["remote"]["HydroBASINS_arctic"]['dest'])
