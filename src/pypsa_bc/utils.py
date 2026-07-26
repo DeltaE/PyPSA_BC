@@ -1,18 +1,21 @@
-import yaml
+from logging import warning
 import os
+import sys
+
+from pathlib import Path
+from typing import Optional
+
 import atlite
-import shapely
 import geopandas as gpd
-import pypsa
 import numpy as np
 import pandas as pd
-from shapely.ops import unary_union
-import sys
-from pathlib import Path
-from colorama import Fore, Style
-from typing import Optional
-from pathlib import Path
+import pypsa
 import requests
+import shapely
+import yaml
+from colorama import Fore, Style
+from shapely.ops import unary_union
+
 
 def print_update(level: int=None,
                  message: str="--",
@@ -61,6 +64,26 @@ def merge_assets(df,subset,sum_list):
     for param in sum_list:
         df_out[param] = df[param].sum()
     return df_out
+
+def ensure_path(save_to: str | Path) -> Path:
+    """
+    Ensures that the given argument is a Path object. If the user provides a string,
+    it converts it to a Path object to facilitate operations like directory creation.
+    
+    ## Args:
+    - save_to (str | Path): The path input, either as a string or a Path object.
+
+    ## Returns:
+    - Path: The input converted (if necessary) to a Path object.
+    """
+    if not isinstance(save_to, Path):
+        warning(f">> Given instance for 'destination (save_to)' is of type: {type(save_to)}. Converting it to a Path")
+        save_to = Path(save_to)
+    save_to.mkdir(parents=True, exist_ok=True)
+    return save_to
+
+# Alias for backward compatibility
+ensure = ensure_path
         
 def set_root(current_dir = Path.cwd()):
     # Check if the last folder name matches 'BC_Combined_Modelling'
@@ -349,10 +372,19 @@ def get_multi_link_override():
     """
 
     # From PyPSA CHP Example: This ensures we can add 2 outputs for a single link i.e bus0 -> bus_1 AND bus_2
-    # override_component_attrs = pypsa.descriptors.Dict(
-    #     {k: v.copy() for k, v in pypsa.components.component_attrs.items()}
-    # )
-    override_component_attrs = pypsa.components.component_attrs.copy() # new version compatibility
+    # For PyPSA 0.28+, component attributes are accessed via components module directly
+    try:
+        # PyPSA 0.28+ API
+        from pypsa.components import component_attrs
+        override_component_attrs = component_attrs.copy()
+    except ImportError:
+        # Fallback for older versions
+        try:
+            override_component_attrs = pypsa.components.component_attrs.copy()
+        except AttributeError:
+            # Create a temporary network to get component attributes
+            temp_net = pypsa.Network()
+            override_component_attrs = temp_net.components._attrs.copy()
     
     override_component_attrs["Link"].loc["bus2"] = [
         "string",

@@ -73,7 +73,7 @@ def add_generators_features(row, cid_dict):
     # asset_id conversion
 
     cid_dict["asset_id"] = utils.convert_cid_2_aid(row['generation_unit_code'], row["network_node_code"])
-    cid_dict["network_node_code"] = row["network_node_code"]
+    cid_dict["connecting_node_code"] = row["network_node_code"]
     cid_dict["num_of_units"] = row["total_facility_generation_units"]
     cid_dict["latitude"] = row["latitude"]
     cid_dict["longitude"] = row["longitude"]

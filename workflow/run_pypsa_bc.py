@@ -1,6 +1,8 @@
 import warnings
+from pathlib import Path
 
 import pandas as pd
+from pypsa_bc.attributes_parser import AttributesParser
 from workflow.scripts import (
     build_model,
     create_ext_solar_assets,
@@ -44,7 +46,18 @@ def main(update_data:bool=False):
     else:
         utils.print_update(level=1, message='Skipping network and profile data preparation. Using the prepared data.')
     
-    load_bch_raw:pd.DataFrame=pd.read_excel('data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad2021.xls')
+    # Load BC Hydro balancing authority data via config
+    cfg = AttributesParser()
+    bch_load_path = Path(cfg.data_cfg["data"]["load"]["bch"] + "2021.xls")
+    
+    utils.print_update(level=2, message=f'Loading BC Hydro balancing authority load data from {bch_load_path}')
+    if not bch_load_path.exists():
+        raise FileNotFoundError(
+            f"BC Hydro balancing authority load data not found at {bch_load_path}.\n"
+            f"Fetch it via: python -m workflow.scripts.fetch_inputs --only bch_load_2021"
+        )
+    
+    load_bch_raw:pd.DataFrame=pd.read_excel(bch_load_path)
     provincial_total_load_MWh:float=disaggregate_load.fix_hourly_load(load_bch_raw,2021)
 
     # replace with any total load data

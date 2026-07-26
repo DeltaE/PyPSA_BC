@@ -1,15 +1,23 @@
 from pypsa_bc import utils
 import pandas as pd
+from pathlib import Path
+from pypsa_bc.reporting.logger import get_logger
 
 # handles the config loading centrally
 from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
 
-def get_fuel_bus(site, fuel_type, cfg):
+
+def _skip_report_path() -> Path:
+    return Path("logs") / "tpp_skipped_assets.csv"
+
+def get_fuel_bus(site, fuel_type, params_cfg=None):
     '''
     Returns name of the fuel bus for a specific tpp.
     '''
-    if cfg["output"]["enrich_format_tpp"]["gas_grid"]:
+    if params_cfg is None:
+        params_cfg = pypsa_aparser.params_cfg
+    if params_cfg["workflow"]["tpp"]["gas_grid"]:
         fuel_bus = "{} {} Bus".format(site.name, fuel_type)
     else:
         fuel_bus = "Global {} Bus".format(fuel_type)
@@ -24,7 +32,7 @@ def get_tpp_dict(site, bus_dict, tpp_gen_types, cfg):
     '''
     fuel_type = tpp_gen_types[site["gen_type"]]
 
-    fuel_bus = get_fuel_bus(site, fuel_type, cfg)
+    fuel_bus = get_fuel_bus(site, fuel_type, pypsa_aparser.params_cfg)
     elc_bus = utils.get_gen_bus(site['connecting_node_code'], bus_dict)
 
     name = " ".join([site.generation_facility_code, site["gen_type"], "Link"]) # MODIFIED 2024-10-04: site.node_code -> connecting_node_code
@@ -34,7 +42,7 @@ def get_tpp_dict(site, bus_dict, tpp_gen_types, cfg):
 
     # fuel_cost + variable_cost_MWH * conversion in terms of MMBtu (var_cost * efficiency + fuel_cost)
     # NOTE: Cost for the fuel could be listed here or assigned to production method on the NG bus. 
-    marginal_cost = site["average_fuel_price_CAD_per_MMBtu"] + site["variable_om_cost_CAD_per_MWh"] * eff_hr
+    marginal_cost = site["average_fuel_price_CAD_per_MMBtu"] + site["variable_om_costs"] * eff_hr
     
     # Create link + store representation of generator
     # bus_name = " ".join([fuel_type, "Bus"])
@@ -48,7 +56,7 @@ def get_tpp_dict(site, bus_dict, tpp_gen_types, cfg):
                     "ramp_limit_up":min(site["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "ramp_limit_down":min(site["ramp_rate_percent_per_min"]*60, 1), #* site["install_capacity_in_mw"], # Aggregated units needs adjustments
                     "p_nom_extendable":False,
-                    "committable":cfg["output"]["enrich_format_tpp"]["UC"],
+                    "committable":pypsa_aparser.params_cfg["workflow"]["tpp"]["UC"],
                     "min_up_time":site["min_up_time_hours"],
                     "min_down_time":site["min_down_time_hours"],
                     # "ramp_limit_start_up":row["ramp_limit_start_up"], # no data atm
@@ -115,6 +123,8 @@ def write_tpp_dict(tpp_assets, bus_dict, tpp_gen_types, cfg):
     existing vre facilities in PyPSA.
     '''
     tpp_dict = {}
+    skipped_assets = []
+    log = get_logger("enrich_format_tpp")
 
     # NEED CODE TO ADD NG BUSES.. Will need to think about this.
     # NOTE: Likley should be this eventually, since possible to have NG without tpp.
@@ -131,13 +141,57 @@ def write_tpp_dict(tpp_assets, bus_dict, tpp_gen_types, cfg):
     for _,site in tpp_assets.iterrows():
 
         aid = site.name
-        # gen_params = tpp_assets[tpp_assets["generation_type"] == site["gen_type"]].squeeze()
-        tpp_dict[aid] = get_tpp_dict(site, bus_dict, tpp_gen_types, cfg)
+        try:
+            # gen_params = tpp_assets[tpp_assets["generation_type"] == site["gen_type"]].squeeze()
+            tpp_dict[aid] = get_tpp_dict(site, bus_dict, tpp_gen_types, cfg)
+        except KeyError as exc:
+            node_code = site.get("connecting_node_code", "")
+            node_suffix = "_".join(str(node_code).split("_")[1:]) if isinstance(node_code, str) else ""
+            if node_suffix and node_suffix not in bus_dict:
+                reason = f"missing bus mapping for node '{node_suffix}'"
+            elif str(exc).strip("\"'") not in tpp_gen_types:
+                reason = f"unsupported generation type '{site.get('gen_type', 'UNKNOWN')}'"
+            else:
+                reason = f"key error: {exc}"
+
+            skipped_assets.append(
+                {
+                    "row_index": aid,
+                    "asset_id": site.get("asset_id", ""),
+                    "generation_facility_code": site.get("generation_facility_code", ""),
+                    "connecting_node_code": node_code,
+                    "gen_type": site.get("gen_type", ""),
+                    "reason": reason,
+                }
+            )
+            log.warning(
+                "Skipping TPP asset row=%s asset_id=%s node=%s gen_type=%s (%s)",
+                aid,
+                site.get("asset_id", ""),
+                node_code,
+                site.get("gen_type", ""),
+                reason,
+            )
 
     # write pickle
     out_file = cfg["output"]["pypsa_dict"]["folder"] + cfg["output"]["pypsa_dict"]["tpp"]
     utils.write_pickle(tpp_dict, out_file)
     utils.print_update(level=2,message=f"Thermal Power Plant data for PyPSA saved to: {out_file}")
+
+    skip_report = _skip_report_path()
+    if skipped_assets:
+        skip_report.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(skipped_assets).to_csv(skip_report, index=False)
+        utils.print_update(
+            level=2,
+            message=(
+                f"Skipped {len(skipped_assets)} TPP asset(s) due to missing mappings. "
+                f"Report saved to: {skip_report}"
+            ),
+        )
+    elif skip_report.exists():
+        skip_report.unlink()
+        utils.print_update(level=2, message="No TPP assets skipped; removed stale skip report.")
 
 def write_cogen_dict(cogen_assets, gen_generic, bus_dict, hist_gen, cfg):
     '''
@@ -177,8 +231,16 @@ def write_ff_infrastructure(tpp_gens, tpp_gen_types, cfg):
     ffi_list = []
 
 
+    log = get_logger("enrich_format_tpp")
+
     for _,site in tpp_gens.iterrows():
-        fuel_type = tpp_gen_types[site['gen_type']]
+        fuel_type = tpp_gen_types.get(site['gen_type'])
+        if fuel_type is None:
+            log.warning(
+                "Skipping FF infrastructure for gen_type=%s (no fuel mapping)",
+                site.get("gen_type", ""),
+            )
+            continue
         fuel_bus_name = "Global {} Bus".format(fuel_type)
         # gen_params = gen_generic[gen_generic["generation_type"] == site['gen_type']].squeeze()
 
@@ -212,7 +274,7 @@ def main():
     This script creates the dictionaries needed to instantiate the thermal power plants (TPP) in PyPSA_BC.
     '''
     # Get configuration
-    cfg=pypsa_aparser.pypsa_cfg
+    cfg=pypsa_aparser.data_cfg
     utils.print_update(level=1,message="Formatting thermal power dataset for PyPSA...")
     
     # gen_generic = pd.read_csv(cfg["data"]["coders"]["gen_generic"])
@@ -221,8 +283,8 @@ def main():
     tpp_gens = pd.read_csv(cfg["output"]["create_ext_tpp_assets"]["fname"])
     utils.print_update(level=3,message=f"Thermal Power Plant Assets loaded from : {cfg['output']['create_ext_tpp_assets']['fname']}")
 
-    buses = pd.read_csv(cfg['output']['prepare_base_network']['folder'] + "/buses.csv")['name'].tolist()
-    utils.print_update(level=3,message=f"Buses loaded from : {cfg['output']['prepare_base_network']['folder'] + '/buses.csv'}")
+    buses = pd.read_csv(cfg['output']['base_network'] + "/buses.csv")['name'].tolist()
+    utils.print_update(level=3,message=f"Buses loaded from : {cfg['output']['base_network'] + '/buses.csv'}")
     
     # All generation types which are thermal PP in the CODERS dataset.
     tpp_gen_types = {'NG_CT':"NG", 'NG_CC':"NG", 'gasoline_CT':"NG",

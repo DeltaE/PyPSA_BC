@@ -19,15 +19,31 @@ from pypsa_bc.reporting.provenance import record_source
 log = get_logger("downloader")
 
 
+def _looks_like_valid_download(path: Path) -> bool:
+    """Return True when an existing file looks like the expected binary asset."""
+    if not path.exists() or path.stat().st_size == 0:
+        return False
+
+    header = path.read_bytes()[:8]
+    if path.suffix.lower() == ".xls":
+        return header.startswith(b"\xd0\xcf\x11\xe0")
+    if path.suffix.lower() in {".xlsx", ".zip"}:
+        return header.startswith(b"PK")
+    return True
+
+
 def download_file(url: str, dest: str | Path, *, force: bool = False,
                   chunk: int = 1 << 16, timeout: int = 60) -> Path:
     """Stream-download `url` to `dest`; skip if present unless `force`."""
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
-    if dest.exists() and not force:
+    if dest.exists() and not force and _looks_like_valid_download(dest):
         log.info(f"{dest.name}: already present ({dest.stat().st_size/1e6:.1f} MB), skipping")
         return dest
+
+    if dest.exists() and not force:
+        log.info(f"{dest.name}: existing file failed validation, re-downloading")
 
     log.info(f"{dest.name}: downloading from {url}")
     tmp = dest.with_suffix(dest.suffix + ".part")

@@ -60,7 +60,7 @@ class AttributesParser:
         return self.params_cfg.get("scenario", "Test")
 
     @property
-    def get_snapshot(self) -> tuple:
+    def snapshot(self) -> tuple:
         snap = self.params_cfg["snapshot"]
         return (snap["start"][0], snap["end"][0])
 

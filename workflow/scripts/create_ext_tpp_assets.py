@@ -160,8 +160,9 @@ def main():
     ext_tpp_assets = pd.concat(frames, ignore_index=True) if frames else gens.iloc[0:0].copy()
     ext_tpp_assets = utils.add_generic_columns_tpp(ext_tpp_assets, gen_generic)
 
-    # Modified 2024-10-04: Fix for the node codes with no matching buses
-    codes = {"BC_CRS_DSS":"BC_CRS_DFS", "BC_DGB_TSS":"BC_DGB_DSS"}
+    # Modified 2026-07-26: align legacy CODERS node variants to existing bus node names.
+    # These directions are intentional: buses currently use *_DSS/*_TSS variants.
+    codes = {"BC_CRS_DFS":"BC_CRS_DSS", "BC_DGB_DSS":"BC_DGB_TSS"}
     utils.fix_coders_update(ext_tpp_assets,'connecting_node_code',codes)
     out_fname = cfg['output']['create_ext_tpp_assets']['fname']
     Path(out_fname).parent.mkdir(parents=True, exist_ok=True)

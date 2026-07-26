@@ -63,6 +63,12 @@ remote:
   GWA_geojson:
     url: https://globalwindatlas.info/c52f880d-d656-491d-bd95-94ec154cab07
     dest: data/downloaded_data/wind/CAN.geojson
+  bch_load_2021:
+    url: https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/BalancingAuthorityLoad2021.xls
+    dest: data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad2021.xls # BC Hydro historical transmission data
+  bch_load_2022:
+    url: https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/BalancingAuthorityLoad2022.xls
+    dest: data/downloaded_data/load/bc_hydro_load/BalancingAuthorityLoad2022.xls # BC Hydro historical transmission data
 
 # ---------------------------------------------------------------- outputs
 # Paths only. Any run-parameter that used to sit beside these lives in params.yaml.
@@ -106,4 +112,4 @@ output:
     cogen: cogen.pickle
 
   build_model:
-    fname: results/pypsa/prepared_net.nc
+    fname: results/pypsa/PyPSA_BC_network_s.nc

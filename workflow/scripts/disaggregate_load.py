@@ -3,7 +3,14 @@ from pypsa_bc import utils
 from pathlib import Path
 import geopandas as gpd
 import pandas as pd
-import folium
+import re
+
+# Optional folium for visualization
+try:
+    import folium
+    HAS_FOLIUM = True
+except ImportError:
+    HAS_FOLIUM = False
 
 import plotly.express as px
 import numpy as np
@@ -54,6 +61,10 @@ CEEI_regional_districts_name = [
 ]
 
 
+def normalize_region_name(name: str) -> str:
+    return re.sub(r"[^0-9A-Za-z]+", "", name)
+
+
 #Format the hourly load data to account for inconsistencies with how BC Hydro handles daylight savings
 def fix_hourly_load(load_bch_raw: pd.DataFrame, year: int) -> pd.DataFrame:
     """
@@ -88,6 +99,7 @@ def fix_hourly_load(load_bch_raw: pd.DataFrame, year: int) -> pd.DataFrame:
     load_bch_kWh = load_bch_kWh.set_index('TIME')
 
     load_bch_kWh=add_normalize_load_data(load_bch_kWh)
+    Path('data/processed_data/load').mkdir(parents=True, exist_ok=True)
     load_bch_kWh.to_csv(f'data/processed_data/load/Hourly_profile_{year}.csv')
     
     plot_hourly_profile(load_bch_kWh)
@@ -241,6 +253,7 @@ def preprocess_ceei_data(ceei_Buildings_eng_file_path:str|Path,
     # We only need data for electricity usage from regional districts for this disaggregation step
     data_year_selection=min(2021, profile_data_year)
     ceei_data = ceei.loc[(ceei.YEAR == data_year_selection) & (ceei.ENERGY_TYPE == 'ELEC') & (ceei.ORG_TYPE == 'Regional District')]
+    Path('data/processed_data/load').mkdir(parents=True, exist_ok=True)
     ceei_data.to_csv(f'data/processed_data/load/CEEI_{data_year_selection}_RD_ELEC.csv')
     
     return ceei_data
@@ -333,10 +346,11 @@ def disaggregate_load(proportions:pd.date_range,
     for region in proportions.index:
         p_res = proportions.loc[region]['PROPORTION_RES']
         p_csmi = proportions.loc[region]['PROPORTION_CSMI']
+        region_bus_name = normalize_region_name(region)
         
         #Spaces are removed in the column names, now all region names line up with the GADM names
-        regional_res[region.replace(' ', '')] = hourly_profile['LOAD'].apply(lambda x: x * p_res)
-        regional_csmi[region.replace(' ', '')] = hourly_profile['LOAD'].apply(lambda x: x * p_csmi)
+        regional_res[region_bus_name] = hourly_profile['LOAD'].apply(lambda x: x * p_res)
+        regional_csmi[region_bus_name] = hourly_profile['LOAD'].apply(lambda x: x * p_csmi)
 
     #Return the dataframes for disaggregated residential loads and disaggregated industrial loads
     return regional_res, regional_csmi
@@ -379,11 +393,11 @@ def main(provincial_total_load_MWh:float=None,
     """
 
     # Get configuration
-    cfg=pypsa_aparser.pypsa_cfg
+    cfg=pypsa_aparser.data_cfg
     utils.print_update(level=1,message="Disaggregating hourly load data for PyPSA...")
     
     # >>> (1) Load Snapshot (start_time, end_time)
-    (start_time,end_time) = pypsa_aparser.get_snapshot
+    (start_time,end_time) = pypsa_aparser.snapshot
     utils.print_update(level=2,message=f"Snapshot extracted: {start_time}, {end_time}")
     year =  int(start_time[:4][:4]) # int(sys.argv[3])
     
@@ -421,14 +435,20 @@ def main(provincial_total_load_MWh:float=None,
     hourly_kWh_res, hourly_kWh_csmi = disaggregate_load(proportions,
                                                 hourly_kWh) #kWh
     
-    BC_boundary = gpd.read_file('data/processed_data/regions/gadm41_Canada_L2_BC.geojson')
+    BC_boundary_path = Path('data/processed_data/regions/gadm41_Canada_L2_BC.geojson')
+    if HAS_FOLIUM and BC_boundary_path.exists():
+        BC_boundary = gpd.read_file(BC_boundary_path)
+        visualize_ratios_in_map(proportions, BC_boundary)
+    else:
+        utils.print_update(level=2, message="Skipping visualization (folium not installed or BC boundary file missing)")
     
-    visualize_ratios_in_map(proportions,
-                            BC_boundary)
     hourly_MWh_res = hourly_kWh_res / 1000 # convert from KW-hr to MW-hr
     hourly_MWh_csmi = hourly_kWh_csmi / 1000 # convert from KW-hr to MW-hr
 
     # Write to files to the output folder path
+    output_path_res.parent.mkdir(parents=True, exist_ok=True)
+    output_path_csmi.parent.mkdir(parents=True, exist_ok=True)
+    proportions_data_path.parent.mkdir(parents=True, exist_ok=True)
     hourly_MWh_res.to_csv(output_path_res)
     utils.print_update(level=2,message=f"Hourly residential load saved to: {output_path_res}")
     

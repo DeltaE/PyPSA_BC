@@ -25,6 +25,9 @@ dependencies = [
     "colorama>=0.4.6",
     "pygadm>=0.5.3",
     "geojson>=3.3.0",
+    "folium>=0.20.0",
+    "gurobipy>=13.0.2",
+    "highspy>=1.15.1",
 ]
 
 [project.optional-dependencies]

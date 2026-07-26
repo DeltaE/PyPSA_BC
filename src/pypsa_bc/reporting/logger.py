@@ -26,6 +26,9 @@ from __future__ import annotations
 
 import logging
 import time
+import csv
+import re
+import pickle
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -136,6 +139,94 @@ def _render_table(headers: list[str], rows: list[tuple]) -> str:
                       *[row(r) for r in rows], line("└", "┴", "┘")])
 
 
+def _format_size(num_bytes: int) -> str:
+    if num_bytes < 1024:
+        return f"{num_bytes} B"
+    if num_bytes < 1024**2:
+        return f"{num_bytes / 1024:.2f} KB"
+    if num_bytes < 1024**3:
+        return f"{num_bytes / (1024**2):.2f} MB"
+    return f"{num_bytes / (1024**3):.2f} GB"
+
+
+def _shape_text(rows: int, cols: int) -> str:
+    return f"Rows {rows}, Columns {cols}"
+
+
+def _csv_shape(path: Path) -> str | None:
+    try:
+        with path.open("r", newline="") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            if header is None:
+                return _shape_text(0, 0)
+            ncols = len(header)
+            nrows = sum(1 for _ in reader)
+            return _shape_text(nrows, ncols)
+    except Exception:
+        return None
+
+
+def _shape_from_object(obj) -> str | None:
+    """Best-effort rows/cols for common serialized objects."""
+    try:
+        # pandas DataFrame / Series
+        if hasattr(obj, "shape") and isinstance(getattr(obj, "shape"), tuple):
+            shp = obj.shape
+            if len(shp) == 2:
+                return _shape_text(int(shp[0]), int(shp[1]))
+            if len(shp) == 1:
+                return _shape_text(int(shp[0]), 1)
+
+        if isinstance(obj, list):
+            nrows = len(obj)
+            if nrows == 0:
+                return _shape_text(0, 0)
+            first = obj[0]
+            if isinstance(first, dict):
+                return _shape_text(nrows, len(first))
+            if isinstance(first, (list, tuple)):
+                return _shape_text(nrows, len(first))
+            return _shape_text(nrows, 1)
+
+        if isinstance(obj, dict):
+            nrows = len(obj)
+            if nrows == 0:
+                return _shape_text(0, 0)
+            first_val = next(iter(obj.values()))
+            if isinstance(first_val, dict):
+                return _shape_text(nrows, len(first_val))
+            if isinstance(first_val, (list, tuple)):
+                return _shape_text(nrows, len(first_val))
+            return _shape_text(nrows, 1)
+    except Exception:
+        return None
+    return None
+
+
+def _pickle_shape(path: Path) -> str | None:
+    try:
+        with path.open("rb") as f:
+            obj = pickle.load(f)
+        return _shape_from_object(obj)
+    except Exception:
+        return None
+
+
+def _parse_legacy_size_note(note: str) -> tuple[str | None, str | None]:
+    """Parse strings like '1.48 MB (exists locally)' into (size, status)."""
+    m = re.match(
+        r"^\s*([0-9]+(?:\.[0-9]+)?\s*(?:B|KB|MB|GB))\s*(?:\(([^)]+)\))?\s*$",
+        note,
+        flags=re.IGNORECASE,
+    )
+    if not m:
+        return None, None
+    size = m.group(1)
+    status = m.group(2)
+    return size, status
+
+
 class Pipeline:
     """A staged run: checklist of ticks, a live bar for the current stage, and a
     delivered-files table at the end."""
@@ -183,8 +274,39 @@ class Pipeline:
 
     def deliver(self, filename: str, path, rows: int | str | None = None) -> None:
         """Record an output file to list in the completion table."""
-        self._delivered.append((filename, str(path), "" if rows is None else rows))
-        self.log.debug(f"delivered {filename} ({rows} rows) -> {path}")
+        p = Path(path)
+        shape = ""
+        size = ""
+
+        if p.exists() and p.is_file():
+            size = _format_size(p.stat().st_size)
+            if p.suffix.lower() == ".csv":
+                shape = _csv_shape(p) or ""
+            elif p.suffix.lower() in {".pickle", ".pkl"}:
+                shape = _pickle_shape(p) or ""
+        elif not p.exists():
+            shape = "missing"
+
+        if isinstance(rows, int):
+            if not shape:
+                shape = f"({rows}, ?)"
+        elif isinstance(rows, str):
+            note = rows.strip()
+            lower = note.lower()
+            legacy_size, legacy_status = _parse_legacy_size_note(note)
+            if legacy_size is not None:
+                size = legacy_size
+                if legacy_status:
+                    shape = f"{shape} [{legacy_status}]" if shape else legacy_status
+            elif "skip" in lower or "missing" in lower or "exists locally" in lower:
+                shape = f"{shape} [{note}]" if shape else note
+            elif not size:
+                size = note
+            elif not shape:
+                shape = note
+
+        self._delivered.append((filename, str(path), shape or "-", size or "-"))
+        self.log.debug(f"delivered {filename} (shape={shape}, size={size}) -> {path}")
 
     def status(self, msg: str) -> None:
         if self._bar is not None:
@@ -197,6 +319,6 @@ class Pipeline:
             self._bar.close()
         self.log.info(f"=== {self.title}: complete ===")
         if self._delivered:
-            table = _render_table(["File", "Path", "Rows"], self._delivered)
+            table = _render_table(["File", "Path", "Data Shape", "Size"], self._delivered)
             _write(f"\n\033[1m{self.title} preparation completed. Delivered:\033[0m\n{table}")
         return False

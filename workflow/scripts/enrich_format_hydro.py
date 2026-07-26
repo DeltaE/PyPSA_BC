@@ -3,11 +3,41 @@ import sys
 from pypsa_bc import utils, hydro
 import json
 import pandas as pd
+from pathlib import Path
 from pypsa_bc import utils
+from pypsa_bc.reporting.logger import get_logger
 
 # handles the config loading centrally
 from pypsa_bc.attributes_parser import AttributesParser
 pypsa_aparser=AttributesParser()
+
+
+def _skip_report_path() -> Path:
+    return Path("logs") / "hydro_skipped_assets.csv"
+
+
+def _record_skip(skipped_assets, stage, site, reason):
+    if skipped_assets is None:
+        return
+    skipped_assets.append(
+        {
+            "stage": stage,
+            "asset_id": site.get("asset_id", ""),
+            "upper_reservoir_id": site.get("upper_reservoir_id", ""),
+            "connecting_node_code": site.get("connecting_node_code", ""),
+            "hydro_type": site.get("hydro_type", ""),
+            "reason": str(reason),
+        }
+    )
+
+
+def _site_var_om_cost(site):
+    """Return hydro variable O&M from either legacy or current schema."""
+    if "variable_om_cost_CAD_per_MWh" in site and pd.notna(site["variable_om_cost_CAD_per_MWh"]):
+        return site["variable_om_cost_CAD_per_MWh"]
+    if "variable_om_costs" in site and pd.notna(site["variable_om_costs"]):
+        return site["variable_om_costs"]
+    raise KeyError("variable_om_cost_CAD_per_MWh|variable_om_costs")
 
 def is_terminal_stage(down_rid):
     '''
@@ -158,7 +188,7 @@ def get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict):
     ###
     q_rated = float(site['max_water_discharge']) * 3600 # Convert from m^3/s to units of m^3 / hr
     eff_m3_to_mwhr =  site['capacity'] / q_rated
-    marginal_cost = (site["variable_om_cost_CAD_per_MWh"]) * eff_m3_to_mwhr # Needs permanent fix for costs later.
+    marginal_cost = _site_var_om_cost(site) * eff_m3_to_mwhr # Needs permanent fix for costs later.
     res_dict['discharge link'] = {"class_name":"Link",
                                     "name": " ".join([aid,"Discharge Link"]),
                                     "bus0": res_dict['water bus']['name'],
@@ -207,7 +237,7 @@ def get_ror_dict(site, ror_ts, bus_dict):
             "bus":elc_bus,
             "p_nom":site['capacity'],
             "type" : "RoR",
-            "marginal_cost":site["variable_om_cost_CAD_per_MWh"],
+            "marginal_cost":_site_var_om_cost(site),
             "p_nom_extendable":False, # Site already built
             # "capital_cost":site[], # no applicable since built
             "p_max_pu":ror_ts.apply(lambda x: min(x / site['capacity'],1))}
@@ -269,7 +299,7 @@ def get_ror_water_dict(site, ror_series, bus_dict):
                                     "bus0": ror_water_dict['reservoir bus']['name'], # res bus
                                     "bus1": elc_bus_name, # elc bus
                                     "bus2": downstream_bus, # downstream res
-                                    "marginal_cost":site["variable_om_cost_CAD_per_MWh"], # CAD / MW-hr
+                                    "marginal_cost":_site_var_om_cost(site), # CAD / MW-hr
                                     "efficiency":1.0,  # energy balance
                                     "efficiency2":eff_mwhr_to_m3, # energy to water
                                     "p_nom":site_capacity, # Should be derived to ensure larger than max(inflow, spill + discharge)
@@ -289,7 +319,7 @@ def get_ror_water_dict(site, ror_series, bus_dict):
     return ror_water_dict
 
 
-def write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg):
+def write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg, skipped_assets=None):
     '''
     This function creates and writes the reservoir dictionary (pickle) which contains all the necessary components
     to be read in by PyPSA to instantiate the reservoirs in PyPSA.
@@ -307,22 +337,32 @@ def write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg):
     # Asset_ID -> components -> attributes
     res_dict = {}
     res_list = hydro_res['asset_id'].tolist() # list of unique reservoirs modelled here
+    log = get_logger("enrich_format_hydro")
     for _,site in temp_df.iterrows():
         # IDs needed to index inflow and reservoir
         aid = site["asset_id"]
         up_rid = site["upper_reservoir_id"]
 
-        # find matching reservoirs
-        reservoir = hydro_res[hydro_res["asset_id"] == up_rid].iloc[0]
-        inflow = res_inflows[up_rid]
-        res_dict[aid] = get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict)
+        try:
+            # find matching reservoirs
+            reservoir = hydro_res[hydro_res["asset_id"] == up_rid].iloc[0]
+            inflow = res_inflows[up_rid]
+            res_dict[aid] = get_reservoir_dict(site, reservoir, inflow, res_list, bus_dict)
+        except Exception as exc:
+            _record_skip(skipped_assets, "reservoir", site, exc)
+            log.warning(
+                "Skipping hydro reservoir asset_id=%s upper_reservoir_id=%s (%s)",
+                aid,
+                up_rid,
+                exc,
+            )
 
     # write pickle
     out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["res"]
     utils.write_pickle(res_dict, out_file)
     utils.print_update(level=3,message="Reservoir data saved to :"+out_file)
 
-def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
+def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg, skipped_assets=None):
     '''
     This function writes a dictionary containing the information needed to create the components for
     existing RoR facilities in PyPSA.
@@ -330,10 +370,20 @@ def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
 
     ror_dict = {}
     temp_df = hydro_sites[hydro_sites["hydro_type"] == 'ror']
+    log = get_logger("enrich_format_hydro")
     for _,site in temp_df.iterrows():
         aid = site["asset_id"]
-        ror_ts = ror_series[aid]
-        ror_dict[aid] = get_ror_dict(site, ror_ts, bus_dict)
+        try:
+            ror_ts = ror_series[aid]
+            ror_dict[aid] = get_ror_dict(site, ror_ts, bus_dict)
+        except Exception as exc:
+            _record_skip(skipped_assets, "ror", site, exc)
+            log.warning(
+                "Skipping hydro RoR asset_id=%s node=%s (%s)",
+                aid,
+                site.get("connecting_node_code", ""),
+                exc,
+            )
 
     # write pickle
     out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["ror"]
@@ -341,7 +391,7 @@ def write_ror_dict(hydro_sites, ror_series, bus_dict, cfg):
     utils.print_update(level=3,message="RoR data saved to :"+out_file)
 
 
-def write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg):
+def write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg, skipped_assets=None):
     '''
     This function writes a dictionary containing the information needed to create the components for
     existing RoR facilities in PyPSA.
@@ -352,10 +402,20 @@ def write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg):
     '''
     ror_dict = {}
     temp_df = hydro_sites[hydro_sites["hydro_type"] == 'ror-water']
+    log = get_logger("enrich_format_hydro")
     for _,site in temp_df.iterrows():
         aid = site["asset_id"]
-        ror_ts = ror_series[aid]
-        ror_dict[aid] = get_ror_water_dict(site, ror_ts, bus_dict)
+        try:
+            ror_ts = ror_series[aid]
+            ror_dict[aid] = get_ror_water_dict(site, ror_ts, bus_dict)
+        except Exception as exc:
+            _record_skip(skipped_assets, "ror-water", site, exc)
+            log.warning(
+                "Skipping hydro RoR-water asset_id=%s node=%s (%s)",
+                aid,
+                site.get("connecting_node_code", ""),
+                exc,
+            )
 
     # write pickle
     out_file = cfg['output']["pypsa_dict"]["folder"] + cfg['output']["pypsa_dict"]["ror_water"]
@@ -383,11 +443,11 @@ def main():
     component.
     '''
     # get the configuration file
-    cfg:dict=pypsa_aparser.pypsa_cfg
+    cfg:dict = pypsa_aparser.data_cfg
     utils.print_update(level=1,message="Formatting hydro dataset for PyPSA...")
 
     
-    (start_time,end_time) = pypsa_aparser.get_snapshot
+    (start_time,end_time) = pypsa_aparser.snapshot
     utils.print_update(level=2,message=f"Snapshot extracted:{start_time},{end_time}")
 
     hydro_sites = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_generation"])
@@ -399,11 +459,11 @@ def main():
     ror_series = pd.read_csv(cfg['output']["ror_ps"]["fname"], index_col=0, parse_dates=True).loc[start_time:end_time]
     utils.print_update(level=2,message="RoR series loaded...")
     
-    buses = pd.read_csv(cfg['output']["prepare_base_network"]["folder"] + "/buses.csv")['name'].tolist()
+    buses = pd.read_csv(cfg['output']["base_network"] + "/buses.csv")['name'].tolist()
     utils.print_update(level=2,message="Buses loaded...")
 
     # (0A) Create folders if they have not been created already
-    utils.check_path(cfg['output']["pypsa_dict"]['folder'])
+    utils.ensure_path(cfg['output']["pypsa_dict"]['folder'])
 
     
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
@@ -411,18 +471,35 @@ def main():
     bus_dict = utils.create_standard_gen_bus_map(buses)
 
 
+    skipped_assets = []
+
     # (1) Write pickle dictionaries for the RoR facilities.
-    write_ror_dict(hydro_sites, ror_series, bus_dict, cfg)
+    write_ror_dict(hydro_sites, ror_series, bus_dict, cfg, skipped_assets=skipped_assets)
 
     # (2) Write pickle dictionaries for the reservoirs.
     
     hydro_res = pd.read_csv(cfg['output']["create_hydro_assets"]["hydro_reservoir"]) # Purely reservoir information
     utils.print_update(level=2,message="Hydro reservoirs loaded...")
     
-    write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg)
+    write_reservoir_dict(hydro_sites, hydro_res, res_inflows, bus_dict, cfg, skipped_assets=skipped_assets)
 
     # (3) Write pickle dictionaries for the RoR-Water facilities.
-    write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg)
+    write_ror_water_dict(hydro_sites, ror_series, bus_dict, cfg, skipped_assets=skipped_assets)
+
+    skip_report = _skip_report_path()
+    if skipped_assets:
+        skip_report.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(skipped_assets).to_csv(skip_report, index=False)
+        utils.print_update(
+            level=2,
+            message=(
+                f"Skipped {len(skipped_assets)} hydro asset(s) due to missing/invalid inputs. "
+                f"Report saved to: {skip_report}"
+            ),
+        )
+    elif skip_report.exists():
+        skip_report.unlink()
+        utils.print_update(level=2, message="No hydro assets skipped; removed stale skip report.")
 
     
 if __name__ == '__main__':

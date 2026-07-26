@@ -45,7 +45,7 @@ def get_vre_dict(site, site_ts, bus_dict, vre_selection): # site, site_ts, vre_p
             "bus":elc_bus,
             "p_nom":p_nom,
             "type" : vre_selection,
-            "marginal_cost":site["variable_om_cost_CAD_per_MWh"],
+            "marginal_cost":site["variable_om_costs"],
             "p_nom_extendable":False, # Site already built
             # "capital_cost":site[], # not applicable since built
             "p_max_pu":site_ts.apply(lambda x: min(x / p_nom,1))} # Needs to be renormalized to p_nom
@@ -79,17 +79,17 @@ def main():
     This script takes creates the VRE dictionary for wind or solar assets for PyPSA_BC.
     '''
     # Get configuration
-    cfg=pypsa_aparser.pypsa_cfg
+    cfg=pypsa_aparser.data_cfg
     utils.print_update(level=1,message="Creating VRE dictionary for PyPSA...")
     
-    (start_time,end_time) = pypsa_aparser.get_snapshot
+    (start_time,end_time) = pypsa_aparser.snapshot
     utils.print_update(level=2,message=f"Snapshot extracted: {start_time}, {end_time}")
     
-    buses = pd.read_csv(cfg['output']['prepare_base_network']['folder'] + "/buses.csv")['name'].tolist()
-    utils.print_update(level=2,message=f"Buses loaded from : {cfg['output']['prepare_base_network']['folder'] + '/buses.csv'}")
+    buses = pd.read_csv(cfg['output']['base_network'] + "/buses.csv")['name'].tolist()
+    utils.print_update(level=2,message=f"Buses loaded from : {cfg['output']['base_network'] + '/buses.csv'}")
 
     # (0A) Create folders if they have not been created already
-    utils.check_path(cfg['output']["pypsa_dict"]['folder'])
+    utils.ensure_path(cfg['output']["pypsa_dict"]['folder'])
 
     # (0B) Get bus_dict for mapping node codes to PyPSA_BC ELC buses
     # buses.append('138_604S_GSS') #NOTE: Need to look into this at somepoint.. (Why missing in buses.)
@@ -103,7 +103,7 @@ def main():
 
         asset_path = cfg['output'][f'create_ext_{resource_type}_assets']['fname']
         ts_path = cfg['output'][f'create_ext_{resource_type}_ts']['fname']
-        vre_selection = cfg['output'][f'enrich_format_{resource_type}']['vre_sel']
+        # vre_selection = cfg['output'][f'enrich_format_{resource_type}']['vre_sel']
         vre_path = "data/pypsa_data/" + cfg['output']['pypsa_dict'][f'{resource_type}']
 
         # gen_generic = pd.read_csv(cfg['data']["coders"]["gen_generic"])
@@ -118,7 +118,7 @@ def main():
         # vre_params = get_vre_params(gen_generic, vre_selection)
                                     
         # (1) Write pickle dictionaries for the vre assets.
-        write_vre_dict(vre_assets, vre_ts, bus_dict, vre_selection, vre_path)
+        write_vre_dict(vre_assets, vre_ts, bus_dict, resource_type, vre_path)
         
 if __name__ == '__main__':
     main()
