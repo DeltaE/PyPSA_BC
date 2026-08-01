@@ -3,17 +3,8 @@
 ---
 `Rule 1` is the starting point. It establishes the electrical topology used by every later stage. Treat it as a reproducible data transformation followed by a separate scientific quality assurance (QA) exercise.
 
-## Contents
-
-* [1. Overview](#1-overview)
-* [](#2-safely-preview-the-rule)
-* 
-* [](#)
-
----
-
 ## 1. Overview
-The rule is defined at [workflow/Snakefile (line 232)](workflow/Snakefile).
+The rule is defined at [workflow/Snakefile](https://github.com/DeltaE/PyPSA_BC/blob/dev/workflow/rules/base_network.smk)
 
 ```mermaid
 sequenceDiagram
@@ -58,7 +49,7 @@ It produces:
     ├── transformers.csv
     └── transformer_types.csv
 
-The processing adapter is [prepare_base_network.py]().
+The processing adapter is [prepare_base_network.py](https://github.com/DeltaE/PyPSA_BC/blob/dev/workflow/scripts/prepare_base_network.py).
 
 The validation also produces:
 
@@ -72,7 +63,7 @@ The validation also produces:
     ├── summary.json
     └── validation_report.md
 
-The validation adapter is [validate_base_network.py]().
+The validation adapter is [validate_base_network.py](https://github.com/DeltaE/PyPSA_BC/blob/dev/workflow/scripts/validate_base_network.py).
 
 ## 2. Safely preview the rule
    
