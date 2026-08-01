@@ -39,7 +39,7 @@ def main() -> dict[str, pd.DataFrame]:
             pipe.deliver("transformer_types.csv", out / "transformer_types.csv",
                          len(r["transformer_types"]))
 
-
+    return r
 
 if __name__ == "__main__":
     main()

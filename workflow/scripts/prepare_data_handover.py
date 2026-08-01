@@ -15,6 +15,7 @@ Behavior mirrors other prepare_* orchestrators:
     - staged progress bar + delivered-files table
 """
 
+import argparse
 from pathlib import Path
 
 from pypsa_bc.attributes_parser import AttributesParser
@@ -144,4 +145,11 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--force-update",
+        action="store_true",
+        help="Rebuild selected PyPSA dictionaries even when outputs already exist.",
+    )
+    args = parser.parse_args()
+    main(force_update=args.force_update)

@@ -17,6 +17,10 @@ def main():
     cfg = {
         "basin_files": data["basin_files"],
         "inventory": data["inventory"],
+        "snapshot": {
+            "start": str(pypsa_aparser.snapshot[0]),
+            "end": str(pypsa_aparser.snapshot[1]),
+        },
         "output": {
             "create_hydro_assets": data["output"]["create_hydro_assets"],
             "reservoir_inflows": {**data["output"]["reservoir_inflows"],

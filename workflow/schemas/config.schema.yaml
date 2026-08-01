@@ -1,0 +1,66 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+type: object
+required: [workflow, execution, base_model, preflight, scenario_axes]
+properties:
+  workflow:
+    type: object
+    required: [id, run_id, output_root]
+    properties:
+      id: {type: string, minLength: 1}
+      run_id: {type: string, pattern: "^[A-Za-z0-9_.-]+$"}
+      output_root: {type: string, minLength: 1}
+  execution:
+    type: object
+    required: [allow_solve, year, capacity_choice, include_vre_investments]
+    properties:
+      allow_solve: {type: boolean}
+      year: {type: integer, minimum: 2000, maximum: 2100}
+      capacity_choice: {type: string, enum: [investment, full_potential]}
+      include_vre_investments: {type: boolean}
+  base_model:
+    type: object
+    required: [scientific_reference_resolution, executable_resolution, reservoir_representation, water_policy, release_multiplier]
+    properties:
+      scientific_reference_resolution: {type: string, enum: [regional_district, substation]}
+      executable_resolution: {type: string, enum: [regional_district, substation]}
+      reservoir_representation: {type: string, enum: [A_full_cascade, B_two_store, C_single_bucket]}
+      water_policy:
+        type: string
+        enum: [evidence_based, static_minimum_only, no_minimum_release, release_uncertainty_lower_bound, release_uncertainty_upper_bound]
+      release_multiplier: {type: number, minimum: 0}
+  preflight:
+    type: object
+    required: [required_paths]
+    properties:
+      required_paths:
+        type: array
+        minItems: 1
+        items: {type: string, minLength: 1}
+  scenario_axes:
+    type: object
+    required: [reservoir_representations, water_use_policies]
+    properties:
+      reservoir_representations:
+        type: object
+        minProperties: 1
+        additionalProperties:
+          type: object
+          required: [implemented, status, description]
+          properties:
+            implemented: {type: boolean}
+            status: {type: string}
+            description: {type: string}
+      water_use_policies:
+        type: object
+        minProperties: 1
+        additionalProperties:
+          type: object
+          required: [implemented, constraint_mode, release_multiplier, scientific_role, description]
+          properties:
+            implemented: {type: boolean}
+            constraint_mode:
+              type: string
+              enum: [evidence_based, static_minimum_only, no_minimum_release, release_uncertainty_lower_bound, release_uncertainty_upper_bound]
+            release_multiplier: {type: number, minimum: 0}
+            scientific_role: {type: string}
+            description: {type: string}

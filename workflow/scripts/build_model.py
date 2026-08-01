@@ -5,6 +5,12 @@ from shapely.geometry import Point
 import numpy as np
 import re
 from pypsa_bc import utils
+from pypsa_bc.studies.cascade.constraints import (
+    add_cascade_constraints,
+    attach_route_release_schedules,
+)
+from pypsa_bc.studies.cascade.representation import aggregate_cascade_representation
+from pypsa_bc.studies.cascade.uncertainty import apply_release_uncertainty_case
 from pathlib import Path
 import shutil
 # handles the config loading centrally
@@ -873,8 +879,16 @@ def main(copperplate:bool=False,
          capacity_choice:str='investment',
          tx_line_infinity:bool=False,
          year:int=2021,
-         solved_network_save_to:Path=None,
-         include_vre_investments:bool=True):
+         solved_network_save_to:Path | None=None,
+         include_vre_investments:bool=True,
+         reservoir_representation:str="A_full_cascade",
+         water_policy:str="evidence_based",
+         release_multiplier:float=1.0,
+         release_schedule_path:Path | None=None,
+         release_uncertainty_protocol_path:Path | None=None,
+         cascade_topology_path:Path | None=None,
+         build_report_save_to:Path | None=None,
+         solve_network:bool=True):
     '''
     This script is used to build the model.(Currently, designed to build the existing electricity system in BC. (with site-c))
     The scripts takes in the following data:
@@ -906,7 +920,32 @@ def main(copperplate:bool=False,
     utils.print_update(level=3, message=f"Capacity Choice: {capacity_choice}")
     utils.print_update(level=3, message=f"TX Line Infinity: {tx_line_infinity}")
     utils.print_update(level=3, message=f"Include VRE investments: {include_vre_investments}")
+    utils.print_update(level=3, message=f"Reservoir representation: {reservoir_representation}")
+    utils.print_update(level=3, message=f"Water-use policy: {water_policy}")
+    utils.print_update(level=3, message=f"Release multiplier: {release_multiplier}")
+    utils.print_update(level=3, message=f"Solve network: {solve_network}")
     utils.print_update(level=3, message=f"Output File: {solved_network_save_to if solved_network_save_to else 'Default from config'}")
+
+    valid_representations = {"A_full_cascade", "B_two_store", "C_single_bucket"}
+    if reservoir_representation not in valid_representations:
+        raise ValueError(
+            f"Unsupported reservoir_representation={reservoir_representation!r}; "
+            f"expected one of {sorted(valid_representations)}"
+        )
+    valid_water_policies = {
+        "evidence_based",
+        "static_minimum_only",
+        "no_minimum_release",
+        "release_uncertainty_lower_bound",
+        "release_uncertainty_upper_bound",
+    }
+    if water_policy not in valid_water_policies:
+        raise ValueError(
+            f"Unsupported water_policy={water_policy!r}; expected one of "
+            f"{sorted(valid_water_policies)}"
+        )
+    if not np.isfinite(release_multiplier) or release_multiplier < 0:
+        raise ValueError("release_multiplier must be finite and non-negative")
     
     # Validate required data files
     utils.print_update(level=2, message="Validating required data files...")
@@ -991,6 +1030,102 @@ def main(copperplate:bool=False,
     add_hydro_ror_assets(network, ror_dict)
     add_hydro_res_assets(network, res_dict) # NOTE: None for AB
     add_hydro_ror_water_assets(network, ror_water_dict) # NOTE: None for AB
+    if "minimum_release_m3_per_hour" in network.links.columns:
+        static_minima = pd.to_numeric(
+            network.links["minimum_release_m3_per_hour"], errors="coerce"
+        ).fillna(0.0)
+        if water_policy == "no_minimum_release":
+            network.links.loc[:, "minimum_release_m3_per_hour"] = 0.0
+        else:
+            network.links.loc[:, "minimum_release_m3_per_hour"] = (
+                static_minima * float(release_multiplier)
+            )
+
+    if release_schedule_path is None:
+        release_schedule_path = Path(
+            cfg.get("inventory", {}).get(
+                "release_schedules",
+                "studies/chapter2/inputs/release_schedules.csv",
+            )
+        )
+    else:
+        release_schedule_path = Path(release_schedule_path)
+    schedule_policies = {
+        "evidence_based",
+        "release_uncertainty_lower_bound",
+        "release_uncertainty_upper_bound",
+    }
+    if water_policy in schedule_policies and release_schedule_path.exists():
+        release_schedules = pd.read_csv(release_schedule_path)
+        release_schedules["minimum_release_m3_per_hour"] = (
+            pd.to_numeric(
+                release_schedules["minimum_release_m3_per_hour"], errors="raise"
+            )
+            * float(release_multiplier)
+        )
+        attached_routes = attach_route_release_schedules(network, release_schedules)
+        if attached_routes:
+            utils.print_update(
+                level=2,
+                message=(
+                    f"Attached {attached_routes} evidence-labelled, route-specific "
+                    f"release schedule(s) from {release_schedule_path}"
+                ),
+            )
+    representation_summary = pd.DataFrame()
+    if reservoir_representation != "A_full_cascade":
+        topology_path = Path(
+            cascade_topology_path
+            or "studies/chapter2/inputs/cascade_evidence_register.csv"
+        )
+        if not topology_path.exists():
+            raise FileNotFoundError(
+                f"Cascade topology required by {reservoir_representation} is missing: "
+                f"{topology_path}"
+            )
+        topology = pd.read_csv(topology_path, low_memory=False)
+        representation_result = aggregate_cascade_representation(
+            network,
+            topology,
+            reservoir_representation,
+        )
+        representation_summary = representation_result.summary
+        utils.print_update(
+            level=2,
+            message=(
+                f"Applied {reservoir_representation} across "
+                f"{representation_summary['cascade_group'].nunique()} cascade groups; "
+                "storage, inflows, turbine capacity, electrical buses, and external "
+                "release routes were held fixed."
+            ),
+        )
+    release_uncertainty_audit = pd.DataFrame()
+    uncertainty_cases = {
+        "release_uncertainty_lower_bound": "lower_bound",
+        "release_uncertainty_upper_bound": "upper_bound",
+    }
+    if water_policy in uncertainty_cases:
+        uncertainty_path = Path(
+            release_uncertainty_protocol_path
+            or "data/validation/chapter2/release_uncertainty_protocol.yaml"
+        )
+        if not uncertainty_path.exists():
+            raise FileNotFoundError(
+                f"Release uncertainty protocol is missing: {uncertainty_path}"
+            )
+        release_uncertainty_audit = apply_release_uncertainty_case(
+            network,
+            uncertainty_path,
+            uncertainty_cases[water_policy],
+        )
+        utils.print_update(
+            level=2,
+            message=(
+                f"Applied scenario-labelled release uncertainty policy to "
+                f"{len(release_uncertainty_audit)} unresolved stations; these "
+                "bounds are not observed or regulatory release rules."
+            ),
+        )
     add_pv_assets(network, pv_dict)
     add_wind_assets(network, wind_dict)
     add_ff_infra(network, ff_infra_dict) # NOTE: AB Additon 
@@ -1255,13 +1390,30 @@ def main(copperplate:bool=False,
     if tx_line_infinity:
         network=make_unlimited_line_capacity(network)
     
-    # Solve network or save network below:
-    utils.print_update(level=2,message="Optimizing the build network...")
-    solver_name = _choose_solver_name()
-    utils.print_update(level=3, message=f"Using solver: {solver_name}")
-    status, termination_condition = network.optimize(solver_name=solver_name) # cplex should be added to a solver
-    
-    utils.print_update(level=2,message=f"Optimization completed with status: {status}, termination: {termination_condition}")
+    # Model construction and optimization are separate workflow stages.  Keep
+    # the legacy default (solve_network=True) for direct callers, while the
+    # Snakemake base-model workflow exports an unsolved network first.
+    if solve_network:
+        utils.print_update(level=2,message="Optimizing the built network...")
+        solver_name = _choose_solver_name()
+        utils.print_update(level=3, message=f"Using solver: {solver_name}")
+        status, termination_condition = network.optimize(
+            solver_name=solver_name,
+            extra_functionality=add_cascade_constraints,
+        )
+        utils.print_update(
+            level=2,
+            message=(
+                f"Optimization completed with status: {status}, "
+                f"termination: {termination_condition}"
+            ),
+        )
+    else:
+        status, termination_condition = "NOT_RUN", "model_preparation_only"
+        utils.print_update(
+            level=2,
+            message="Model preparation complete; optimization intentionally skipped.",
+        )
     # Note: In PyPSA 0.28+, network.model is automatically created during optimize()
     # No need to call create_model() separately
 
@@ -1275,12 +1427,27 @@ def main(copperplate:bool=False,
     
     solved_network_save_to.parent.mkdir(exist_ok=True,parents=True)
     network.export_to_netcdf(solved_network_save_to)
-    utils.print_update(level=1,message=f"Solved network saved to : {solved_network_save_to} ")
+    network_state = "Solved" if solve_network else "Prepared (unsolved)"
+    utils.print_update(level=1,message=f"{network_state} network saved to: {solved_network_save_to}")
     
     # Generate markdown report
     utils.print_update(level=2,message="Generating build model report...")
-    report_path = Path("reports") / f"build_model_report_{year}.md"
+    report_path = (
+        Path(build_report_save_to)
+        if build_report_save_to is not None
+        else Path("reports") / f"build_model_report_{year}.md"
+    )
     report_path.parent.mkdir(exist_ok=True, parents=True)
+    if not representation_summary.empty:
+        representation_summary.to_csv(
+            report_path.with_name(f"{report_path.stem}_hydraulic_aggregation.csv"),
+            index=False,
+        )
+    if not release_uncertainty_audit.empty:
+        release_uncertainty_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_release_uncertainty.csv"),
+            index=False,
+        )
     
     report_content = f"""# PyPSA-BC Build Model Report
     
@@ -1294,6 +1461,11 @@ def main(copperplate:bool=False,
 | Copperplate Mode | {copperplate} |
 | Capacity Choice | {capacity_choice} |
 | TX Line Infinity | {tx_line_infinity} |
+| Reservoir Representation | {reservoir_representation} |
+| Water-use Policy | {water_policy} |
+| Release Multiplier | {release_multiplier} |
+| Optimization requested | {solve_network} |
+| Release Evidence Boundary | {'Scenario sensitivity; not observed/legal' if not release_uncertainty_audit.empty else 'No uncertainty envelope applied'} |
 | Output File | {solved_network_save_to} |
 
 ## Network Summary

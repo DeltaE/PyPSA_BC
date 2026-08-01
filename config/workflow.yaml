@@ -1,0 +1,88 @@
+workflow:
+  id: pypsa_bc_rule_workflow
+  run_id: chapter2_hydro_policy
+  output_root: results/workflow
+
+# Production solves are deliberately opt-in. Change to true only after the
+# scientific input gate passes and the selected scenario is implemented.
+execution:
+  allow_solve: false
+  year: 2021
+  capacity_choice: investment
+  include_vre_investments: false
+
+# The base model is defined and solved at regional-district resolution.
+# Substation-level demand and solving are reserved for a later, question-specific
+# extension and are not a prerequisite for the base-model workflow.
+base_model:
+  scientific_reference_resolution: regional_district
+  executable_resolution: regional_district
+  reservoir_representation: A_full_cascade
+  water_policy: evidence_based
+  release_multiplier: 1.0
+
+preflight:
+  required_paths:
+  - config/data.yaml
+  - config/base_network.yaml
+  - config/params.yaml
+  # - config/studies/chapter2_cascade.yaml
+  - workflow/scripts/build_model.py
+  # - src/pypsa_bc/studies/cascade/constraints.py
+  # - data/validation/chapter2/release_rule_definitions.yaml
+  # - data/validation/chapter2/release_uncertainty_protocol.yaml
+  # - studies/chapter2/inputs/cascade_evidence_register.csv
+
+  # These are the primary experimental axes. "implemented" is an execution
+  # contract, not a statement of scientific preference.
+scenario_axes:
+  reservoir_representations:
+    A_full_cascade:
+      implemented: true
+      status: production_builder_available
+      description: Station-resolved reservoirs, turbines, spill routes, and water routing.
+    B_two_store:
+      implemented: true
+      status: production_builder_available
+      description: >-
+        Non-terminal reservoir levels pooled into an upper bucket and the terminal level into a lower bucket, with matched storage, inflow, turbine capacity, electrical buses, and external release routes.
+    C_single_bucket:
+      implemented: true
+      status: production_builder_available
+      description: >-
+        One water-storage bucket per basin with matched storage, inflow, turbine capacity, electrical buses, and external release routes.
+
+  water_use_policies:
+    evidence_based:
+      implemented: false
+      constraint_mode: evidence_based
+      release_multiplier: 1.0
+      scientific_role: blocked_reference
+      description: >-
+        Apply verified static and route-specific scheduled minimum releases. Not runnable until all seven unresolved facility rules are resolved.
+    release_uncertainty_lower_bound:
+      implemented: true
+      constraint_mode: release_uncertainty_lower_bound
+      release_multiplier: 1.0
+      scientific_role: primary_uncertainty_bound
+      description: >-
+        Preserve verified releases and apply the least-constraining, explicitly scenario-labelled bound at seven unresolved facilities.
+    release_uncertainty_upper_bound:
+      implemented: true
+      constraint_mode: release_uncertainty_upper_bound
+      release_multiplier: 1.0
+      scientific_role: primary_uncertainty_bound
+      description: >-
+        Preserve verified releases and apply the conservative structural-stress bound at seven unresolved facilities; this is not an observed/legal rule.
+    static_minimum_only:
+      implemented: true
+      constraint_mode: static_minimum_only
+      release_multiplier: 1.0
+      scientific_role: formulation_sensitivity
+      description: Apply verified station-level static minima without seasonal route schedules.
+    no_minimum_release:
+      implemented: true
+      constraint_mode: no_minimum_release
+      release_multiplier: 0.0
+      scientific_role: counterfactual_only
+      description: Remove minimum-release constraints to isolate their operational effect.

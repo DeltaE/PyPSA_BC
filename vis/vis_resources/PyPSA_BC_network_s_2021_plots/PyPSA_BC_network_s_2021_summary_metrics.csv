@@ -1,0 +1,11 @@
+Metric,Value
+Snapshots,8760.0
+Buses,78.0
+Lines,47.0
+Links,105.0
+Generators,156.0
+Stores,24.0
+Total annual load [MWh],64433282.25257128
+Peak system load [MW],11679.449458504163
+Total generated energy [MWh],99213443935.22836
+Mean marginal price,0.6840063533300772

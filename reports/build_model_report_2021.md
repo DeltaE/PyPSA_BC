@@ -1,6 +1,6 @@
 # PyPSA-BC Build Model Report
     
-**Generated:** 2026-07-26 10:56:12
+**Generated:** 2026-07-26 11:49:27
 
 ## Model Configuration
 
@@ -10,7 +10,7 @@
 | Copperplate Mode | False |
 | Capacity Choice | full_potential |
 | TX Line Infinity | False |
-| Output File | results/pypsa/prepared_net.nc_2021.nc |
+| Output File | results/pypsa/PyPSA_BC_network_s_2021.nc |
 
 ## Network Summary
 

@@ -1,24 +1,26 @@
-# exclude these files
+# Generated outputs and local data
 results/*
 resources/*
 data/downloaded_data/*
 data/linking_tool
 data/store/*
+data/processed_data
+logs
+vis
+notebooks/
+Z_legacy
+.snakemake
 
-# include these from hidden partially ignored folders
+# Keep placeholder files in otherwise ignored directories
 !results/.keep
 !resources/.keep
 
-workflow/scripts/__pycache__
-pypsa_bc/__pycache__
-pypsa_bc/vis/__pycache__/*.pyc
-notebooks/
-*/*/__pycache__
-Z_legacy
-logs
+# Python cache and bytecode artifacts
+__pycache__/
+*.py[cod]
+workflow/scripts/__pycache__/
 
-data/processed_data
+# Project-specific local folders
+workflow/scripts/studies/*
+src/pypsa_bc/studies/
 .gitignore
-src/pypsa_bc/data/__pycache__/*
-src/pypsa_bc/reporting/__pycache__/*.pyc
-workflow/scripts/__pycache__/*.*.pyc
