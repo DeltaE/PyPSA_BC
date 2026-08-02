@@ -37,41 +37,24 @@ The main [Snakefile](../Snakefile) imports the scenario-independent
 [Rule 1 module](base_network.smk). The module owns both
 `base_network_preparation` and `validate_base_network`.
 
+
+
 ```mermaid
 sequenceDiagram
-    participant M as Main Snakefile
-    participant R as rules/base_network.smk
-    participant E as BC Hydro map evidence
-    participant C as Correction registers
-    participant P as prepare_base_network.py
-    participant N as Base network tables
-    participant A as Correction audit
-    participant Q as Component policy
-    participant V as validate_base_network.py
-    participant D as Base or scenario workflow
+    participant W as Workflow
+    participant P as Prepare Network
+    participant V as Validation
+    participant D as Scenario Workflow
 
-    M->>R: Include shared Rule 1 module
-    R->>E: Fetch and fingerprint map if missing
-    E->>C: Support registered representative points
-    R->>P: Request base network preparation
-    C->>P: Apply active node and line patches
-    P->>N: Write five corrected network tables
-    P->>A: Verify all registered treatments
+    W->>P: Build corrected base network
+    Note over P: Fetch map if needed<br/>Apply corrections<br/>Generate tables
 
-    alt Correction audit PASS
-        A->>R: Confirm correction contract
-        R->>V: Request structural validation
-        N->>V: Supply corrected topology and parameters
-        Q->>V: Supply approved island membership
-        V->>R: Return PASS or FAIL evidence
+    P->>V: Audit and validate
 
-        alt Validation PASS
-            R->>D: Supply validated base network
-        else Validation FAIL
-            R--xD: Block dependent rules
-        end
-    else Correction audit FAIL
-        A--xR: Stop before structural validation
+    alt PASS
+        V->>D: Validated network
+    else FAIL
+        V--xD: Stop workflow
     end
 ```
 
