@@ -1,17 +1,33 @@
-# Debunking Workflow ( Stage 1 of 5)
-> `Rule 1` of snakemake workflow
----
-`Rule 1` is the starting point. It establishes the electrical topology used by every later stage. Treat it as a reproducible data transformation followed by a separate scientific quality assurance (QA) exercise.
+# Dissecting Rule 1: Base Network Preparation and Validation
+
+> Rule 1 of the Snakemake workflow
+
+Rule 1 establishes the electrical topology used by the base model and every
+later scenario. It is a reproducible transformation of source data, registered
+corrections, and electrical assumptions, followed by a separate structural
+quality-assurance gate.
 
 ## Contents
 
-* [1. Overview](#1-overview)
-
+- [1. Overview](#1-overview)
+- [2. Safely preview Rule 1](#2-safely-preview-rule-1)
+- [3. Preserve the current outputs](#3-preserve-the-current-outputs)
+- [4. Run Rule 1 only](#4-run-rule-1-only)
+- [5. Confirm the delivered files](#5-confirm-the-delivered-files)
+- [6. Check reproducibility](#6-check-reproducibility)
+- [7. Understand the outputs](#7-understand-the-outputs)
+- [8. Understand the correction layer](#8-understand-the-correction-layer)
+- [9. Run validation](#9-run-validation)
+- [10. Interpret the current validation result](#10-interpret-the-current-validation-result)
+- [11. Force a controlled rebuild](#11-force-a-controlled-rebuild)
 
 ---
 
 ## 1. Overview
-The rule is defined at [workflow/Snakefile (line 232)](workflow/Snakefile).
+
+The main [Snakefile](../Snakefile) imports the scenario-independent
+[Rule 1 module](base_network.smk). The module owns both
+`base_network_preparation` and `validate_base_network`.
 
 ```mermaid
 sequenceDiagram
@@ -37,9 +53,9 @@ sequenceDiagram
     alt Correction audit PASS
         A->>R: Confirm correction contract
         R->>V: Request structural validation
-        N->>V: Validate corrected topology and parameters
+        N->>V: Supply corrected topology and parameters
         Q->>V: Supply approved island membership
-        V->>R: Return PASS/FAIL evidence
+        V->>R: Return PASS or FAIL evidence
 
         alt Validation PASS
             R->>D: Supply validated base network
@@ -50,128 +66,146 @@ sequenceDiagram
         A--xR: Stop before structural validation
     end
 ```
+
+Raw CODERS tables remain unchanged. Rule 1 applies special treatments from
+version-controlled correction registers and records their effects in a separate
+audit table.
+
 Rule 1 has:
 
 - no scenario wildcards;
 - no reservoir-policy inputs;
 - no scenario-specific outputs;
-- one fixed set of network tables;
-- one shared validation result.
-  
-Therefore, multiple scenarios depending on the same network do not rebuild it separately. Snakemake prepares it once unless its inputs, code, configuration, or outputs change. 
+- one fixed set of prepared network tables;
+- one correction audit;
+- one shared structural-validation result.
 
-It produces:
+Multiple scenarios that depend on the same base network do not rebuild it
+separately. Snakemake reruns Rule 1 only when an input, correction register,
+assumption, script, rule definition, or output state requires it.
 
-    data/processed_data/network/
-    ├── buses.csv
-    ├── lines.csv
-    ├── line_types.csv
-    ├── transformers.csv
-    └── transformer_types.csv
+## 2. Safely preview Rule 1
 
-The processing adapter is [prepare_base_network.py]().
-
-The validation also produces:
-
-    results/workflow/base_network_validation/
-    ├── disconnected_components.csv
-    ├── duplicate_identifiers.csv
-    ├── invalid_buses.csv
-    ├── missing_line_endpoints.csv
-    ├── parallel_lines.csv
-    ├── self_loops.csv
-    ├── summary.json
-    └── validation_report.md
-
-The validation adapter is [validate_base_network.py]().
-
-## 2. Safely preview the rule
-   
-On the Linux machine, we start from the repository root:
+Start from the repository root on the Linux machine:
 
 ```bash
 cd /path/to/PyPSA_BC
 ```
 
+Preview preparation without rewriting its outputs:
+
 ```bash
 uv run snakemake \
---profile workflow/profiles/default \
---dry-run \
-base_network_preparation
+  --profile workflow/profiles/default \
+  --dry-run \
+  base_network_preparation
 ```
 
-The dry run tells us:
+The dry run reports:
+
 - which inputs Snakemake found;
 - which outputs it expects;
 - whether it intends to rerun Rule 1;
 - why it intends to rerun it.
 
-Look for the `reason:` line. Common reasons are:
-  - an output is missing;
-  - an input is newer;
-  - the rule or its code changed;
-  - an upstream rule will update an input.
+Inspect the `reason:` line. Common reasons include a missing output, a newer
+input, modified code, or an upstream rule that will update an input.
 
-```{hint}
-A dry run does not replace the CSV files.
-```
+> A dry run does not replace any prepared CSV files.
 
 ## 3. Preserve the current outputs
+
 Before deliberately rebuilding Rule 1, record the existing state:
 
 ```bash
 mkdir -p results/audit/rule1
-```
-```bash
+
 sha256sum data/processed_data/network/*.csv \
   > results/audit/rule1/checksums_before.txt
-```
-```bash
+
 cp -a data/processed_data/network \
   "results/audit/rule1/network_before_$(date +%Y%m%d_%H%M%S)"
 ```
-This provides:
-- a recoverable copy;
-- checksums for testing reproducibility;
-- evidence of exactly what changed.
 
-## 4. Run snakemake's `Rule 1` only
-   
+This creates:
+
+- a recoverable copy of the prepared tables;
+- checksums for reproducibility testing;
+- evidence of the exact state before rebuilding.
+
+## 4. Run Rule 1 only
+
 ```bash
 uv run snakemake \
   --profile workflow/profiles/default \
   --cores 1 \
   base_network_preparation
 ```
-This will not run assets, profiles, model construction, or optimization.
 
-The log should appear at: `logs/snakemake/01_base_network_preparation.log`
-Inspect it:
-`less logs/snakemake/01_base_network_preparation.log`
-Or search for warnings and errors: 
-```bash
-rg -n -i "warning|error|missing|assum|imput" \
+This target does not run asset preparation, profile preparation, model
+construction, optimization, or scenario analysis.
+
+The execution log is:
+
+```text
 logs/snakemake/01_base_network_preparation.log
 ```
 
-## 5. Confirm delivered files
+Inspect it with:
+
 ```bash
+less logs/snakemake/01_base_network_preparation.log
+```
+
+Search for notable messages with:
+
+```bash
+rg -n -i "warning|error|missing|assum|imput|correction" \
+  logs/snakemake/01_base_network_preparation.log
+```
+
+## 5. Confirm the delivered files
+
+Rule 1 writes five network tables and one correction audit:
+
+```text
+data/processed_data/network/
+|-- buses.csv
+|-- lines.csv
+|-- line_types.csv
+|-- transformers.csv
+|-- transformer_types.csv
+`-- correction_audit.csv
+```
+
+Inspect the file sizes and line counts:
+
+```bash
+ls -lh data/processed_data/network/*.csv
 wc -l data/processed_data/network/*.csv
 ```
-> Remember that wc -l includes the header. Therefore, a file showing 1,011 lines contains 1,010 data records.
-The current files in this workspace contain:
+
+`wc -l` includes the header. For example, 1,019 lines in `buses.csv`
+correspond to 1,018 bus records.
+
+The current corrected outputs contain:
+
 | Output | Records |
 |---|---:|
-| Buses | 1,010 |
-| Lines | 1,239 |
+| Buses | 1,018 |
+| Lines | 1,237 |
 | Line types | 34 |
 | Transformers | 110 |
 | Transformer types | 18 |
+| Correction-audit entries | 22 |
 
-After running on the other machine, compare these counts. Different counts are not automatically wrong, but they need an explanation tied to input or code changes.
+Different counts are not automatically wrong, but every difference must be
+traceable to changed inputs, assumptions, code, or correction registers.
 
 ## 6. Check reproducibility
+
 After rebuilding:
+
 ```bash
 sha256sum data/processed_data/network/*.csv \
   > results/audit/rule1/checksums_after.txt
@@ -180,108 +214,254 @@ diff -u \
   results/audit/rule1/checksums_before.txt \
   results/audit/rule1/checksums_after.txt
 ```
-Possible outcomes:
-- No difference: Rule 1 is deterministic for the current inputs.
-- Expected differences: input data, configuration, or code changed.
-- Unexpected differences: investigate ordering, unstable identifiers, hidden downloads, or nondeterministic processing.
 
-## 7. Understand each output at `data/processed_data/network/*.csv`
+Interpret the result as follows:
 
-`buses.csv`<br>
-    Each row represents a bus at a particular substation and voltage level.
-    Important columns:
-    - name: unique PyPSA bus identifier;
-    - x, y: longitude and latitude;
-    - v_nom: nominal voltage in kV;
-    - type: associated voltage/line type.
-    
-A physical substation can produce several buses when it contains several voltage levels. Transformers connect these voltage-specific buses.
+- **No difference:** Rule 1 reproduced the current outputs exactly.
+- **Expected difference:** A documented input, assumption, correction, or code
+  change altered the outputs.
+- **Unexpected difference:** Investigate unstable ordering, identifiers, hidden
+  downloads, environment differences, or nondeterministic processing.
 
-Check:
-  - bus names are unique;
-  - coordinates are present and inside BC;
-  - voltage is positive and plausible;
-  - every line endpoint exists in this table.
+## 7. Understand the outputs
 
-`lines.csv`<br>
-Each row represents a transmission circuit.
-Important columns include:
-  - bus0, bus1;
-  - v_nom;
-  - length;
-  - s_nom;
-  - type;
-  - source identifiers such as transmission_line_id.
+### `buses.csv`
 
-The current code calculates s_nom using:
-  - 1. CODERS summer rating in MVA when available;
-  - 2. otherwise summer MW divided by the configured 0.9 power factor.
-  Review this in [lines.py (line 207)](E:/CoWork/PROJECTS/PyPSA/src/pypsa_bc/network/lines.py:207).
-  > Duplicate endpoint names can be legitimate parallel circuits. Therefore, do not delete duplicate-looking lines until you compare their source line and circuit identifiers.
+Each row represents one voltage-specific electrical bus. Important columns are:
 
-`line_types.csv`<br>
-This contains electrical parameters used by PyPSA:
-- resistance per kilometre;
-- reactance per kilometre;
-- capacitance per kilometre;
-- current rating;
-- nominal voltage.
+- `name`: unique PyPSA bus identifier;
+- `x`, `y`: representative longitude and latitude;
+- `v_nom`: nominal voltage in kV;
+- `type`: voltage label.
 
-Important assumptions currently include:
-- voltage-to-reactance values from config/base_network.yaml;
-- interpolation or substitution for unavailable voltage classes;
-- capacitance currently assigned as an assumption;
-- missing ampacity can be imputed from the modal value for the voltage class.
+A physical substation can create several buses when it contains several voltage
+levels. Transformers connect those voltage-specific buses.
 
-These assumptions need to appear in the model limitations and validation report.
+Check that:
 
-`transformers.csv`<br>
-    Transformers are inferred when the same physical location has buses at multiple voltage levels.
-    Check:
-    - bus0 and bus1 both exist;
-    - the high-voltage side and low-voltage side differ;
-    - transformer names are unique;
-    - each transformer type exists in transformer_types.csv.
+- bus names are unique;
+- coordinates are present and within the configured modelling envelope;
+- nominal voltages are positive;
+- every line endpoint references an existing bus.
 
-`transformer_types.csv`<br>
-The present transformer parameters include important placeholders:
-- `s_nom` = 2000 MVA;
-- assumed short-circuit impedance;
-- assumed losses;
-- phase shift;
-- tap limits and tap step.
+The registered intertie and GST coordinates are representative modelling and
+plotting points. They are not surveyed asset locations and must not be used to
+derive engineering line lengths or impedances.
 
-These are suitable for constructing a preliminary network, but they require sensitivity testing before making strong transmission conclusions.
+### `lines.csv`
 
-## 8. Validation
+Each row represents one retained transmission circuit. Important columns
+include:
+
+- `transmission_line_id` and `transmission_circuit_id`;
+- `bus0` and `bus1`;
+- `v_nom`;
+- `length`;
+- `s_nom`;
+- `type`.
+
+The preparation code calculates `s_nom` using:
+
+1. CODERS summer rating in MVA when available;
+2. otherwise, summer MW divided by the configured power factor of 0.9.
+
+Review the implementation in [lines.py](../../src/pypsa_bc/network/lines.py).
+
+Repeated endpoint names can represent legitimate parallel circuits. Do not
+delete duplicate-looking lines until their source line and circuit identifiers
+have been compared.
+
+### `line_types.csv`
+
+This table preserves the configured conductor inventory loaded from
+`electric_power_generation_table_13_3a.xlsx`. It is not a foreign-key lookup for
+the voltage labels in `lines.type`.
+
+During later model construction, the builder supplies explicit resistance,
+reactance, susceptance, and conductance values and clears the temporary line
+type label. Consequently, Rule 1 validates the uniqueness of conductor codes
+but does not require `lines.type` to match a conductor code.
+
+The conductor inventory includes fields such as resistance, reactance,
+capacitance, approximate current capacity, and cross-sectional area. The
+electrical-parameter derivation used by the model builder requires separate
+documentation and sensitivity testing.
+
+### `transformers.csv`
+
+Transformers are inferred when one physical location has buses at multiple
+voltage levels. The code connects adjacent unique voltage levels from low to
+high.
+
+Check that:
+
+- `bus0` and `bus1` both exist;
+- the high- and low-voltage sides differ;
+- transformer names are unique;
+- every transformer type exists in `transformer_types.csv`.
+
+### `transformer_types.csv`
+
+The current standardized transformer assumptions include:
+
+- `s_nom = 2,000 MVA`;
+- short-circuit voltage and resistance assumptions;
+- no-load loss and magnetizing-current assumptions;
+- phase-shift and tap-changer assumptions.
+
+These parameters prevent transformers from becoming unintended bottlenecks in
+the preliminary topology. They require sensitivity testing before the model can
+support strong conclusions about transformer-level constraints.
+
+### `correction_audit.csv`
+
+This table verifies that every active correction appears in the prepared
+outputs. It records the correction ID, record type, source record, action,
+status, observed result, source, and rationale.
+
+Preparation raises an error if any correction receives a status other than
+`PASS`. Structural validation therefore runs only after the correction contract
+has been satisfied.
+
+## 8. Understand the correction layer
+
+Rule 1 never edits the raw CODERS files. It loads corrections from:
+
+```text
+data/validation/base_network/
+|-- node_corrections.csv
+|-- line_corrections.csv
+|-- component_policy.yaml
+|-- bc_hydro_transmission_system_2025.pdf
+|-- bc_hydro_transmission_system_2025.metadata.json
+`-- README.md
+```
+
+The current node register contains nine active treatments:
+
+- one representative point for Goldstream Junction (`BC_GST_JCT`);
+- four Alberta boundary buses;
+- four United States boundary buses.
+
+The current line register contains thirteen active treatments:
+
+- line `32350` excluded as a collapsed Kidd self-loop;
+- line `32731` excluded as a collapsed Dasque Creek self-loop;
+- line `31876` assigned a 65 MW summer rating from adjacent `1L365`
+  segments, producing `s_nom = 72.2222 MVA` after power-factor conversion;
+- eight physical intertie segments retained for later fixed historical
+  exchange treatment;
+- GST lines `32550` and `32552` retained after restoring the junction.
+
+The BC Hydro transmission map confirms the ordering of Mica, Goldstream
+Junction, McCulloch Creek, and Goldstream Mine on circuit `60L223`. The GST
+coordinate remains a manual representative treatment and is labelled as such
+in the register.
+
+## 9. Run validation
+
+Run the structural validator through Snakemake:
+
 ```bash
 uv run snakemake \
   --snakefile workflow/Snakefile \
+  --cores 1 \
   validate_base_network
-
 ```
 
-## 9. What the current outputs reveal
- 
-The existing output is not yet completely clean:
-- 1 invalid bus row with missing name and coordinates;
-- 10 lines referencing missing endpoints;
-- 2 line self-loops;
-- 1 line with zero nominal capacity;
-- 4 separate valid connected components, sized 998, 6, 3, and 2 buses;
-- 183 repeated line names, representing 348 rows.
+Because the prepared tables and correction audit are dependencies, Snakemake
+rebuilds them first when they are missing or out of date.
 
-Repeated line names may represent legitimate parallel circuits. The other findings—especially missing endpoints, the invalid bus, zero capacity, and disconnected components—should be investigated before using this network as the base solve.
+The validator writes:
 
-The missing endpoints include several external interties, such as ABBC*_IPT and BCUS*_INT. Those may need explicit external buses rather than simply being discarded. Two missing internal endpoints around GST_JCT require separate source-data inspection.
+```text
+results/workflow/base_network_validation/
+|-- disconnected_components.csv
+|-- duplicate_identifiers.csv
+|-- invalid_buses.csv
+|-- missing_line_endpoints.csv
+|-- parallel_lines.csv
+|-- parameter_outliers.csv
+|-- self_loops.csv
+|-- summary.json
+`-- validation_report.md
+```
 
-## 10.  How to force a controlled rebuild
-Normally, let Snakemake decide whether rebuilding is required. If you deliberately need to test `Rule 1` from scratch:
+The validator checks:
+
+- required files and columns;
+- valid and unique buses;
+- line endpoint integrity;
+- line self-loops;
+- source-identifier uniqueness;
+- parallel circuits and repeated display names;
+- line lengths and capacities;
+- transformer references and parameters;
+- isolated buses;
+- connected-component membership.
+
+The component policy requires one dominant main component and allows only
+documented islands with exact approved membership. The validator fails if an
+island appears, disappears, gains a bus, or loses a bus without a reviewed
+policy update.
+
+## 10. Interpret the current validation result
+
+The current corrected Rule 1 outputs pass every blocking structural check:
+
+| Check | Current result |
+|---|---:|
+| Valid buses | PASS |
+| Line endpoint integrity | PASS |
+| Line self-loops | PASS |
+| Electrical parameter validity | PASS |
+| Connected-component policy | PASS |
+| Isolated buses | PASS |
+
+The connected components are:
+
+| Component | Buses | Treatment |
+|---|---:|---|
+| Main BC network | 1,009 | Required dominant component |
+| Fort Nelson remote system | 7 | Approved exact-membership island |
+| Winchie Creek remote system | 2 | Approved exact-membership island |
+
+Two warning classes remain:
+
+- 348 line rows have repeated display names, representing 165 parallel groups;
+- 56 line segments are shorter than the 0.05 km review threshold.
+
+These warnings remain visible for review but do not block downstream rules.
+Parallel circuits must retain unique source identifiers. Very short segments
+require attention during electrical-parameter derivation and regional
+aggregation.
+
+A `PASS` result means that the corrected prepared tables satisfy the declared
+Rule 1 structural contract. It does not prove power-flow feasibility, validate
+historical exchange profiles, or establish that every electrical parameter is
+authoritative.
+
+## 11. Force a controlled rebuild
+
+Normally, let Snakemake decide whether preparation must rerun. To deliberately
+rebuild Rule 1 after preserving the existing outputs:
+
 ```bash
 uv run snakemake \
   --profile workflow/profiles/default \
   --cores 1 \
-  --forcerun base_network_preparation \
-  base_network_preparation
+  base_network_preparation \
+  --forcerun base_network_preparation
 ```
-Use this only after preserving the existing outputs because `Rule 1` writes over the five CSV files. Then run the validation again from [validation](#8-validation)
+
+Then run validation:
+
+```bash
+uv run snakemake \
+  --profile workflow/profiles/default \
+  --cores 1 \
+  validate_base_network
+```
+
+Inspect the new correction audit and validation evidence before allowing any
+dependent stage to run.
