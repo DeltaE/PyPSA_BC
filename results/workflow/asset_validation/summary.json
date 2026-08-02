@@ -1,0 +1,157 @@
+{
+  "validator": "validate_assets",
+  "version": 1,
+  "generated_at_utc": "2026-08-02T18:56:37.151567+00:00",
+  "status": "FAIL",
+  "confidence": "Needs revision",
+  "grain": {
+    "wind_solar_tpp": "one prepared generating unit per row",
+    "hydro_generation": "one prepared hydro generating asset per row",
+    "hydro_reservoirs": "one prepared reservoir per row",
+    "hydro_cascade": "one source hydro project-unit record per row"
+  },
+  "counts": {
+    "wind": 10,
+    "solar": 3,
+    "tpp": 38,
+    "hydro_generation": 118,
+    "hydro_reservoirs": 21,
+    "hydro_cascade": 76
+  },
+  "checks": [
+    {
+      "check": "wind_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 7,
+      "message": "Every required asset field must be present."
+    },
+    {
+      "check": "solar_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 6,
+      "message": "Every required asset field must be present."
+    },
+    {
+      "check": "tpp_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 6,
+      "message": "Every required asset field must be present."
+    },
+    {
+      "check": "hydro_generation_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 10,
+      "message": "Every required asset field must be present."
+    },
+    {
+      "check": "hydro_reservoirs_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 5,
+      "message": "Every required asset field must be present."
+    },
+    {
+      "check": "hydro_cascade_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 7,
+      "message": "Every required asset field must be present."
+    },
+    {
+      "check": "asset_identifier_integrity",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 266,
+      "message": "Identifiers must be populated and unique within each table."
+    },
+    {
+      "check": "asset_coordinates",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 266,
+      "message": "Coordinates must be numeric and inside the broad modelling envelope."
+    },
+    {
+      "check": "positive_asset_capacities",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 266,
+      "message": "Generation capacity and known reservoir storage must be positive."
+    },
+    {
+      "check": "capacity_evidence_warnings",
+      "severity": "WARNING",
+      "status": "WARN",
+      "count": 2,
+      "denominator": 21,
+      "message": "Missing reservoir storage remains visible pending an evidence policy."
+    },
+    {
+      "check": "technology_vocabulary",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 245,
+      "message": "Technology labels must use the declared Rule 2 vocabulary."
+    },
+    {
+      "check": "base_network_mapping",
+      "severity": "ERROR",
+      "status": "FAIL",
+      "count": 1,
+      "denominator": 245,
+      "message": "Every generating asset must resolve to at least one Rule 1 bus."
+    },
+    {
+      "check": "wind_turbine_model_coverage",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 10,
+      "message": "Every wind configuration must resolve through the turbine dictionary."
+    },
+    {
+      "check": "hydro_reservoir_references",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 118,
+      "message": "Internal reservoir references must resolve; named river sinks are external boundaries."
+    }
+  ],
+  "blocking_checks": [
+    "base_network_mapping"
+  ],
+  "warning_checks": [
+    "capacity_evidence_warnings"
+  ],
+  "artifacts": [
+    "schema_issues.csv",
+    "duplicate_identifiers.csv",
+    "invalid_coordinates.csv",
+    "invalid_capacities.csv",
+    "invalid_technology_labels.csv",
+    "unmapped_network_nodes.csv",
+    "wind_turbine_coverage.csv",
+    "hydro_reference_issues.csv"
+  ],
+  "limitations": [
+    "The coordinate check uses a broad bounding box, not an administrative polygon.",
+    "A bus mapping proves identifier compatibility, not electrical feasibility.",
+    "Capacity checks establish structural plausibility, not authoritative nameplate values.",
+    "External river sinks are accepted boundaries and are not reservoir assets."
+  ]
+}

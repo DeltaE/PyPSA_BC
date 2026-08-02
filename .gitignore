@@ -1,5 +1,5 @@
 # Generated outputs and local data
-results/*
+results/*/*.nc
 resources/*
 data/downloaded_data/*
 data/linking_tool

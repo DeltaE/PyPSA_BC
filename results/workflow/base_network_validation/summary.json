@@ -1,0 +1,182 @@
+{
+  "validator": "validate_base_network",
+  "version": 1,
+  "generated_at_utc": "2026-08-02T03:45:40.234747+00:00",
+  "data_as_of_utc": "2026-08-02T03:45:26.090579+00:00",
+  "network_directory": "data/processed_data/network",
+  "status": "PASS",
+  "confidence": "Ready to share",
+  "grain": {
+    "buses": "one voltage-specific electrical bus per prepared identifier",
+    "lines": "one prepared transmission circuit per row",
+    "transformers": "one voltage-level connection per row"
+  },
+  "counts": {
+    "buses": 1018,
+    "lines": 1237,
+    "line_types": 34,
+    "transformers": 110,
+    "transformer_types": 18
+  },
+  "checks": [
+    {
+      "check": "buses_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 5,
+      "message": "Required columns present."
+    },
+    {
+      "check": "lines_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 7,
+      "message": "Required columns present."
+    },
+    {
+      "check": "line_types_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1,
+      "message": "Required columns present."
+    },
+    {
+      "check": "transformers_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 4,
+      "message": "Required columns present."
+    },
+    {
+      "check": "transformer_types_required_columns",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 4,
+      "message": "Required columns present."
+    },
+    {
+      "check": "valid_buses",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1018,
+      "rate": 0.0,
+      "message": "Bus names, coordinates, and nominal voltages must be valid."
+    },
+    {
+      "check": "line_endpoint_integrity",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1237,
+      "rate": 0.0,
+      "message": "Every line endpoint must reference a prepared bus."
+    },
+    {
+      "check": "line_self_loops",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1237,
+      "rate": 0.0,
+      "message": "Transmission lines may not connect a bus to itself."
+    },
+    {
+      "check": "buses_name_uniqueness",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1018,
+      "rate": 0.0,
+      "message": "Bus names are primary keys."
+    },
+    {
+      "check": "lines_transmission_line_id_uniqueness",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1237,
+      "rate": 0.0,
+      "message": "Source transmission-line IDs must be unique at prepared-line grain."
+    },
+    {
+      "check": "lines_name_uniqueness",
+      "severity": "WARNING",
+      "status": "WARN",
+      "count": 348,
+      "denominator": 1237,
+      "rate": 0.28132579,
+      "message": "Repeated display names may be parallel circuits and require traceable source IDs."
+    },
+    {
+      "check": "parallel_line_groups",
+      "severity": "INFO",
+      "status": "INFO",
+      "count": 165,
+      "denominator": 1237,
+      "rate": 0.13338723,
+      "message": "Parallel circuits are retained and reported; they are not automatically errors."
+    },
+    {
+      "check": "electrical_parameter_validity",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 2273,
+      "rate": 0.0,
+      "message": "Required electrical values and type references must be valid."
+    },
+    {
+      "check": "electrical_parameter_warnings",
+      "severity": "WARNING",
+      "status": "WARN",
+      "count": 56,
+      "denominator": 2273,
+      "rate": 0.02463704,
+      "message": "Extreme but possible values require review."
+    },
+    {
+      "check": "connected_component_policy",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 3,
+      "rate": 0.0,
+      "message": "The main component must meet its minimum share and every non-main component must exactly match an approved island membership."
+    },
+    {
+      "check": "isolated_buses",
+      "severity": "ERROR",
+      "status": "PASS",
+      "count": 0,
+      "denominator": 1018,
+      "rate": 0.0,
+      "message": "Isolated buses cannot participate in network dispatch."
+    }
+  ],
+  "blocking_checks": [],
+  "warning_checks": [
+    "lines_name_uniqueness",
+    "electrical_parameter_warnings"
+  ],
+  "artifacts": [
+    "invalid_buses.csv",
+    "missing_line_endpoints.csv",
+    "self_loops.csv",
+    "disconnected_components.csv",
+    "parameter_outliers.csv",
+    "duplicate_identifiers.csv",
+    "parallel_lines.csv"
+  ],
+  "limitations": [
+    "The coordinate test uses a broad bounding box, not an administrative polygon.",
+    "Registered map-derived coordinates are representative schematic points, not surveyed assets.",
+    "Parallel circuits are reported but retained when source identifiers remain traceable.",
+    "This gate validates prepared topology and parameters; it does not validate power-flow feasibility."
+  ]
+}

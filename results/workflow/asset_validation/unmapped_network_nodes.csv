@@ -1,0 +1,2 @@
+table,row,identifier,connecting_node_code,severity,issue
+tpp,36,BC_KGE03_GEN,BC_WEY_ISS,ERROR,no_voltage_specific_bus_for_source_node
