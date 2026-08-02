@@ -9,17 +9,25 @@ quality-assurance gate.
 
 ## Contents
 
-- [1. Overview](#1-overview)
-- [2. Safely preview Rule 1](#2-safely-preview-rule-1)
-- [3. Preserve the current outputs](#3-preserve-the-current-outputs)
-- [4. Run Rule 1 only](#4-run-rule-1-only)
-- [5. Confirm the delivered files](#5-confirm-the-delivered-files)
-- [6. Check reproducibility](#6-check-reproducibility)
-- [7. Understand the outputs](#7-understand-the-outputs)
-- [8. Understand the correction layer](#8-understand-the-correction-layer)
-- [9. Run validation](#9-run-validation)
-- [10. Interpret the current validation result](#10-interpret-the-current-validation-result)
-- [11. Force a controlled rebuild](#11-force-a-controlled-rebuild)
+- [Dissecting Rule 1: Base Network Preparation and Validation](#dissecting-rule-1-base-network-preparation-and-validation)
+  - [Contents](#contents)
+  - [1. Overview](#1-overview)
+  - [2. Safely preview Rule 1](#2-safely-preview-rule-1)
+  - [3. Preserve the current outputs](#3-preserve-the-current-outputs)
+  - [4. Run Rule 1 only](#4-run-rule-1-only)
+  - [5. Confirm the delivered files](#5-confirm-the-delivered-files)
+  - [6. Check reproducibility](#6-check-reproducibility)
+  - [7. Understand the outputs](#7-understand-the-outputs)
+    - [`buses.csv`](#busescsv)
+    - [`lines.csv`](#linescsv)
+    - [`line_types.csv`](#line_typescsv)
+    - [`transformers.csv`](#transformerscsv)
+    - [`transformer_types.csv`](#transformer_typescsv)
+    - [`correction_audit.csv`](#correction_auditcsv)
+  - [8. Understand the correction layer](#8-understand-the-correction-layer)
+  - [9. Run validation](#9-run-validation)
+  - [10. Interpret the current validation result](#10-interpret-the-current-validation-result)
+  - [11. Force a controlled rebuild](#11-force-a-controlled-rebuild)
 
 ---
 
