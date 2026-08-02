@@ -1,0 +1,3 @@
+interface,policy,checks_passed,checks_total,maximum_source_series_error_mw_or_pu,observed_hours_outside_ttc,source_label_anomaly_events,maximum_observed_import_mw,maximum_observed_export_mw,maximum_import_ttc_mw,maximum_export_ttc_mw
+AB,observed_interchange,6,6,0.0,,2,555.0,744.0,,
+US,observed_interchange,6,6,0.0,,2,2056.0,2311.0,,

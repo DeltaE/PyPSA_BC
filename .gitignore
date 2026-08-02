@@ -28,3 +28,4 @@ data/processed_data/*
 data/processed_data/network/*.csv
 data/validation/chapter2
 tests/studies/chapter2
+studies/build/

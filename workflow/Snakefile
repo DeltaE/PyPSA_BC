@@ -40,20 +40,51 @@ ROLLING_WINDOW_FILES = [
 ROLLING_DIAGNOSTIC_DIR = f"{ROLLING_DIR}/diagnostics"
 ROLLING_DIAGNOSTIC_SUMMARY = f"{ROLLING_DIAGNOSTIC_DIR}/diagnostic_summary.json"
 ROLLING_DIAGNOSTIC_REPORT = f"{ROLLING_DIAGNOSTIC_DIR}/diagnostic_report.md"
+ANNUAL_REFERENCE_STEM = f"{OUTPUT_ROOT}/annual/A_lower_zero_observed_transport_full_horizon"
+ANNUAL_REFERENCE_NETWORK = f"{ANNUAL_REFERENCE_STEM}.nc"
+ANNUAL_REFERENCE_SOLVE_SUMMARY = f"{ANNUAL_REFERENCE_STEM}_summary.json"
+ANNUAL_REFERENCE_DIAGNOSTIC_DIR = f"{ANNUAL_REFERENCE_STEM}_diagnostics"
+ANNUAL_REFERENCE_CALIBRATION_DIR = f"{OUTPUT_ROOT}/calibration/annual_reference_2021"
+STATCAN_VALIDATION_DIR = "data/validation/statcan"
+STATCAN_GENERATION = f"{STATCAN_VALIDATION_DIR}/bc_generation_by_type_2021.csv"
+STATCAN_GENERATION_MANIFEST = (
+    f"{STATCAN_VALIDATION_DIR}/bc_generation_by_type_2021.manifest.json"
+)
+BC_HYDRO_LOAD = "data/validation/bc_hydro/BalancingAuthorityLoad2021.xls"
+BC_HYDRO_STATION_EVIDENCE = (
+    "data/validation/bc_hydro/annual_reports/bc_hydro_fiscal_2021_supply.csv"
+)
+BC_HYDRO_STATION_MAPPING = (
+    "studies/chapter2/inputs/bc_hydro_station_validation_map.csv"
+)
+BC_HYDRO_ANNUAL_REPORT = (
+    "data/validation/bc_hydro/annual_reports/"
+    "bc_hydro_2022_23_annual_service_plan_report.pdf"
+)
+BC_HYDRO_ANNUAL_REPORT_MANIFEST = (
+    "data/validation/bc_hydro/annual_reports/"
+    "bc_hydro_2022_23_annual_report.manifest.json"
+)
+BC_HYDRO_STATION_EVIDENCE_MANIFEST = (
+    "data/validation/bc_hydro/annual_reports/"
+    "bc_hydro_fiscal_2021_supply.manifest.json"
+)
+NAMED_STATION_VALIDATION_DIR = f"{OUTPUT_ROOT}/calibration/named_stations_2021"
+PUBLICATION_READINESS_DIR = f"{OUTPUT_ROOT}/readiness"
+STATION_BAND_DIR = f"{OUTPUT_ROOT}/sensitivities/station_energy_band_25pct"
+STATION_BAND_NETWORK_PREPARED = f"{STATION_BAND_DIR}/network_prepared.nc"
+STATION_BAND_NETWORK_SOLVED = f"{STATION_BAND_DIR}/network_solved.nc"
+STATION_BAND_SOLVE_SUMMARY = f"{STATION_BAND_DIR}/solve_summary.json"
+HYDRO_DISPATCH_COMPARISON_DIR = f"{OUTPUT_ROOT}/sensitivities/hydro_dispatch_comparison"
+HYDRO_DISPATCH_ECONOMIC_DIR = f"{OUTPUT_ROOT}/sensitivities/hydro_dispatch_economics"
+HYDRO_DISPATCH_ATTEMPT_REGISTER = (
+    "studies/chapter2/inputs/hydro_dispatch_sensitivity_attempts.json"
+)
 CASES = expand_scenarios(config)
 CASE_IDS = [case["case_id"] for case in CASES]
 RUNNABLE_CASE_IDS = [case["case_id"] for case in CASES if case["runnable"]]
 CASE_FILES = [f"{SCENARIO_DIR}/{case_id}.yaml" for case_id in CASE_IDS]
 
-ASSETS = [
-    "data/processed_data/wind/existing/bc_ext_wind_assets.csv",
-    "data/processed_data/solar/existing/bc_ext_solar_assets.csv",
-    "data/processed_data/tpp/existing/bc_ext_tpp_assets.csv",
-    "data/processed_data/hydro/existing/hydro_generation.csv",
-    "data/processed_data/hydro/existing/hydro_reservoirs.csv",
-    "data/processed_data/hydro/existing/hydro_cascade.csv",
-    "data/downloaded_data/wind/turbine_dict.json",
-]
 PROFILES = [
     "data/processed_data/wind/existing/bc_ext_wind_ts.csv",
     "data/processed_data/solar/existing/bc_ext_solar_ts.csv",
@@ -64,13 +95,15 @@ LOADS = [
     "data/processed_data/load/hourly_res.csv",
     "data/processed_data/load/hourly_csmi.csv",
 ]
-EXTERNAL_BOUNDARY_DATA = [
+TTC_SENSITIVITY_DATA = [
     "data/validation/bc_hydro/BCABTTC2021.xls",
     "data/validation/bc_hydro/ABBCTTC2021.xls",
     "data/validation/bc_hydro/BCUSTTC2021.xls",
     "data/validation/bc_hydro/USBCTTC2021.xls",
-    "data/validation/bc_hydro/HourlyTielineData2021.xls",
 ]
+EXTERNAL_BOUNDARY_DATA = ["data/validation/bc_hydro/HourlyTielineData2021.xls"]
+if config["base_model"]["external_boundary_policy"] == "hourly_ttc":
+    EXTERNAL_BOUNDARY_DATA += TTC_SENSITIVITY_DATA
 MODEL_DATA = [
     "data/pypsa_data/wind.pickle",
     "data/pypsa_data/solar.pickle",
@@ -134,50 +167,14 @@ rule scenario_plan:
 include: "rules/base_network.smk"
 
 
-rule fetch_wind_inventory:
-    input:
-        config="config/data.yaml",
-        script="workflow/scripts/fetch_inputs.py",
-    output:
-        "data/downloaded_data/wind/canada_turbines.xlsx"
-    log:
-        "logs/snakemake/fetch_wind_inventory.log"
-    run:
-        run_logged(
-            [PYTHON, "-m", "workflow.scripts.fetch_inputs", "--only", "can_turbines"],
-            log[0],
-        )
-
-
-rule asset_preparation:
-    """Stage 2: prepare hydro, wind, solar, and thermal asset inventories."""
-    input:
-        base=BASE_NETWORK,
-        base_validation=BASE_NETWORK_VALIDATION_SUMMARY,
-        wind_inventory="data/downloaded_data/wind/canada_turbines.xlsx",
-        generators="data/downloaded_data/CODERS/data-pull/supply/generators.csv",
-        generic="data/downloaded_data/CODERS/data-pull/supply/generation_generic.csv",
-        hydro="data/downloaded_data/CODERS/data-pull/supply/existing_hydro.csv",
-        hydro_topology="data/inventory/hydro_topology.csv",
-        hydro_reservoirs="data/inventory/hydro_reservoirs.csv",
-        generator_wup="data/inventory/custom/hydro_gen_wup_features.csv",
-        reservoir_wup="data/inventory/custom/hydro_res_wup_features.csv",
-        evidence="studies/chapter2/inputs/cascade_evidence_register.csv",
-        schedules="studies/chapter2/inputs/release_schedules.csv",
-        script="workflow/scripts/prepare_assets.py",
-    output:
-        ASSETS
-    log:
-        "logs/snakemake/02_asset_preparation.log"
-    run:
-        require_validation_pass(input.base_validation, "Base network")
-        run_logged([PYTHON, "-m", "workflow.scripts.prepare_assets"], log[0])
+include: "rules/assets.smk"
 
 
 rule profile_preparation:
     """Stage 3: prepare supply profiles and regional-district demand profiles."""
     input:
         assets=ASSETS,
+        asset_validation=ASSET_VALIDATION_SUMMARY,
         cutout="data/downloaded_data/cutout/BC_2021_2022.nc",
         basin_na="data/downloaded_data/HydroBASINS/hybas_na_lev12_v1c.shp",
         basin_arctic="data/downloaded_data/HydroBASINS_arctic/hybas_ar_lev12_v1c.shp",
@@ -193,6 +190,7 @@ rule profile_preparation:
         supply="logs/snakemake/03a_supply_profile_preparation.log",
         demand="logs/snakemake/03b_demand_profile_preparation.log",
     run:
+        require_validation_pass(input.asset_validation, "Assets")
         run_logged(
             [PYTHON, "-m", "workflow.scripts.prepare_profiles", "--force-update"],
             log.supply,
@@ -230,7 +228,10 @@ rule prepared_inputs:
 rule model_file_preparation:
     """Stage 4b: assemble and export the unsolved PyPSA network file."""
     input:
-        data=BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA,
+        data=(
+            BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA
+            + [STATCAN_GENERATION, BC_HYDRO_STATION_EVIDENCE, BC_HYDRO_STATION_MAPPING]
+        ),
         script="workflow/scripts/prepare_model_file.py",
     output:
         network=PREPARED_BASE_MODEL,
@@ -241,6 +242,9 @@ rule model_file_preparation:
         storage_policy=config["base_model"]["storage_policy"],
         external_boundary_policy=config["base_model"]["external_boundary_policy"],
         network_flow_formulation=config["base_model"]["network_flow_formulation"],
+        generation_calibration_policy=config["base_model"]["generation_calibration_policy"],
+        ror_dispatch_policy=config["base_model"]["ror_dispatch_policy"],
+        named_station_capacity_policy=config["base_model"]["named_station_capacity_policy"],
         release_multiplier=config["base_model"]["release_multiplier"],
     log:
         "logs/snakemake/04b_model_file_preparation.log"
@@ -470,6 +474,459 @@ rule rolling_horizon_diagnostics:
         )
 
 
+rule annual_reference_diagnostics:
+    """Reproduce the independent audit and figures for the optimal annual reference."""
+    input:
+        network=ANNUAL_REFERENCE_NETWORK,
+        solve_summary=ANNUAL_REFERENCE_SOLVE_SUMMARY,
+        source_network=PREPARED_BASE_MODEL,
+        script="workflow/scripts/studies/chapter2/audit_full_horizon_results.py",
+        diagnostics="src/pypsa_bc/studies/rolling_diagnostics.py",
+    output:
+        summary=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/diagnostic_summary.json",
+        report=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/diagnostic_report.md",
+        dispatch=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/annual_dispatch.csv",
+        mix=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/annual_energy_mix.csv",
+        external=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/external_interchange_fidelity.csv",
+        backstop=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/backstop_by_region.csv",
+        corridors=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/corridor_utilization.csv",
+        flow_identification=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/minimum_transfer_identification.csv",
+        storage=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/reservoir_storage_trajectory.csv",
+        storage_bounds=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/reservoir_storage_bounds.csv",
+        closure=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/cyclic_storage_closure.csv",
+        releases=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/release_compliance.csv",
+        dispatch_svg=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_annual_dispatch.svg",
+        dispatch_png=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_annual_dispatch.png",
+        mix_svg=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_monthly_energy_mix.svg",
+        mix_png=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_monthly_energy_mix.png",
+        storage_svg=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_reservoir_storage.svg",
+        storage_png=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_reservoir_storage.png",
+        corridors_svg=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_corridor_utilization.svg",
+        corridors_png=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/figure_corridor_utilization.png",
+    params:
+        backstop_tolerance=config["rolling_horizon"]["publication_backstop_share_tolerance"],
+    log:
+        "logs/snakemake/annual_reference_diagnostics.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_full_horizon_results",
+                "--network", input.network,
+                "--solve-summary", input.solve_summary,
+                "--source-network", input.source_network,
+                "--output-directory", ANNUAL_REFERENCE_DIAGNOSTIC_DIR,
+                "--backstop-share-tolerance", str(params.backstop_tolerance),
+            ],
+            log[0],
+        )
+
+
+rule fetch_statcan_generation_validation:
+    """Pin the official Statistics Canada 2021 BC generation benchmark."""
+    input:
+        script="workflow/scripts/fetch_statcan_generation_validation.py",
+    output:
+        archive=f"{STATCAN_VALIDATION_DIR}/25100015-eng.zip",
+        metadata=f"{STATCAN_VALIDATION_DIR}/25100015_MetaData.csv",
+        generation=STATCAN_GENERATION,
+        manifest=STATCAN_GENERATION_MANIFEST,
+    log:
+        "logs/snakemake/fetch_statcan_generation_validation.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.fetch_statcan_generation_validation",
+                "--year", "2021",
+                "--output-directory", STATCAN_VALIDATION_DIR,
+            ],
+            log[0],
+        )
+
+
+rule fetch_bc_hydro_annual_validation:
+    """Pin the official BC Hydro annual report used for boundary triangulation."""
+    input:
+        script="workflow/scripts/fetch_bc_hydro_annual_validation.py",
+    output:
+        pdf=BC_HYDRO_ANNUAL_REPORT,
+        manifest=BC_HYDRO_ANNUAL_REPORT_MANIFEST,
+    log:
+        "logs/snakemake/fetch_bc_hydro_annual_validation.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m", "workflow.scripts.fetch_bc_hydro_annual_validation",
+                "--output-directory", "data/validation/bc_hydro/annual_reports",
+            ],
+            log[0],
+        )
+
+
+rule extract_bc_hydro_supply_validation:
+    """Extract the visually verified fiscal-2021 supply table from the pinned PDF."""
+    input:
+        pdf=BC_HYDRO_ANNUAL_REPORT,
+        script="workflow/scripts/extract_bc_hydro_supply_validation.py",
+    output:
+        evidence=BC_HYDRO_STATION_EVIDENCE,
+        manifest=BC_HYDRO_STATION_EVIDENCE_MANIFEST,
+    log:
+        "logs/snakemake/extract_bc_hydro_supply_validation.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m", "workflow.scripts.extract_bc_hydro_supply_validation",
+                "--pdf", input.pdf,
+                "--output", output.evidence,
+                "--manifest", output.manifest,
+            ],
+            log[0],
+        )
+
+
+rule annual_reference_calibration:
+    """Audit the solved reference against independent provincial benchmarks."""
+    input:
+        network=ANNUAL_REFERENCE_NETWORK,
+        observed_load=BC_HYDRO_LOAD,
+        observed_generation=STATCAN_GENERATION,
+        generation_manifest=STATCAN_GENERATION_MANIFEST,
+        script="workflow/scripts/studies/chapter2/audit_baseline_calibration.py",
+        metrics="src/pypsa_bc/studies/baseline_calibration.py",
+    output:
+        summary=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/calibration_summary.json",
+        report=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/calibration_report.md",
+        load_hourly=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/load_hourly_comparison.csv",
+        load_monthly=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/load_monthly_comparison.csv",
+        generation_monthly=(
+            f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/generation_monthly_comparison.csv"
+        ),
+        generation_annual=(
+            f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/generation_annual_comparison.csv"
+        ),
+        load_svg=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_load_input_fidelity.svg",
+        load_png=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_load_input_fidelity.png",
+        mix_svg=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_generation_mix.svg",
+        mix_png=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_generation_mix.png",
+        hydro_svg=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_monthly_hydro.svg",
+        hydro_png=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_monthly_hydro.png",
+        nonhydro_svg=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_monthly_nonhydro.svg",
+        nonhydro_png=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/figure_monthly_nonhydro.png",
+    log:
+        "logs/snakemake/annual_reference_calibration.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_baseline_calibration",
+                "--network", input.network,
+                "--observed-load", input.observed_load,
+                "--observed-generation", input.observed_generation,
+                "--generation-manifest", input.generation_manifest,
+                "--output-directory", ANNUAL_REFERENCE_CALIBRATION_DIR,
+            ],
+            log[0],
+        )
+
+
+rule annual_reference_named_station_validation:
+    """Screen named hydro stations against official BC Hydro fiscal-year evidence."""
+    input:
+        network=ANNUAL_REFERENCE_NETWORK,
+        evidence=BC_HYDRO_STATION_EVIDENCE,
+        mapping=BC_HYDRO_STATION_MAPPING,
+        script="workflow/scripts/studies/chapter2/audit_named_station_validation.py",
+        module="src/pypsa_bc/studies/station_validation.py",
+    output:
+        summary=f"{NAMED_STATION_VALIDATION_DIR}/named_station_summary.json",
+        report=f"{NAMED_STATION_VALIDATION_DIR}/named_station_report.md",
+        comparison=f"{NAMED_STATION_VALIDATION_DIR}/named_station_comparison.csv",
+        figure_svg=f"{NAMED_STATION_VALIDATION_DIR}/figure_named_station_validation.svg",
+        figure_png=f"{NAMED_STATION_VALIDATION_DIR}/figure_named_station_validation.png",
+    log:
+        "logs/snakemake/annual_reference_named_station_validation.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_named_station_validation",
+                "--network", input.network,
+                "--evidence", input.evidence,
+                "--mapping", input.mapping,
+                "--output-directory", NAMED_STATION_VALIDATION_DIR,
+            ],
+            log[0],
+        )
+
+
+rule annual_reference_publication_readiness:
+    """Combine integrity, calibration, and station evidence into stop/go decisions."""
+    input:
+        integrity=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/diagnostic_summary.json",
+        calibration=f"{ANNUAL_REFERENCE_CALIBRATION_DIR}/calibration_summary.json",
+        stations=f"{NAMED_STATION_VALIDATION_DIR}/named_station_summary.json",
+        script="workflow/scripts/studies/chapter2/audit_publication_readiness.py",
+    output:
+        summary=f"{PUBLICATION_READINESS_DIR}/publication_readiness_summary.json",
+        report=f"{PUBLICATION_READINESS_DIR}/publication_readiness_report.md",
+    log:
+        "logs/snakemake/annual_reference_publication_readiness.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_publication_readiness",
+                "--integrity-summary", input.integrity,
+                "--calibration-summary", input.calibration,
+                "--station-summary", input.stations,
+                "--summary", output.summary,
+                "--report", output.report,
+            ],
+            log[0],
+        )
+
+
+rule station_energy_band_preparation:
+    """Prepare the explicit ±25% fiscal-energy-band diagnostic sensitivity."""
+    input:
+        data=(
+            BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA
+            + [STATCAN_GENERATION, BC_HYDRO_STATION_EVIDENCE, BC_HYDRO_STATION_MAPPING]
+        ),
+        script="workflow/scripts/prepare_model_file.py",
+    output:
+        network=STATION_BAND_NETWORK_PREPARED,
+        report=f"{STATION_BAND_DIR}/model_preparation.md",
+    log:
+        "logs/snakemake/station_energy_band_preparation.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m", "workflow.scripts.prepare_model_file",
+                "--network", output.network,
+                "--report", output.report,
+                "--year", str(config["execution"]["year"]),
+                "--capacity-choice", config["execution"]["capacity_choice"],
+                "--reservoir-representation", config["base_model"]["reservoir_representation"],
+                "--water-policy", config["base_model"]["water_policy"],
+                "--storage-policy", config["base_model"]["storage_policy"],
+                "--external-boundary-policy", config["base_model"]["external_boundary_policy"],
+                "--network-flow-formulation", config["base_model"]["network_flow_formulation"],
+                "--generation-calibration-policy", config["base_model"]["generation_calibration_policy"],
+                "--ror-dispatch-policy", config["base_model"]["ror_dispatch_policy"],
+                "--hydro-dispatch-cost-policy", "source_generic_vom",
+                "--observed-generation", STATCAN_GENERATION,
+                "--named-station-capacity-policy", config["base_model"]["named_station_capacity_policy"],
+                "--named-station-energy-policy", "bc_hydro_fiscal_2021_screening_band",
+                "--named-station-energy-tolerance", "0.25",
+                "--named-station-evidence", BC_HYDRO_STATION_EVIDENCE,
+                "--named-station-mapping", BC_HYDRO_STATION_MAPPING,
+                "--release-multiplier", str(config["base_model"]["release_multiplier"]),
+            ],
+            log[0],
+        )
+
+
+rule station_energy_band_validation:
+    input:
+        network=STATION_BAND_NETWORK_PREPARED,
+        script="workflow/scripts/validate_model_network.py",
+    output:
+        summary=f"{STATION_BAND_DIR}/network_structure.json",
+    log:
+        "logs/snakemake/station_energy_band_validation.log"
+    run:
+        run_logged(
+            [PYTHON, "-m", "workflow.scripts.validate_model_network",
+             "--network", input.network, "--summary", output.summary],
+            log[0],
+        )
+
+
+rule station_energy_band_solve:
+    input:
+        network=STATION_BAND_NETWORK_PREPARED,
+        structural=f"{STATION_BAND_DIR}/network_structure.json",
+        gate1="studies/chapter2/gate1/summary.json",
+        gate2="studies/chapter2/gate2/summary.json",
+        representation="studies/chapter2/gate2/representation_verification.json",
+        release="studies/chapter2/gate2/release_uncertainty_verification.json",
+        storage="studies/chapter2/gate2/storage_uncertainty_verification.json",
+        boundary="studies/chapter2/gate2/external_boundary_verification.json",
+        script="workflow/scripts/solve_model.py",
+    output:
+        network=STATION_BAND_NETWORK_SOLVED,
+        summary=STATION_BAND_SOLVE_SUMMARY,
+    log:
+        "logs/snakemake/station_energy_band_solve.log"
+    run:
+        if not config["execution"]["allow_solve"]:
+            raise RuntimeError(
+                "Station-band sensitivity solve is disabled; set execution.allow_solve "
+                "to true only after reviewing its cross-period evidence boundary."
+            )
+        for gate_file in (
+            input.structural, input.gate1, input.gate2, input.representation,
+            input.release, input.storage, input.boundary,
+        ):
+            require_validation_pass(gate_file, "Station-band sensitivity prerequisite")
+        run_logged(
+            [
+                PYTHON, "-m", "workflow.scripts.solve_model",
+                "--network", input.network,
+                "--output", output.network,
+                "--summary", output.summary,
+                "--highs-method", "simplex",
+                "--time-limit-seconds", "1200",
+            ],
+            log[0],
+        )
+
+
+rule station_energy_band_diagnostics:
+    input:
+        network=STATION_BAND_NETWORK_SOLVED,
+        solve_summary=STATION_BAND_SOLVE_SUMMARY,
+        source_network=STATION_BAND_NETWORK_PREPARED,
+        script="workflow/scripts/studies/chapter2/audit_full_horizon_results.py",
+    output:
+        summary=f"{STATION_BAND_DIR}/diagnostics/diagnostic_summary.json",
+        report=f"{STATION_BAND_DIR}/diagnostics/diagnostic_report.md",
+    log:
+        "logs/snakemake/station_energy_band_diagnostics.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_full_horizon_results",
+                "--network", input.network,
+                "--solve-summary", input.solve_summary,
+                "--source-network", input.source_network,
+                "--output-directory", f"{STATION_BAND_DIR}/diagnostics",
+            ],
+            log[0],
+        )
+
+
+rule station_energy_band_calibration:
+    input:
+        network=STATION_BAND_NETWORK_SOLVED,
+        observed_load=BC_HYDRO_LOAD,
+        observed_generation=STATCAN_GENERATION,
+        manifest=STATCAN_GENERATION_MANIFEST,
+        script="workflow/scripts/studies/chapter2/audit_baseline_calibration.py",
+    output:
+        summary=f"{STATION_BAND_DIR}/calibration/calibration_summary.json",
+        report=f"{STATION_BAND_DIR}/calibration/calibration_report.md",
+    log:
+        "logs/snakemake/station_energy_band_calibration.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_baseline_calibration",
+                "--network", input.network,
+                "--observed-load", input.observed_load,
+                "--observed-generation", input.observed_generation,
+                "--generation-manifest", input.manifest,
+                "--output-directory", f"{STATION_BAND_DIR}/calibration",
+            ],
+            log[0],
+        )
+
+
+rule station_energy_band_named_stations:
+    input:
+        network=STATION_BAND_NETWORK_SOLVED,
+        evidence=BC_HYDRO_STATION_EVIDENCE,
+        mapping=BC_HYDRO_STATION_MAPPING,
+        script="workflow/scripts/studies/chapter2/audit_named_station_validation.py",
+    output:
+        summary=f"{STATION_BAND_DIR}/named_stations/named_station_summary.json",
+        report=f"{STATION_BAND_DIR}/named_stations/named_station_report.md",
+        comparison=f"{STATION_BAND_DIR}/named_stations/named_station_comparison.csv",
+        figure=f"{STATION_BAND_DIR}/named_stations/figure_named_station_validation.png",
+    log:
+        "logs/snakemake/station_energy_band_named_stations.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_named_station_validation",
+                "--network", input.network,
+                "--evidence", input.evidence,
+                "--mapping", input.mapping,
+                "--output-directory", f"{STATION_BAND_DIR}/named_stations",
+            ],
+            log[0],
+        )
+
+
+rule hydro_dispatch_sensitivity_comparison:
+    input:
+        reference_stations=f"{NAMED_STATION_VALIDATION_DIR}/named_station_comparison.csv",
+        sensitivity_stations=f"{STATION_BAND_DIR}/named_stations/named_station_comparison.csv",
+        reference_integrity=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/diagnostic_summary.json",
+        sensitivity_integrity=f"{STATION_BAND_DIR}/diagnostics/diagnostic_summary.json",
+        reference_energy_mix=f"{ANNUAL_REFERENCE_DIAGNOSTIC_DIR}/annual_energy_mix.csv",
+        sensitivity_energy_mix=f"{STATION_BAND_DIR}/diagnostics/annual_energy_mix.csv",
+        attempts=HYDRO_DISPATCH_ATTEMPT_REGISTER,
+        script="workflow/scripts/studies/chapter2/compare_hydro_dispatch_sensitivities.py",
+    output:
+        summary=f"{HYDRO_DISPATCH_COMPARISON_DIR}/hydro_dispatch_sensitivity_summary.json",
+        report=f"{HYDRO_DISPATCH_COMPARISON_DIR}/hydro_dispatch_sensitivity_report.md",
+        table=f"{HYDRO_DISPATCH_COMPARISON_DIR}/station_dispatch_comparison.csv",
+        figure_png=f"{HYDRO_DISPATCH_COMPARISON_DIR}/figure_hydro_dispatch_sensitivity.png",
+        figure_svg=f"{HYDRO_DISPATCH_COMPARISON_DIR}/figure_hydro_dispatch_sensitivity.svg",
+    log:
+        "logs/snakemake/hydro_dispatch_sensitivity_comparison.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.compare_hydro_dispatch_sensitivities",
+                "--reference-stations", input.reference_stations,
+                "--sensitivity-stations", input.sensitivity_stations,
+                "--reference-integrity", input.reference_integrity,
+                "--sensitivity-integrity", input.sensitivity_integrity,
+                "--reference-energy-mix", input.reference_energy_mix,
+                "--sensitivity-energy-mix", input.sensitivity_energy_mix,
+                "--attempt-register", input.attempts,
+                "--output-directory", HYDRO_DISPATCH_COMPARISON_DIR,
+            ],
+            log[0],
+        )
+
+
+rule hydro_dispatch_economic_audit:
+    """Explain named-station spill ordering in the source-cost reference."""
+    input:
+        network=ANNUAL_REFERENCE_NETWORK,
+        mapping=BC_HYDRO_STATION_MAPPING,
+        script="workflow/scripts/studies/chapter2/audit_hydro_dispatch_economics.py",
+    output:
+        summary=f"{HYDRO_DISPATCH_ECONOMIC_DIR}/hydro_dispatch_economics_summary.json",
+        report=f"{HYDRO_DISPATCH_ECONOMIC_DIR}/hydro_dispatch_economics_report.md",
+        table=f"{HYDRO_DISPATCH_ECONOMIC_DIR}/hydro_dispatch_economics.csv",
+        figure_png=f"{HYDRO_DISPATCH_ECONOMIC_DIR}/figure_hydro_dispatch_economics.png",
+        figure_svg=f"{HYDRO_DISPATCH_ECONOMIC_DIR}/figure_hydro_dispatch_economics.svg",
+    log:
+        "logs/snakemake/hydro_dispatch_economic_audit.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_hydro_dispatch_economics",
+                "--network", input.network,
+                "--mapping", input.mapping,
+                "--output-directory", HYDRO_DISPATCH_ECONOMIC_DIR,
+            ],
+            log[0],
+        )
+
+
 rule gate_2_release_uncertainty:
     input:
         reservoirs="data/pypsa_data/hydro_reservoirs.pickle",
@@ -544,7 +1001,10 @@ rule gate_2_external_boundary:
 rule solve_scenario:
     input:
         case=f"{SCENARIO_DIR}/{{case}}.yaml",
-        data=BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA,
+        data=(
+            BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA
+            + [STATCAN_GENERATION, BC_HYDRO_STATION_EVIDENCE, BC_HYDRO_STATION_MAPPING]
+        ),
         gate1="studies/chapter2/gate1/summary.json",
         gate2="studies/chapter2/gate2/summary.json",
         representation_gate="studies/chapter2/gate2/representation_verification.json",

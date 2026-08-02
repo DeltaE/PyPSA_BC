@@ -1,3 +1,4 @@
+# Rule 1
 ```mermaid
 sequenceDiagram
     participant M as Main Snakefile
@@ -97,3 +98,52 @@ E -- FAIL --> Stop2([Stop])
 
 F --> G
 ```
+
+# Rule 2
+```mermaid
+sequenceDiagram
+    participant M as Main Snakefile
+    participant R as Rule 2
+    participant B as Rule 1 network
+    participant S as Asset sources
+    participant P as Asset preparation
+    participant V as Asset validation
+    participant D as Profile preparation
+
+    M->>R: Include Rule 2
+    B->>R: Provide validated network
+    R->>P: Prepare assets
+    S->>P: Provide source data
+    P->>V: Generate asset tables
+    B->>V: Provide network references
+    V->>R: PASS / FAIL
+
+    alt PASS
+        R->>D: Continue workflow
+    else FAIL
+        R--xD: Stop workflow
+    end
+```
+
+for papers
+```mermaid
+sequenceDiagram
+    participant M as Main Workflow
+    participant R as Rule 2
+    participant N as Rule 1 network
+    participant S as Asset datasets
+    participant A as Asset processing
+    participant D as Next workflow stage
+
+    M->>R: Execute Rule 2
+    N->>A: Validated network
+    S->>A: Source datasets
+    A->>A: Prepare and validate assets
+
+    alt PASS
+        A->>D: Validated assets
+    else FAIL
+        A--xD: Halt workflow
+    end
+```
+

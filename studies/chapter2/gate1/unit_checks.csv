@@ -1,0 +1,30 @@
+check,subject,status,observed,expected,max_relative_difference,details
+hourly_inflow_index_complete,reservoir inflow index,pass,8760,8760,,invalid=0; duplicates=0
+monthly_inflow_unit_reconciliation,BC_ALH_RES,pass,12,12,2.1695961397254967e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_ALH_RES,pass,12,12,2.1695961397254967e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_ALU_RES,pass,12,12,2.0301221021717148e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_ALU_RES,pass,12,12,2.0301221021717148e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_BR1_RES,pass,12,12,2.5376526277146434e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_BR1_RES,pass,12,12,2.5376526277146434e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+unused_source_inflow_statistics,BC_DUN_RES,pass,,,,Source statistics intentionally excluded under an evidence-backed non-generating reservoir role.
+monthly_inflow_unit_reconciliation,BC_GMS_RES,pass,12,12,2.2291536808160006e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_GMS_RES,pass,12,12,2.2291536808160006e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_LAJ_RES,pass,12,12,1.8219044506669235e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_LAJ_RES,pass,12,12,1.8219044506669235e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_LDR_RES,pass,12,12,1.7763568394002506e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_LDR_RES,pass,12,12,1.7763568394002506e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_MCA_RES,pass,12,12,1.8102999637200006e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_MCA_RES,pass,12,12,1.8102999637200006e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_REV_RES,pass,12,12,2.153159805333637e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_REV_RES,pass,12,12,2.153159805333637e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_SCA_RES,pass,12,12,1.7763568394002506e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_SCA_RES,pass,12,12,1.7763568394002506e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_SEV_RES,pass,12,12,1.8485664670181468e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_SEV_RES,pass,12,12,1.8485664670181468e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_SON_RES,pass,12,12,2.220446049250313e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_SON_RES,pass,12,12,2.220446049250313e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_WDN_RES,pass,12,12,2.220446049250313e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_WDN_RES,pass,12,12,2.220446049250313e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation,BC_WGS_RES,pass,12,12,2.220446049250313e-16,Hourly model mean divided by 3600 versus source monthly mean; unit-scale tolerance=10.0%.
+monthly_inflow_calibration_fidelity,BC_WGS_RES,pass,12,12,2.220446049250313e-16,Post-processing fidelity to the monthly calibration target; warning threshold=1.0%.
+monthly_inflow_unit_reconciliation_summary,all source-backed reservoirs,pass,13,13,,Number of reservoir series passing exact monthly-mean reconciliation.

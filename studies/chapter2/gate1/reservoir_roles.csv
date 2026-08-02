@@ -1,0 +1,22 @@
+reservoir_id,generating_edge,role,generation_expected,source,locator,status
+BC_ALH_RES,True,,,,,generating_edge
+BC_ALU_RES,True,,,,,generating_edge
+BC_BR1_RES,True,,,,,generating_edge
+BC_DUN_RES,False,non_generating_control_reservoir,False,bc_hydro_columbia_region,Duncan Dam facility entry,resolved_non_generating
+BC_GMS_RES,True,,,,,generating_edge
+BC_JHT_RES,True,,,,,generating_edge
+BC_LAJ_RES,True,,,,,generating_edge
+BC_LDR_RES,True,,,,,generating_edge
+BC_MCA_RES,True,,,,,generating_edge
+BC_PCN_RES,True,,,,,generating_edge
+BC_REV_RES,True,,,,,generating_edge
+BC_RUS_RES,True,,,,,generating_edge
+BC_SCA_RES,True,,,,,generating_edge
+BC_SEV_RES,True,,,,,generating_edge
+BC_SFL_RES,True,,,,,generating_edge
+BC_SON_RES,True,,,,,generating_edge
+BC_STC_RES,True,,,,,generating_edge
+BC_WAN_RES,True,,,,,generating_edge
+BC_WDN_RES,True,,,,,generating_edge
+BC_WGS_RES,True,,,,,generating_edge
+BC_WHN_RES,True,,,,,generating_edge

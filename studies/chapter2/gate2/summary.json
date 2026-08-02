@@ -1,0 +1,27 @@
+{
+  "gate": "physical_verification",
+  "status": "PASS",
+  "required_test_count": 7,
+  "passing_test_count": 7,
+  "required_tests": [
+    "delay_boundary_test",
+    "minimum_release_test",
+    "scheduled_route_release_test",
+    "terminal_storage_test",
+    "three_reservoir_delay_test",
+    "turbine_spill_mass_balance_test",
+    "two_reservoir_analytic_test"
+  ],
+  "passing_tests": [
+    "delay_boundary_test",
+    "minimum_release_test",
+    "scheduled_route_release_test",
+    "terminal_storage_test",
+    "three_reservoir_delay_test",
+    "turbine_spill_mass_balance_test",
+    "two_reservoir_analytic_test"
+  ],
+  "solver": "highs",
+  "pypsa_version": "1.2.4",
+  "tolerance": 1e-07
+}

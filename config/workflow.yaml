@@ -23,6 +23,13 @@ base_model:
   external_boundary_policy: observed_interchange
   network_flow_formulation: transport
   transport_flow_reporting: lexicographic_minimum_transfer_postprocessing
+  generation_calibration_policy: statcan_monthly_nonhydro
+  ror_dispatch_policy: fixed_source_profile
+  hydro_dispatch_cost_policy: source_generic_vom
+  uniform_hydro_cost_cad_per_mwh: 1.97
+  named_station_capacity_policy: bc_hydro_fiscal_2021
+  named_station_energy_policy: none
+  named_station_energy_tolerance: 0.25
   release_multiplier: 1.0
 
 # Hydro-first execution path. This pilot is intentionally separate from the
@@ -52,11 +59,12 @@ preflight:
     - data/validation/chapter2/release_uncertainty_protocol.yaml
     - data/validation/chapter2/storage_uncertainty_protocol.yaml
     - data/validation/bc_hydro/BalancingAuthorityLoad2021.xls
-    - data/validation/bc_hydro/BCABTTC2021.xls
-    - data/validation/bc_hydro/ABBCTTC2021.xls
-    - data/validation/bc_hydro/BCUSTTC2021.xls
-    - data/validation/bc_hydro/USBCTTC2021.xls
     - data/validation/bc_hydro/HourlyTielineData2021.xls
+    - data/validation/statcan/bc_generation_by_type_2021.csv
+    - data/validation/statcan/bc_generation_by_type_2021.manifest.json
+    - data/validation/bc_hydro/annual_reports/bc_hydro_fiscal_2021_supply.csv
+    - data/validation/bc_hydro/annual_reports/bc_hydro_fiscal_2021_supply.manifest.json
+    - studies/chapter2/inputs/bc_hydro_station_validation_map.csv
     - studies/chapter2/inputs/cascade_evidence_register.csv
 
 # These are the primary experimental axes. "implemented" is an execution

@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks_total": 42,
+  "checks_passing": 42,
+  "representations": [
+    "A_full_cascade",
+    "B_two_store",
+    "C_single_bucket"
+  ],
+  "cases": [
+    "lower_bound",
+    "upper_bound"
+  ],
+  "claim_boundary": "scenario sensitivity; not observed, calibrated, or legal"
+}

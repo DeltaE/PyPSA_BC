@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "network": "results/workflow/base_model/network_prepared.nc",
+  "policy": "observed_interchange",
+  "checks_passed": 12,
+  "checks_total": 12,
+  "errors": [],
+  "warnings": [
+    "AB: 2 duplicate/missing hour-ending label events in the actual-flow source series; ordered-row alignment is used.",
+    "US: 2 duplicate/missing hour-ending label events in the actual-flow source series; ordered-row alignment is used."
+  ],
+  "claim_boundary": "Positive published flow is export and negative is import. Source rows are aligned in workbook order because the hour-ending labels contain documented anomalies. TTC is loaded only for the optional hourly-TTC policy; observed-interchange verification has no TTC dependency."
+}

@@ -1,0 +1,7 @@
+cascade_group,representation,bucket,bucket_bus,reservoir_count,source_store_count,storage_e_nom_m3,terminal_bus,original_storage_e_nom_m3,turbine_link_count,turbine_p_nom_m3_per_hour
+Bridge,C_single_bucket,Single,Bridge Single Aggregate Water Bus,4,3,1732900000.0,Bridge Water Bus,1732900000.0,4,1426896.0
+Campbell,C_single_bucket,Single,Campbell Single Aggregate Water Bus,3,3,1210200000.0,Campbell Water Bus,1210200000.0,3,1761480.0
+Mica/Columbia,C_single_bucket,Single,Mica/Columbia Single Aggregate Water Bus,5,5,23854959350.0,Mica/Columbia Water Bus,23854959350.0,5,15169428.0
+Peace,C_single_bucket,Single,Peace Single Aggregate Water Bus,3,3,39660690000.0,Peace Water Bus,39660690000.0,3,17074872.0
+Seven Mile,C_single_bucket,Single,Seven Mile Single Aggregate Water Bus,2,1,45960000.0,Seven Mile Water Bus,45960000.0,2,8319600.0
+Stave,C_single_bucket,Single,Stave Single Aggregate Water Bus,3,3,710649991.0,Stave Water Bus,710649991.0,3,2408400.0

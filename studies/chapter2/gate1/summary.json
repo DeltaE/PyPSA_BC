@@ -1,0 +1,12 @@
+{
+  "study_id": "chapter2_cascade",
+  "protocol_version": "0.1.0",
+  "generated_utc": "2026-08-01T23:15:14.820758+00:00",
+  "gate": "input_unit_topology_integrity",
+  "status": "PASS",
+  "error_count": 0,
+  "warning_count": 2,
+  "cascade_group_count": 6,
+  "cascade_station_count": 20,
+  "input_manifest_sha256": "ca5525bbeffd921b34967cb08e55238b40054960b7c782360212170aebce2b7f"
+}

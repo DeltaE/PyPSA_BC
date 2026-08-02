@@ -1,0 +1,15 @@
+check,status,evidence,source
+multi_output_water_mass_balance,pass,Discharge link returns water through bus2/efficiency2.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+cyclic_reservoir_boundary,pass,Reservoir Store uses a cyclic terminal condition.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+inflow_nominal_capacity_units,pass,Reservoir inflow is already m³/h and is not multiplied by 3600 again.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+station_travel_delay,pass,Turbine water output uses delay2 while spill output uses delay.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+minimum_combined_release,pass,A Linopy constraint combines turbine and spill water release by station.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+scheduled_route_specific_release,pass,Evidence-labelled time-varying release is constrained on an explicitly named hydraulic route.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+release_schedule_loader_integrated,pass,The production builder loads the release-schedule table before solving.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+release_uncertainty_envelope_integrated,pass,The production builder exposes explicitly scenario-labelled lower/upper release bounds.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+storage_uncertainty_envelope_integrated,pass,The production builder exposes explicitly scenario-labelled Waneta pondage bounds.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+cascade_constraints_integrated,pass,The production solve invokes the cascade constraint callback.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+two_store_representation_integrated,pass,The production builder exposes the matched upper/lower storage treatment.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+single_bucket_representation_integrated,pass,The production builder exposes the matched single-bucket treatment.,E:\CoWork\PROJECTS\PyPSA\workflow\scripts\enrich_format_hydro.py
+pypsa_link_attribute_delay,pass,Installed PyPSA Link schema contains delay.,PyPSA 1.2.4
+pypsa_link_attribute_cyclic_delay,pass,Installed PyPSA Link schema contains cyclic_delay.,PyPSA 1.2.4

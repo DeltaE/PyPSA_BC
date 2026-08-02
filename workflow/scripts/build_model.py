@@ -19,6 +19,26 @@ from pypsa_bc.studies.cascade.scaling import (
 from pypsa_bc.studies.cascade.storage_uncertainty import apply_storage_uncertainty_case
 from pypsa_bc.studies.cascade.uncertainty import apply_release_uncertainty_case
 from pypsa_bc.studies.external_boundary import apply_external_boundary
+from pypsa_bc.studies.asset_vintage import (
+    active_inventory_codes,
+    filter_component_dictionary,
+)
+from pypsa_bc.studies.generation_calibration import (
+    VALID_GENERATION_CALIBRATION_POLICIES,
+    VALID_ROR_DISPATCH_POLICIES,
+    apply_ror_dispatch_policy,
+    attach_monthly_generation_calibration,
+)
+from pypsa_bc.studies.hydro_dispatch_policy import (
+    VALID_HYDRO_DISPATCH_COST_POLICIES,
+    apply_hydro_dispatch_cost_policy,
+)
+from pypsa_bc.studies.station_validation import (
+    VALID_STATION_ENERGY_POLICIES,
+    apply_named_station_capacities,
+    attach_named_station_energy_calibration,
+    load_station_evidence,
+)
 from pypsa_bc.studies.network_formulation import (
     VALID_NETWORK_FLOW_FORMULATIONS,
     apply_network_flow_formulation,
@@ -910,6 +930,16 @@ def main(copperplate:bool=False,
          network_flow_formulation:str="transport",
          external_boundary_validation_root:Path | None=None,
          external_market_marginal_cost_cad_per_mwh:float=0.0,
+         generation_calibration_policy:str="none",
+         ror_dispatch_policy:str="curtailable",
+         hydro_dispatch_cost_policy:str="source_generic_vom",
+         uniform_hydro_cost_cad_per_mwh:float=1.97,
+         observed_generation_path:Path | None=None,
+         named_station_capacity_policy:str="none",
+         named_station_energy_policy:str="none",
+         named_station_energy_tolerance:float=0.25,
+         named_station_evidence_path:Path | None=None,
+         named_station_mapping_path:Path | None=None,
          build_report_save_to:Path | None=None,
          solve_network:bool=True):
     '''
@@ -948,6 +978,11 @@ def main(copperplate:bool=False,
     utils.print_update(level=3, message=f"Storage policy: {storage_policy}")
     utils.print_update(level=3, message=f"External boundary policy: {external_boundary_policy}")
     utils.print_update(level=3, message=f"Network flow formulation: {network_flow_formulation}")
+    utils.print_update(level=3, message=f"Generation calibration: {generation_calibration_policy}")
+    utils.print_update(level=3, message=f"Run-of-river dispatch: {ror_dispatch_policy}")
+    utils.print_update(level=3, message=f"Hydro dispatch cost: {hydro_dispatch_cost_policy}")
+    utils.print_update(level=3, message=f"Named-station capacity: {named_station_capacity_policy}")
+    utils.print_update(level=3, message=f"Named-station energy: {named_station_energy_policy}")
     utils.print_update(level=3, message=f"Release multiplier: {release_multiplier}")
     utils.print_update(level=3, message=f"Solve network: {solve_network}")
     utils.print_update(level=3, message=f"Output File: {solved_network_save_to if solved_network_save_to else 'Default from config'}")
@@ -991,6 +1026,24 @@ def main(copperplate:bool=False,
             f"Unsupported network_flow_formulation={network_flow_formulation!r}; "
             f"expected one of {sorted(VALID_NETWORK_FLOW_FORMULATIONS)}"
         )
+    if generation_calibration_policy not in VALID_GENERATION_CALIBRATION_POLICIES:
+        raise ValueError(
+            f"Unsupported generation_calibration_policy={generation_calibration_policy!r}"
+        )
+    if ror_dispatch_policy not in VALID_ROR_DISPATCH_POLICIES:
+        raise ValueError(f"Unsupported ror_dispatch_policy={ror_dispatch_policy!r}")
+    if hydro_dispatch_cost_policy not in VALID_HYDRO_DISPATCH_COST_POLICIES:
+        raise ValueError(
+            f"Unsupported hydro_dispatch_cost_policy={hydro_dispatch_cost_policy!r}"
+        )
+    if named_station_capacity_policy not in {"none", "bc_hydro_fiscal_2021"}:
+        raise ValueError(
+            f"Unsupported named_station_capacity_policy={named_station_capacity_policy!r}"
+        )
+    if named_station_energy_policy not in VALID_STATION_ENERGY_POLICIES:
+        raise ValueError(
+            f"Unsupported named_station_energy_policy={named_station_energy_policy!r}"
+        )
     if not np.isfinite(release_multiplier) or release_multiplier < 0:
         raise ValueError("release_multiplier must be finite and non-negative")
     
@@ -1008,9 +1061,9 @@ def main(copperplate:bool=False,
         p = Path(fpath)
         if p.exists():
             size_kb = p.stat().st_size / 1024
-            utils.print_update(level=3, message=f"✓ {fpath} ({size_kb:.1f} KB)")
+            utils.print_update(level=3, message=f"[OK] {fpath} ({size_kb:.1f} KB)")
         else:
-            utils.print_update(level=3, message=f"✗ {fpath} (MISSING)")
+            utils.print_update(level=3, message=f"[MISSING] {fpath}")
             missing.append(fpath)
     
     if missing:
@@ -1067,6 +1120,50 @@ def main(copperplate:bool=False,
     
     ff_infra_dict = utils.read_pickle(ff_infra_path)
     utils.print_update(level=3,message=f'Loaded the Fossil fuel resources data from : {ff_infra_path}')
+
+    vintage_audits = []
+    for resource, inventory_key, code_column, match, component_name in (
+        ("solar", "create_ext_solar_assets", "generation_unit_code", "key", "pv_dict"),
+        ("wind", "create_ext_wind_assets", "generation_unit_code", "key", "wind_dict"),
+        (
+            "thermal",
+            "create_ext_tpp_assets",
+            "generation_facility_code",
+            "name_prefix",
+            "tpp_dict",
+        ),
+    ):
+        inventory = pd.read_csv(cfg["output"][inventory_key]["fname"])
+        known_codes = set(inventory[code_column].dropna().astype(str))
+        active_codes = active_inventory_codes(
+            inventory,
+            year,
+            code_column=code_column,
+        )
+        components = {
+            "pv_dict": pv_dict,
+            "wind_dict": wind_dict,
+            "tpp_dict": tpp_dict,
+        }[component_name]
+        filtered, vintage_audit = filter_component_dictionary(
+            components,
+            active_codes,
+            known_codes=known_codes,
+            match=match,
+            resource=resource,
+        )
+        if component_name == "pv_dict":
+            pv_dict = filtered
+        elif component_name == "wind_dict":
+            wind_dict = filtered
+        else:
+            tpp_dict = filtered
+        vintage_audits.append(vintage_audit)
+    asset_vintage_audit = pd.concat(vintage_audits, ignore_index=True)
+    network.meta["asset_vintage_year"] = int(year)
+    network.meta["assets_excluded_outside_model_year"] = int(
+        (~asset_vintage_audit["included"]).sum()
+    )
 
     # (2) Set time-slicing
     utils.print_update(level=2,message='Updating ROR time-slices...')
@@ -1198,6 +1295,44 @@ def main(copperplate:bool=False,
     add_wind_assets(network, wind_dict)
     add_ff_infra(network, ff_infra_dict) # NOTE: AB Additon 
     add_tpp_assets(network, tpp_dict)
+    named_station_capacity_audit = pd.DataFrame()
+    named_station_energy_audit = pd.DataFrame()
+    station_evidence = None
+    if (
+        named_station_capacity_policy == "bc_hydro_fiscal_2021"
+        or named_station_energy_policy != "none"
+    ):
+        station_evidence = load_station_evidence(
+            named_station_evidence_path
+            or "data/validation/bc_hydro/annual_reports/bc_hydro_fiscal_2021_supply.csv",
+            named_station_mapping_path
+            or "studies/chapter2/inputs/bc_hydro_station_validation_map.csv",
+        )
+    if named_station_capacity_policy == "bc_hydro_fiscal_2021":
+        named_station_capacity_audit = apply_named_station_capacities(
+            network, station_evidence
+        )
+    named_station_energy_audit = attach_named_station_energy_calibration(
+        network,
+        station_evidence if station_evidence is not None else pd.DataFrame(),
+        named_station_energy_policy,
+        relative_tolerance=named_station_energy_tolerance,
+    )
+    ror_dispatch_audit = apply_ror_dispatch_policy(network, ror_dispatch_policy)
+    hydro_dispatch_cost_audit = apply_hydro_dispatch_cost_policy(
+        network,
+        hydro_dispatch_cost_policy,
+        uniform_cost_cad_per_mwh=uniform_hydro_cost_cad_per_mwh,
+    )
+    observed_generation_path = Path(
+        observed_generation_path
+        or "data/validation/statcan/bc_generation_by_type_2021.csv"
+    )
+    generation_calibration_audit = attach_monthly_generation_calibration(
+        network,
+        observed_generation_path,
+        generation_calibration_policy,
+    )
     # add_cogen_assets(network, cogen_dict)
     
     # (4) add carriers outside of default ELC
@@ -1268,7 +1403,7 @@ def main(copperplate:bool=False,
         try:
             if geojson_file_path.exists():
                 gdf = gpd.read_file(geojson_file)
-                utils.print_update(level=3, message=f"✓ Loaded GADM L1 from file: {geojson_file}")
+                utils.print_update(level=3, message=f"[OK] Loaded GADM L1 from file: {geojson_file}")
             else:
                 # Fetch from pygadm and save
                 import pygadm
@@ -1277,7 +1412,7 @@ def main(copperplate:bool=False,
                 if gdf.crs is None:
                     gdf = gdf.set_crs("EPSG:4326")
                 gdf.to_file(geojson_file, driver="GeoJSON")
-                utils.print_update(level=3, message=f"✓ Saved GADM L1 to: {geojson_file}")
+                utils.print_update(level=3, message=f"[OK] Saved GADM L1 to: {geojson_file}")
             
             mask = gdf["NAME_1"] == "BritishColumbia"
             busmap_dict = get_single_region_busmap_dict(network, gdf.loc[mask,:])
@@ -1552,6 +1687,35 @@ def main(copperplate:bool=False,
             report_path.with_name(f"{report_path.stem}_external_boundary.csv"),
             index=False,
         )
+    asset_vintage_audit.to_csv(
+        report_path.with_name(f"{report_path.stem}_asset_vintage.csv"),
+        index=False,
+    )
+    if not ror_dispatch_audit.empty:
+        ror_dispatch_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_ror_dispatch.csv"),
+            index=False,
+        )
+    if not hydro_dispatch_cost_audit.empty:
+        hydro_dispatch_cost_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_hydro_dispatch_cost.csv"),
+            index=False,
+        )
+    if not generation_calibration_audit.empty:
+        generation_calibration_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_generation_calibration.csv"),
+            index=False,
+        )
+    if not named_station_capacity_audit.empty:
+        named_station_capacity_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_named_station_capacity.csv"),
+            index=False,
+        )
+    if not named_station_energy_audit.empty:
+        named_station_energy_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_named_station_energy.csv"),
+            index=False,
+        )
     if not network_formulation_audit.empty:
         network_formulation_audit.to_csv(
             report_path.with_name(f"{report_path.stem}_network_formulation.csv"),
@@ -1585,10 +1749,19 @@ def main(copperplate:bool=False,
 | Storage Policy | {storage_policy} |
 | External Boundary Policy | {external_boundary_policy} |
 | Network Flow Formulation | {network_flow_formulation} |
+| Generation Calibration Policy | {generation_calibration_policy} |
+| Run-of-River Dispatch Policy | {ror_dispatch_policy} |
+| Hydro Dispatch Cost Policy | {hydro_dispatch_cost_policy} |
+| Uniform Hydro Cost | {uniform_hydro_cost_cad_per_mwh} CAD/MWh (used only by uniform policy) |
+| Named-Station Capacity Policy | {named_station_capacity_policy} |
+| Named-Station Energy Policy | {named_station_energy_policy} |
+| Named-Station Energy Tolerance | ±{named_station_energy_tolerance:.0%} (cross-period sensitivity only) |
+| Generation Calibration Role | {'Statistics Canada monthly category totals are calibration inputs, not independent validation' if not generation_calibration_audit.empty else 'None'} |
 | Kirchhoff Voltage Law | {'Enforced' if network_flow_formulation == 'dc_load_flow' else 'Not enforced; capacity-constrained regional transport'} |
 | Transport Flow Reporting | Lexicographic minimum-transfer postprocessing; raw zero-cost flows are non-unique |
 | External Market Marginal Cost | {external_market_marginal_cost_cad_per_mwh} CAD/MWh |
 | Release Multiplier | {release_multiplier} |
+| Asset Vintage Filter | Start/closure years evaluated for {year}; {int((~asset_vintage_audit['included']).sum())} components excluded |
 | Optimization requested | {solve_network} |
 | Release Evidence Boundary | {'Scenario sensitivity; not observed/legal' if not release_uncertainty_audit.empty else 'No uncertainty envelope applied'} |
 | Terminal Water Sink Bound | {'Total modeled horizon inflow + 1% margin' if not terminal_store_audit.empty else 'No placeholder sinks detected'} |

@@ -1,0 +1,21 @@
+cascade_group,cascade_order,station_asset_id,hydro_type,upper_reservoir_id,lower_reservoir_id,terminal,upper_exists,lower_exists_or_terminal
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,True,True,True
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,False,True,True
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,False,True,True
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,False,True,True
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,True,True,True
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,False,True,True
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,False,True,True
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,False,True,True
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,False,True,True
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,False,True,True
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,True,True,True
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,False,True,True
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,True,True,True
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,False,True,True
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,True,True,True
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,True,True,True
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,True,True,True
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,False,True,True
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,False,True,True
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,False,True,True

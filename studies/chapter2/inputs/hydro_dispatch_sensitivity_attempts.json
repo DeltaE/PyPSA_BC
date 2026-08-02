@@ -1,0 +1,60 @@
+{
+  "record_type": "retrospective_execution_register",
+  "created_for": "hydro_dispatch_sensitivity_evidence",
+  "claim_boundary": "This register records execution outcomes. An incomplete solve is evidence of computational performance under the stated settings, not evidence of infeasibility.",
+  "attempts": [
+    {
+      "attempt_id": "uniform_reservoir_vom_simplex_900",
+      "policy": "uniform_reservoir_vom",
+      "hydro_marginal_cost_cad_per_mwh": 1.97,
+      "station_energy_policy": "none",
+      "solver": "highs",
+      "highs_method": "simplex",
+      "time_limit_seconds": 900,
+      "outcome": "no_exported_solution",
+      "persisted_evidence": null,
+      "evidence_quality": "retrospective_operator_record",
+      "interpretation": "The attempt did not return an optimal annual solution within the controlled run. The later IPM attempt overwrote the summary path."
+    },
+    {
+      "attempt_id": "uniform_reservoir_vom_ipm_900",
+      "policy": "uniform_reservoir_vom",
+      "hydro_marginal_cost_cad_per_mwh": 1.97,
+      "station_energy_policy": "none",
+      "solver": "highs",
+      "highs_method": "ipm",
+      "time_limit_seconds": 900,
+      "outcome": "interrupted_without_exported_solution",
+      "persisted_evidence": "results/workflow/sensitivities/uniform_hydro_vom_1_97/solve_summary.json",
+      "evidence_quality": "machine_readable_running_record",
+      "interpretation": "The process ended before the optimizer returned a final status; the record remains status=running and no solved network exists."
+    },
+    {
+      "attempt_id": "station_energy_band_simplex_900",
+      "policy": "source_generic_vom",
+      "station_energy_policy": "bc_hydro_fiscal_2021_screening_band",
+      "station_energy_tolerance": 0.25,
+      "solver": "highs",
+      "highs_method": "simplex",
+      "time_limit_seconds": 900,
+      "outcome": "no_exported_solution",
+      "persisted_evidence": null,
+      "evidence_quality": "retrospective_operator_record",
+      "interpretation": "The first bounded attempt ended before an optimal solution was exported; its summary was replaced by the successful rerun."
+    },
+    {
+      "attempt_id": "station_energy_band_simplex_1200",
+      "policy": "source_generic_vom",
+      "station_energy_policy": "bc_hydro_fiscal_2021_screening_band",
+      "station_energy_tolerance": 0.25,
+      "solver": "highs",
+      "highs_method": "simplex",
+      "time_limit_seconds": 1200,
+      "outcome": "optimal_exported_solution",
+      "persisted_evidence": "results/workflow/sensitivities/station_energy_band_25pct/solve_summary.json",
+      "integrity_evidence": "results/workflow/sensitivities/station_energy_band_25pct/diagnostics/diagnostic_summary.json",
+      "evidence_quality": "machine_readable_final_record",
+      "interpretation": "The annual network solved optimally, was exported, and passed all eight integrity checks. The historical summary did not preserve elapsed solver time; future runs do."
+    }
+  ]
+}

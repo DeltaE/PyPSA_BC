@@ -1,0 +1,13 @@
+representation,cascade_group,storage_before_m3,storage_after_m3,storage_conserved,inflow_volume_before_m3,inflow_volume_after_m3,inflow_conserved,turbine_p_nom_before_m3_per_hour,turbine_p_nom_after_m3_per_hour,turbine_capacity_conserved,electric_buses_preserved,external_routes_preserved,no_water_self_loops,no_placeholder_destinations,storage_coupling_links_removed,status
+B_two_store,Bridge,1732900000.0,1732900000.0,True,4099680000.0,4099680000.0,True,1426896.0,1426896.0,True,True,True,True,True,True,pass
+B_two_store,Campbell,1210200000.0,1210200000.0,True,2767910400.0,2767910400.0,True,1761480.0,1761480.0,True,True,True,True,True,True,pass
+B_two_store,Mica/Columbia,23854959350.0,23854959350.0,True,37213034130.00001,37213034130.00001,True,15169428.0,15169428.0,True,True,True,True,True,True,pass
+B_two_store,Peace,39660690000.0,39660690000.0,True,34115040000.000004,34115040000.000004,True,17074872.0,17074872.0,True,True,True,True,True,True,pass
+B_two_store,Seven Mile,45960000.0,45960000.0,True,31036763100.0,31036763100.0,True,8319600.0,8319600.0,True,True,True,True,True,True,pass
+B_two_store,Stave,710649991.0,710649991.0,True,669945600.0,669945600.0,True,2408400.0,2408400.0,True,True,True,True,True,True,pass
+C_single_bucket,Bridge,1732900000.0,1732900000.0,True,4099680000.0,4099680000.0,True,1426896.0,1426896.0,True,True,True,True,True,True,pass
+C_single_bucket,Campbell,1210200000.0,1210200000.0,True,2767910400.0,2767910400.0,True,1761480.0,1761480.0,True,True,True,True,True,True,pass
+C_single_bucket,Mica/Columbia,23854959350.0,23854959350.0,True,37213034130.00001,37213034130.00001,True,15169428.0,15169428.0,True,True,True,True,True,True,pass
+C_single_bucket,Peace,39660690000.0,39660690000.0,True,34115040000.000004,34115040000.000004,True,17074872.0,17074872.0,True,True,True,True,True,True,pass
+C_single_bucket,Seven Mile,45960000.0,45960000.0,True,31036763100.0,31036763100.0,True,8319600.0,8319600.0,True,True,True,True,True,True,pass
+C_single_bucket,Stave,710649991.0,710649991.0,True,669945600.0,669945600.0,True,2408400.0,2408400.0,True,True,True,True,True,True,pass

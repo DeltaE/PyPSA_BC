@@ -1,0 +1,13 @@
+cascade_group,representation,bucket,bucket_bus,reservoir_count,source_store_count,storage_e_nom_m3,terminal_bus,original_storage_e_nom_m3,turbine_link_count,turbine_p_nom_m3_per_hour
+Bridge,B_two_store,Lower,Bridge Lower Aggregate Water Bus,1,1,14800000.0,Bridge Water Bus,1732900000.0,4,1426896.0
+Bridge,B_two_store,Upper,Bridge Upper Aggregate Water Bus,3,2,1718100000.0,Bridge Water Bus,1732900000.0,4,1426896.0
+Campbell,B_two_store,Lower,Campbell Lower Aggregate Water Bus,1,1,20420000.0,Campbell Water Bus,1210200000.0,3,1761480.0
+Campbell,B_two_store,Upper,Campbell Upper Aggregate Water Bus,2,2,1189780000.0,Campbell Water Bus,1210200000.0,3,1761480.0
+Mica/Columbia,B_two_store,Lower,Mica/Columbia Lower Aggregate Water Bus,1,1,8760000000.0,Mica/Columbia Water Bus,23854959350.0,5,15169428.0
+Mica/Columbia,B_two_store,Upper,Mica/Columbia Upper Aggregate Water Bus,4,4,15094959350.0,Mica/Columbia Water Bus,23854959350.0,5,15169428.0
+Peace,B_two_store,Lower,Peace Lower Aggregate Water Bus,1,1,165000000.0,Peace Water Bus,39660690000.0,3,17074872.0
+Peace,B_two_store,Upper,Peace Upper Aggregate Water Bus,2,2,39495690000.0,Peace Water Bus,39660690000.0,3,17074872.0
+Seven Mile,B_two_store,Lower,Seven Mile Lower Aggregate Water Bus,1,0,0.0,Seven Mile Water Bus,45960000.0,2,8319600.0
+Seven Mile,B_two_store,Upper,Seven Mile Upper Aggregate Water Bus,1,1,45960000.0,Seven Mile Water Bus,45960000.0,2,8319600.0
+Stave,B_two_store,Lower,Stave Lower Aggregate Water Bus,1,1,42000000.0,Stave Water Bus,710649991.0,3,2408400.0
+Stave,B_two_store,Upper,Stave Upper Aggregate Water Bus,2,2,668649991.0,Stave Water Bus,710649991.0,3,2408400.0

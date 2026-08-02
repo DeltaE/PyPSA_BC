@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks_total": 6,
+  "checks_passing": 6,
+  "representations": [
+    "A_full_cascade",
+    "B_two_store",
+    "C_single_bucket"
+  ],
+  "cases": [
+    "zero_pondage",
+    "upper_pondage"
+  ],
+  "claim_boundary": "scenario sensitivity; not measured active storage"
+}

@@ -1,0 +1,7 @@
+representation,case,expected_storage_delta_m3,observed_storage_delta_m3,storage_relative_error,storage_delta_correct,waneta_inflow_unchanged,evidence_class_is_scenario,protocol_metadata_preserved,status
+A_full_cascade,zero_pondage,0.0,0.0,0.0,True,True,True,True,pass
+A_full_cascade,upper_pondage,23977016.712328766,23977016.0,2.970881549142192e-08,True,True,True,True,pass
+B_two_store,zero_pondage,0.0,0.0,0.0,True,True,True,True,pass
+B_two_store,upper_pondage,23977016.712328766,23977020.0,1.3711761033090468e-07,True,True,True,True,pass
+C_single_bucket,zero_pondage,0.0,0.0,0.0,True,True,True,True,pass
+C_single_bucket,upper_pondage,23977016.712328766,23977016.0,2.970881549142192e-08,True,True,True,True,pass

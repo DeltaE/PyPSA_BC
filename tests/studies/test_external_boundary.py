@@ -90,7 +90,9 @@ class ExternalBoundaryTests(unittest.TestCase):
         )
         self.assertEqual(network.generators.at["AB External Market", "p_min_pu"], -1.0)
         self.assertEqual(network.generators.at["AB External Market", "p_max_pu"], 1.0)
-        self.assertEqual(audit["duplicate_hour_labels"].tolist(), [3, 3])
+        self.assertEqual(audit["duplicate_hour_labels"].tolist(), [1, 1])
+        self.assertTrue(audit["maximum_import_ttc_mw"].isna().all())
+        self.assertTrue(audit["observed_hours_outside_ttc"].isna().all())
         self.assertTrue((audit["evidence_class"] == "observed").all())
 
     def test_hourly_ttc_sets_directional_market_bounds(self) -> None:

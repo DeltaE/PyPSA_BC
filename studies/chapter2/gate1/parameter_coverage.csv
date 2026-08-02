@@ -1,0 +1,141 @@
+cascade_group,cascade_order,station_asset_id,hydro_type,upper_reservoir_id,lower_reservoir_id,parameter,value,available,evidence_class,note
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,minimum_release_m3_per_hour,fraction_of_mean_natural_inflow:0..fraction_of_mean_natural_inflow:0.1,True,scenario,Scenario envelope only; not observed/legal. Arrow Lakes Generating Station owner/legal release evidence remains unresolved.
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,max_discharge_m3_per_hour,1908000.0,True,observed,
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,spill_capacity_m3_per_hour,37800000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,usable_storage_m3,8760000000.0,True,observed,
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,water_to_power_efficiency_mwh_per_m3,9.69601677148847e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Mica/Columbia,3,BC_ALH_GSS,reservoir,BC_ALH_RES,DEFAULT,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,minimum_release_m3_per_hour,5472.0,True,observed,alouette_wup_2009
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,max_discharge_m3_per_hour,86400.0,True,observed,
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,spill_capacity_m3_per_hour,10800.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,usable_storage_m3,198650000.0,True,observed,
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,water_to_power_efficiency_mwh_per_m3,0.00010416666666666667,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Stave,1,BC_ALU_GSS,reservoir,BC_ALU_RES,BC_SFL_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,minimum_release_m3_per_hour,fraction_of_mean_natural_inflow:0..fraction_of_mean_natural_inflow:0.1,True,scenario,"Scenario envelope only; not observed/legal. The current Terzaghi release order/variance is unresolved. The sensitivity is applied only to Lower Bridge River, never to the turbine diversion."
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,max_discharge_m3_per_hour,576000.0,True,observed,
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,spill_capacity_m3_per_hour,4216320.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,usable_storage_m3,1012500000.0,True,observed,
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,water_to_power_efficiency_mwh_per_m3,0.0008819444444444444,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Bridge,2,BC_BR1_GSS,reservoir,BC_BR1_RES,BC_SON_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,minimum_release_m3_per_hour,0.0,True,not_applicable,peace_wup_2003
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,max_discharge_m3_per_hour,7084872.0,True,observed,
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,spill_capacity_m3_per_hour,33120000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,usable_storage_m3,39471000000.0,True,observed,
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,water_to_power_efficiency_mwh_per_m3,0.00043049472171127436,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Peace,1,BC_GMS_GSS,reservoir,BC_GMS_RES,BC_PCN_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,minimum_release_m3_per_hour,14400.0,True,observed,campbell_wup_2012
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,max_discharge_m3_per_hour,446400.0,True,observed,
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,spill_capacity_m3_per_hour,4456800.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,usable_storage_m3,20420000.0,True,observed,
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,water_to_power_efficiency_mwh_per_m3,0.0003091397849462366,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Campbell,3,BC_JHT_GSS,reservoir-impute,BC_JHT_RES,BC_LOWER_CAMPBELL_RIVER_SINK,natural_inflow_m3_per_hour,,True,imputed,Evidence class is based on presence of a monthly source-statistics file.
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,minimum_release_m3_per_hour,absolute_m3_per_s:5.7..absolute_m3_per_s:18.4,True,scenario,Scenario envelope only; not observed/legal. The observed state-dependent rule ranges from 5.7 to 18.4 m3/s over the documented operating elevations. Constants bracket the rule without claiming an exact stage-storage implementation.
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,max_discharge_m3_per_hour,182160.0,True,derived,
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,spill_capacity_m3_per_hour,457200.0,True,unknown,Builder substitutes an arbitrary capacity when input spill is zero.
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,usable_storage_m3,705600000.0,True,observed,
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,water_to_power_efficiency_mwh_per_m3,0.00013724198506807203,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Bridge,1,BC_LAJ_GSS,reservoir,BC_LAJ_RES,BC_BR1_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,minimum_release_m3_per_hour,0.0,True,not_applicable,campbell_wup_2012
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,max_discharge_m3_per_hour,604440.0,True,observed,
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,spill_capacity_m3_per_hour,4557600.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,usable_storage_m3,309600000.0,True,observed,
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,water_to_power_efficiency_mwh_per_m3,7.775792469062273e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Campbell,2,BC_LDR_GSS,reservoir,BC_LDR_RES,BC_JHT_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,minimum_release_m3_per_hour,fraction_of_mean_natural_inflow:0..fraction_of_mean_natural_inflow:0.1,True,scenario,Scenario envelope only; not observed/legal. Study-year Treaty/AOP/DOP discharge instructions are unavailable.
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,max_discharge_m3_per_hour,5724000.0,True,observed,
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,spill_capacity_m3_per_hour,15444000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,usable_storage_m3,14800000000.0,True,observed,
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,water_to_power_efficiency_mwh_per_m3,0.0005190426275331935,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Mica/Columbia,1,BC_MCA_GSS,reservoir,BC_MCA_RES,BC_REV_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,minimum_release_m3_per_hour,1019520.0,True,observed,peace_wup_2003
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,max_discharge_m3_per_hour,7135200.0,True,observed,
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,spill_capacity_m3_per_hour,37008000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,usable_storage_m3,24690000.0,True,observed,
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,water_to_power_efficiency_mwh_per_m3,9.810516874089024e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Peace,2,BC_PCN_GSS,reservoir-impute,BC_PCN_RES,BC_STC_RES,natural_inflow_m3_per_hour,,True,imputed,Evidence class is based on presence of a monthly source-statistics file.
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,minimum_release_m3_per_hour,511200.0,True,observed,revelstoke_minimum_flow_2011
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,max_discharge_m3_per_hour,7398000.0,True,observed,
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,spill_capacity_m3_per_hour,25596000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,usable_storage_m3,173000000.0,True,observed,
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,water_to_power_efficiency_mwh_per_m3,0.0003379291700459584,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Mica/Columbia,2,BC_REV_GSS,reservoir,BC_REV_RES,BC_ALH_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,minimum_release_m3_per_hour,absolute_m3_per_s:0..absolute_m3_per_s:100,True,scenario,"Scenario envelope only; not observed/legal. Zero is the unconstrained lower case. The 100 m3/s upper case applies the WUP peaking floor continuously and is deliberately conservative because the actual rule depends on season, tide, tailwater, outages, and prior dispatch."
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,max_discharge_m3_per_hour,1252800.0,True,observed,
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,spill_capacity_m3_per_hour,15948000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,usable_storage_m3,42000000.0,True,observed,
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,water_to_power_efficiency_mwh_per_m3,9.178639846743295e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Stave,3,BC_RUS_GSS,reservoir-impute,BC_RUS_RES,DEFAULT,natural_inflow_m3_per_hour,,True,imputed,Evidence class is based on presence of a monthly source-statistics file.
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,minimum_release_m3_per_hour,0.0,True,not_applicable,campbell_wup_2012
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,max_discharge_m3_per_hour,710640.0,True,observed,
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,spill_capacity_m3_per_hour,2077200.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,usable_storage_m3,880180000.0,True,observed,
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,water_to_power_efficiency_mwh_per_m3,9.146684678599573e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Campbell,1,BC_SCA_GSS,reservoir,BC_SCA_RES,BC_LDR_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,minimum_release_m3_per_hour,0.0,True,not_applicable,seven_mile_wup_2006
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,max_discharge_m3_per_hour,5302800.0,True,observed,
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,spill_capacity_m3_per_hour,7200000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,usable_storage_m3,45960000.0,True,observed,
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,water_to_power_efficiency_mwh_per_m3,0.00015180659274345628,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Seven Mile,1,BC_SEV_GSS,reservoir,BC_SEV_RES,DEFAULT,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,minimum_release_m3_per_hour,0.0,True,not_applicable,stave_wup
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,max_discharge_m3_per_hour,1069200.0,True,observed,
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,spill_capacity_m3_per_hour,5220000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,usable_storage_m3,469999991.0,True,observed,
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,water_to_power_efficiency_mwh_per_m3,8.511036288814067e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Stave,2,BC_SFL_GSS,reservoir-impute,BC_SFL_RES,BC_RUS_RES,natural_inflow_m3_per_hour,,True,imputed,Evidence class is based on presence of a monthly source-statistics file.
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,minimum_release_m3_per_hour,18000.0,True,observed,bridge_wup_2011
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,max_discharge_m3_per_hour,513935.99999999994,True,observed,
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,spill_capacity_m3_per_hour,1477440.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,usable_storage_m3,14800000.0,True,observed,
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,water_to_power_efficiency_mwh_per_m3,9.33968431867003e-05,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Bridge,3,BC_SON_GSS,reservoir,BC_SON_RES,BC_FRASER_RIVER_SINK,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,minimum_release_m3_per_hour,1404000.0,True,observed,site_c_decision_statement_2025
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,max_discharge_m3_per_hour,2854800.0,True,observed,
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,spill_capacity_m3_per_hour,37008000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,usable_storage_m3,165000000.0,True,observed,
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,water_to_power_efficiency_mwh_per_m3,0.0003965321563682219,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Peace,3,BC_STC_GSS,reservoir-impute,BC_STC_RES,DEFAULT,natural_inflow_m3_per_hour,,True,imputed,Evidence class is based on presence of a monthly source-statistics file.
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,minimum_release_m3_per_hour,fraction_of_mean_natural_inflow:0..fraction_of_mean_natural_inflow:0.1,True,scenario,Scenario envelope only; not observed/legal. Waneta owner/regulatory operating evidence remains unresolved.
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,max_discharge_m3_per_hour,3016800.0,True,observed,
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,spill_capacity_m3_per_hour,,False,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,usable_storage_m3,0..24 hours of mean natural inflow,True,scenario,"Scenario envelope only; not a measured active-storage volume. BC Hydro reports a 457.8-462.6 m operating range and hydraulic balancing with Seven Mile. DFO classifies Waneta as run-of-river, reports small daily reservoir fluctuations, and states that basic dimensions were not recorded."
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,water_to_power_efficiency_mwh_per_m3,0.00015910898965791568,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Seven Mile,2,BC_WAN_GSS,ror-water,BC_WAN_RES,DEFAULT,natural_inflow_m3_per_hour,,False,unknown,Evidence class is based on presence of a monthly source-statistics file.
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,minimum_release_m3_per_hour,fraction_of_mean_natural_inflow:0..fraction_of_mean_natural_inflow:0.1,True,scenario,"Scenario envelope only; not observed/legal. Walden North is outside BC Hydro control. The sensitivity is applied only to the Cayoosh Creek return route, never to the Seton Lake diversion."
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,max_discharge_m3_per_hour,154800.0,True,observed,
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,spill_capacity_m3_per_hour,3600000.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,usable_storage_m3,0.0,True,observed,The accepted WUP explicitly states that Walden North has no storage and diverts available Cayoosh Creek inflow up to station capacity. The model therefore retains explicit water routing without a Store.
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,water_to_power_efficiency_mwh_per_m3,0.00010335917312661498,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Bridge,2,BC_WDN_GSS,ror-water,BC_WDN_RES,BC_SON_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,minimum_release_m3_per_hour,0.0,True,not_applicable,whatshan_wup_2005
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,max_discharge_m3_per_hour,123840.0,True,observed,
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,spill_capacity_m3_per_hour,925200.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,usable_storage_m3,121500000.0,True,observed,
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,water_to_power_efficiency_mwh_per_m3,0.00043604651162790697,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Mica/Columbia,2,BC_WGS_GSS,reservoir,BC_WGS_RES,BC_ALH_RES,natural_inflow_m3_per_hour,,True,calibrated,Evidence class is based on presence of a monthly source-statistics file.
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,travel_time_h,0.0,True,scenario,mauel_2023_thesis
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,minimum_release_m3_per_hour,360.0,True,observed,walter_hardman_wup_2006
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,max_discharge_m3_per_hour,15588.0,True,observed,
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,spill_capacity_m3_per_hour,39600.0,True,observed,Builder substitutes an arbitrary capacity when input spill is zero.
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,usable_storage_m3,459350.0,True,observed,
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,water_to_power_efficiency_mwh_per_m3,0.0005132152938157557,True,derived,Derived as station capacity / (maximum discharge × 3600).
+Mica/Columbia,2,BC_WHN_GSS,ror-water-storage,BC_WHN_RES,BC_ALH_RES,natural_inflow_m3_per_hour,,False,unknown,Evidence class is based on presence of a monthly source-statistics file.

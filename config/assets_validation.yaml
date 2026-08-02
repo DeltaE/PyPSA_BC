@@ -1,0 +1,29 @@
+version: 1
+
+# Broad modelling envelope used to catch missing, swapped, or clearly
+# out-of-scope coordinates. It is not an administrative boundary test.
+geography:
+  longitude_min: -139.2
+  longitude_max: -114.0
+  latitude_min: 48.0
+  latitude_max: 60.1
+
+network_mapping:
+  severity: error
+
+capacity:
+  nonpositive_severity: error
+  # Two prepared reservoir rows currently lack storage evidence. Retain them
+  # as reviewable warnings until an explicit correction policy is approved.
+  missing_reservoir_max_storage_severity: warning
+
+technologies:
+  wind: [wind_ons]
+  solar: [solar_PV]
+  tpp: [NG_CC, NG_CG, biogas, biomass]
+  hydro_generation: [hydro_daily, hydro_monthly, hydro_run]
+  hydro_cascade: [Hydro_daily, Hydro_monthly]
+
+hydro:
+  default_reference: DEFAULT
+  external_sink_suffix: _SINK

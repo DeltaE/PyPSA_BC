@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "checks_passing": 12,
+  "checks_total": 12,
+  "representations": [
+    "B_two_store",
+    "C_single_bucket"
+  ],
+  "excluded_stationless_records": 1
+}
