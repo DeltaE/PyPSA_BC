@@ -1,0 +1,11 @@
+{
+  "source_name": "BC Hydro Provincial Transmission System Map",
+  "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/transmission/maps/transmission-system.pdf",
+  "source_date": "2025-04",
+  "local_path": "data/validation/base_network/bc_hydro_transmission_system_2025.pdf",
+  "sha256": "436852cdfc401c2090b6d302c53b1a180f7e0343454446cad80161951bdb540c",
+  "bytes": 1532014,
+  "metadata_generated_at_utc": "2026-08-02T03:45:18.003800+00:00",
+  "downloaded_this_run": true,
+  "use_limitation": "Schematic evidence only; manually interpreted points are representative and must not be used for engineering distance or asset-location claims."
+}

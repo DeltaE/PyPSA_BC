@@ -1,14 +1,14 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
-import rasterio as rio
-import pandas as pd
-import geojson as gj
 import atlite
-from pypsa_bc import wind, solar_wind, utils
+import pandas as pd
+
+from pypsa_bc import solar_wind, utils, wind
 
 # handles the config loading centrally
 from pypsa_bc.attributes_parser import AttributesParser
+
 pypsa_aparser=AttributesParser()
 
 
@@ -32,8 +32,8 @@ def _load_wind_outline(gwa_geojson_path: str, gadm_l1_path: str, province: str):
     GADM L1 geometry for the requested province.
     """
     try:
-        with open(gwa_geojson_path) as f:
-            payload = gj.load(f)
+        with open(gwa_geojson_path, encoding="utf-8") as f:
+            payload = json.load(f)
         if isinstance(payload, dict):
             if "geometry" in payload:
                 return _geometry_to_wind_coords(payload["geometry"])
@@ -114,12 +114,20 @@ def generate_wind_ts(wind_assets, cutout_path):
     # The power is now calculated and wind turbine farms with different types of turbines will have their production
     # aggregated.
     for _,row in wind_assets.iterrows():
-        if row['asset_id'] not in wind_gen_dict.keys(): 
+        if row['asset_id'] not in wind_gen_dict: 
             wind_gen_dict[row['asset_id']] = solar_wind.calculate_MW(cutout, row, 'wind').squeeze()
         else:
             wind_gen_dict[row['asset_id']] += solar_wind.calculate_MW(cutout, row, 'wind').squeeze()
 
     wind_generation = pd.DataFrame(wind_gen_dict)
+    invalid_columns = wind_generation.columns[
+        ~wind_generation.apply(lambda column: pd.to_numeric(column, errors="coerce").map(pd.notna).all())
+    ].tolist()
+    if invalid_columns:
+        raise ValueError(
+            "Generated wind profiles contain non-numeric or missing values for: "
+            + ", ".join(map(str, invalid_columns))
+        )
     # Rename columns to their respective asset_id
     # wind_generation.columns = wind_assets['asset_id'].values # should be a non-unique issue occuring here 
 
@@ -157,7 +165,6 @@ def main():
     cutout_path = data["data"]['cutout']
     
     wind_atlas_path = data["data"]['wind']['gwa_speed']
-    wind_geojson_path = data["data"]['wind']['gwa_geojson']
     calibration_flag = params["workflow"]['wind_ts']['calibration'] # 0 no calibration, 1 calibration
     output_path = data['output']['create_ext_wind_ts']['fname']
     from . import fetch_inputs
@@ -166,25 +173,14 @@ def main():
         utils.print_update(level=2,message="Global Wind Atlas wind speed data not found, downloading...")
         fetch_inputs.main(only=["GWA_wind_speed"])
 
-    if Path(wind_geojson_path).is_file() == False:
-        utils.print_update(level=2,message="Global Wind Atlas geojson data not found, downloading...")
-        fetch_inputs.main(only=["GWA_geojson"])
-        
     #Correct number of arguments
     #Load the wind_assets
     utils.print_update(level=2,message="Loading wind assets...")
     assets = pd.read_csv(assets_path)
 
-    #Load in the Global Wind Atlas wind speeds for BC with rasterio
-    with rio.open(wind_atlas_path) as f:
-        wind_atlas = f.read(1)
-        f.close()
-
-    # Start by appending the Global Wind Atlas wind speeds to assets
-    province = pypsa_aparser.base_network_cfg['regions'][0]  # regions moved to base_network.yaml
-    gadm_l1_path = data["GADM"]["country_file_L1"]
-    wind_geojson = _load_wind_outline(wind_geojson_path, gadm_l1_path, province)
-    assets['GWA wind speed'] = wind.get_wind_coords(assets, wind_atlas, wind_geojson, province)
+    # Sample the raster using its native affine transform and CRS. Province-
+    # boundary interpolation is not equivalent to raster georeferencing.
+    assets['GWA wind speed'] = wind.sample_gwa_wind_speeds(assets, wind_atlas_path)
     utils.print_update(level=2,message="collecting wind speed for assets")
 
     #All is good, start generating wind_ts data frame

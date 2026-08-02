@@ -10,6 +10,24 @@ BASE_NETWORK = [
 ]
 BASE_NETWORK_VALIDATION_DIR = f"{OUTPUT_ROOT}/base_network_validation"
 BASE_NETWORK_VALIDATION_SUMMARY = f"{BASE_NETWORK_VALIDATION_DIR}/summary.json"
+BASE_NETWORK_CORRECTION_AUDIT = "data/processed_data/network/correction_audit.csv"
+
+
+rule fetch_base_network_validation:
+    """Fetch and fingerprint the public map used by registered manual corrections."""
+    input:
+        config="config/data.yaml",
+        script="workflow/scripts/fetch_base_network_validation.py",
+    output:
+        map="data/validation/base_network/bc_hydro_transmission_system_2025.pdf",
+        metadata="data/validation/base_network/bc_hydro_transmission_system_2025.metadata.json",
+    log:
+        "logs/snakemake/01a_fetch_base_network_validation.log"
+    run:
+        run_logged(
+            [PYTHON, "-m", "workflow.scripts.fetch_base_network_validation"],
+            log[0],
+        )
 
 
 rule base_network_preparation:
@@ -21,9 +39,13 @@ rule base_network_preparation:
         substations="data/downloaded_data/CODERS/data-pull/network/substations.csv",
         generators="data/downloaded_data/CODERS/data-pull/supply/generators.csv",
         line_table="data/inventory/custom/electric_power_generation_table_13_3a.xlsx",
+        node_corrections="data/validation/base_network/node_corrections.csv",
+        line_corrections="data/validation/base_network/line_corrections.csv",
+        map="data/validation/base_network/bc_hydro_transmission_system_2025.pdf",
+        map_metadata="data/validation/base_network/bc_hydro_transmission_system_2025.metadata.json",
         script="workflow/scripts/prepare_base_network.py",
     output:
-        BASE_NETWORK
+        BASE_NETWORK + [BASE_NETWORK_CORRECTION_AUDIT]
     log:
         "logs/snakemake/01_base_network_preparation.log"
     run:
@@ -34,7 +56,11 @@ rule validate_base_network:
     """Preserve topology and parameter evidence and issue a PASS/FAIL result."""
     input:
         network=BASE_NETWORK,
+        correction_audit=BASE_NETWORK_CORRECTION_AUDIT,
         config="config/base_network_validation.yaml",
+        component_policy="data/validation/base_network/component_policy.yaml",
+        node_corrections="data/validation/base_network/node_corrections.csv",
+        line_corrections="data/validation/base_network/line_corrections.csv",
         script="workflow/scripts/validate_base_network.py",
     output:
         summary=f"{BASE_NETWORK_VALIDATION_DIR}/summary.json",

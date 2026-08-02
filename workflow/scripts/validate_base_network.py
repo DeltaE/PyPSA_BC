@@ -29,7 +29,8 @@ ISSUE_COLUMNS = {
     ],
     "self_loops.csv": ["row", "name", "transmission_line_id", "bus0", "bus1", "severity"],
     "disconnected_components.csv": [
-        "component_id", "bus_count", "is_largest", "severity", "bus_names",
+        "component_id", "bus_count", "is_largest", "classification", "policy_id",
+        "severity", "bus_names", "missing_expected_buses", "unexpected_buses",
     ],
     "parameter_outliers.csv": [
         "component", "row", "identifier", "field", "value", "severity", "issue",
@@ -86,7 +87,11 @@ def _issue_frame(rows: list[dict[str, Any]], filename: str) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=ISSUE_COLUMNS[filename])
 
 
-def validate(network_dir: Path, config: dict[str, Any]) -> tuple[dict[str, Any], dict[str, pd.DataFrame]]:
+def validate(
+    network_dir: Path,
+    config: dict[str, Any],
+    component_policy: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, pd.DataFrame]]:
     tables, checks = _read_tables(network_dir)
     buses = tables["buses"]
     lines = tables["lines"]
@@ -317,22 +322,100 @@ def validate(network_dir: Path, config: dict[str, Any]) -> tuple[dict[str, Any],
                 if bus0 in valid_bus_names and bus1 in valid_bus_names:
                     graph.add_edge(bus0, bus1)
         components = sorted(nx.connected_components(graph), key=len, reverse=True)
+        policy = component_policy or {
+            "strict_membership": True,
+            "main_component": {"minimum_bus_fraction": 0.0},
+            "expected_islands": {},
+        }
+        expected_islands = {
+            policy_id: set(specification["buses"])
+            for policy_id, specification in policy.get("expected_islands", {}).items()
+        }
+        matched_policy_ids: set[str] = set()
+        policy_failures = 0
         component_rows: list[dict[str, Any]] = []
         for component_id, component in enumerate(components, start=1):
             is_largest = component_id == 1
+            classification = "main" if is_largest else "unexpected_island"
+            matched_policy_id = ""
+            missing_expected: set[str] = set()
+            unexpected: set[str] = set()
+            severity = "INFO" if is_largest else "ERROR"
+
+            if not is_largest:
+                exact_match = next(
+                    (
+                        policy_id
+                        for policy_id, expected in expected_islands.items()
+                        if component == expected
+                    ),
+                    None,
+                )
+                if exact_match is not None:
+                    classification = "approved_island"
+                    matched_policy_id = exact_match
+                    matched_policy_ids.add(exact_match)
+                    severity = "INFO"
+                else:
+                    policy_failures += 1
+                    if expected_islands:
+                        closest_id, closest = max(
+                            expected_islands.items(),
+                            key=lambda item: len(component & item[1]),
+                        )
+                        if component & closest:
+                            classification = "changed_island_membership"
+                            matched_policy_id = closest_id
+                            matched_policy_ids.add(closest_id)
+                            missing_expected = closest - component
+                            unexpected = component - closest
+
             component_rows.append({
                 "component_id": component_id, "bus_count": len(component),
                 "is_largest": is_largest,
-                "severity": "INFO" if is_largest else "ERROR",
+                "classification": classification,
+                "policy_id": matched_policy_id,
+                "severity": severity,
                 "bus_names": ";".join(sorted(component)),
+                "missing_expected_buses": ";".join(sorted(missing_expected)),
+                "unexpected_buses": ";".join(sorted(unexpected)),
             })
+
+        for policy_id, expected in expected_islands.items():
+            if policy_id not in matched_policy_ids:
+                policy_failures += 1
+                component_rows.append({
+                    "component_id": "",
+                    "bus_count": 0,
+                    "is_largest": False,
+                    "classification": "missing_expected_island",
+                    "policy_id": policy_id,
+                    "severity": "ERROR",
+                    "bus_names": "",
+                    "missing_expected_buses": ";".join(sorted(expected)),
+                    "unexpected_buses": "",
+                })
+
+        minimum_main_fraction = float(
+            policy.get("main_component", {}).get("minimum_bus_fraction", 0.0)
+        )
+        main_fraction = len(components[0]) / len(valid_bus_names) if components else 0.0
+        if main_fraction < minimum_main_fraction:
+            policy_failures += 1
         issues["disconnected_components.csv"] = _issue_frame(
             component_rows, "disconnected_components.csv"
         )
-        excess_components = max(0, len(components) - config["connectivity"]["max_components"])
         isolated_count = sum(len(component) == 1 for component in components)
-        add_check("connected_components", "ERROR", excess_components, len(components),
-                  "The prepared electrical graph must satisfy the configured component limit.")
+        add_check(
+            "connected_component_policy",
+            "ERROR",
+            policy_failures,
+            1 + len(expected_islands),
+            (
+                "The main component must meet its minimum share and every non-main "
+                "component must exactly match an approved island membership."
+            ),
+        )
         isolated_severity = "INFO" if config["connectivity"]["allow_isolated_buses"] else "ERROR"
         add_check("isolated_buses", isolated_severity, isolated_count, len(buses),
                   "Isolated buses cannot participate in network dispatch.")
@@ -372,6 +455,7 @@ def validate(network_dir: Path, config: dict[str, Any]) -> tuple[dict[str, Any],
         "artifacts": list(ISSUE_COLUMNS),
         "limitations": [
             "The coordinate test uses a broad bounding box, not an administrative polygon.",
+            "Registered map-derived coordinates are representative schematic points, not surveyed assets.",
             "Parallel circuits are reported but retained when source identifiers remain traceable.",
             "This gate validates prepared topology and parameters; it does not validate power-flow feasibility.",
         ],
@@ -434,7 +518,9 @@ def main() -> int:
     args = parser.parse_args()
 
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
-    summary, issues = validate(args.network_dir, config)
+    policy_path = Path(config["connectivity"]["component_policy"])
+    component_policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+    summary, issues = validate(args.network_dir, config, component_policy)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for filename, frame in issues.items():
         frame.to_csv(args.output_dir / filename, index=False)

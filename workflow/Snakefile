@@ -30,6 +30,16 @@ BASE_MODEL_BUILD_REPORT = f"{BASE_MODEL_DIR}/model_preparation.md"
 BASE_MODEL_VALIDATION = f"{BASE_MODEL_DIR}/validation/network_structure.json"
 SOLVED_BASE_MODEL = f"{BASE_MODEL_DIR}/network_solved.nc"
 BASE_MODEL_SOLVE_SUMMARY = f"{BASE_MODEL_DIR}/solve_summary.json"
+ROLLING_DIR = f"{OUTPUT_ROOT}/pilots/rolling_A_lower_zero_observed"
+ROLLING_SUMMARY = f"{ROLLING_DIR}/summary.json"
+ROLLING_AUDIT = f"{ROLLING_DIR}/window_audit.csv"
+ROLLING_WINDOW_FILES = [
+    f"{ROLLING_DIR}/window_{number:03d}.nc"
+    for number in range(1, config["rolling_horizon"]["max_windows"] + 1)
+]
+ROLLING_DIAGNOSTIC_DIR = f"{ROLLING_DIR}/diagnostics"
+ROLLING_DIAGNOSTIC_SUMMARY = f"{ROLLING_DIAGNOSTIC_DIR}/diagnostic_summary.json"
+ROLLING_DIAGNOSTIC_REPORT = f"{ROLLING_DIAGNOSTIC_DIR}/diagnostic_report.md"
 CASES = expand_scenarios(config)
 CASE_IDS = [case["case_id"] for case in CASES]
 RUNNABLE_CASE_IDS = [case["case_id"] for case in CASES if case["runnable"]]
@@ -53,6 +63,13 @@ PROFILES = [
 LOADS = [
     "data/processed_data/load/hourly_res.csv",
     "data/processed_data/load/hourly_csmi.csv",
+]
+EXTERNAL_BOUNDARY_DATA = [
+    "data/validation/bc_hydro/BCABTTC2021.xls",
+    "data/validation/bc_hydro/ABBCTTC2021.xls",
+    "data/validation/bc_hydro/BCUSTTC2021.xls",
+    "data/validation/bc_hydro/USBCTTC2021.xls",
+    "data/validation/bc_hydro/HourlyTielineData2021.xls",
 ]
 MODEL_DATA = [
     "data/pypsa_data/wind.pickle",
@@ -213,7 +230,7 @@ rule prepared_inputs:
 rule model_file_preparation:
     """Stage 4b: assemble and export the unsolved PyPSA network file."""
     input:
-        data=BASE_NETWORK + LOADS + MODEL_DATA,
+        data=BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA,
         script="workflow/scripts/prepare_model_file.py",
     output:
         network=PREPARED_BASE_MODEL,
@@ -221,6 +238,9 @@ rule model_file_preparation:
     params:
         representation=config["base_model"]["reservoir_representation"],
         water_policy=config["base_model"]["water_policy"],
+        storage_policy=config["base_model"]["storage_policy"],
+        external_boundary_policy=config["base_model"]["external_boundary_policy"],
+        network_flow_formulation=config["base_model"]["network_flow_formulation"],
         release_multiplier=config["base_model"]["release_multiplier"],
     log:
         "logs/snakemake/04b_model_file_preparation.log"
@@ -230,6 +250,9 @@ rule model_file_preparation:
             output.report,
             params.representation,
             params.water_policy,
+            params.storage_policy,
+            params.external_boundary_policy,
+            params.network_flow_formulation,
             params.release_multiplier,
             log[0],
         )
@@ -258,6 +281,7 @@ rule gate_1_inputs:
         prepared=BASE_NETWORK + ASSETS + PROFILES,
         schedule="studies/chapter2/inputs/release_schedules.csv",
         uncertainty="data/validation/chapter2/release_uncertainty_protocol.yaml",
+        storage_uncertainty="data/validation/chapter2/storage_uncertainty_protocol.yaml",
         script="workflow/scripts/studies/chapter2/audit_inputs.py",
     output:
         summary="studies/chapter2/gate1/summary.json",
@@ -315,6 +339,8 @@ rule scientific_gates:
         "studies/chapter2/gate2/summary.json",
         "studies/chapter2/gate2/representation_verification.json",
         "studies/chapter2/gate2/release_uncertainty_verification.json",
+        "studies/chapter2/gate2/storage_uncertainty_verification.json",
+        "studies/chapter2/gate2/external_boundary_verification.json",
 
 
 rule solve_base_model:
@@ -326,6 +352,8 @@ rule solve_base_model:
         gate2="studies/chapter2/gate2/summary.json",
         representation_gate="studies/chapter2/gate2/representation_verification.json",
         release_uncertainty_gate="studies/chapter2/gate2/release_uncertainty_verification.json",
+        storage_uncertainty_gate="studies/chapter2/gate2/storage_uncertainty_verification.json",
+        external_boundary_gate="studies/chapter2/gate2/external_boundary_verification.json",
         script="workflow/scripts/solve_model.py",
     output:
         network=SOLVED_BASE_MODEL,
@@ -338,7 +366,8 @@ rule solve_base_model:
             output.network,
             output.summary,
             [input.structural, input.gate1, input.gate2,
-             input.representation_gate, input.release_uncertainty_gate],
+             input.representation_gate, input.release_uncertainty_gate,
+             input.storage_uncertainty_gate, input.external_boundary_gate],
             log[0],
         )
 
@@ -348,6 +377,97 @@ rule base_model_workflow:
     input:
         network=SOLVED_BASE_MODEL,
         summary=BASE_MODEL_SOLVE_SUMMARY,
+
+
+rule rolling_horizon_pilot:
+    """Hydro-first feasibility pilot with explicit chronological state transfer."""
+    input:
+        network=PREPARED_BASE_MODEL,
+        structural=BASE_MODEL_VALIDATION,
+        gate1="studies/chapter2/gate1/summary.json",
+        gate2="studies/chapter2/gate2/summary.json",
+        representation_gate="studies/chapter2/gate2/representation_verification.json",
+        release_uncertainty_gate="studies/chapter2/gate2/release_uncertainty_verification.json",
+        storage_uncertainty_gate="studies/chapter2/gate2/storage_uncertainty_verification.json",
+        external_boundary_gate="studies/chapter2/gate2/external_boundary_verification.json",
+        script="workflow/scripts/solve_rolling_horizon.py",
+    output:
+        summary=ROLLING_SUMMARY,
+        audit=ROLLING_AUDIT,
+        windows=ROLLING_WINDOW_FILES,
+    params:
+        cfg=config["rolling_horizon"],
+    log:
+        "logs/snakemake/06_rolling_horizon_pilot.log"
+    run:
+        for gate_path in [
+            input.structural,
+            input.gate1,
+            input.gate2,
+            input.representation_gate,
+            input.release_uncertainty_gate,
+            input.storage_uncertainty_gate,
+            input.external_boundary_gate,
+        ]:
+            require_validation_pass(gate_path, "Rolling-horizon prerequisite")
+        arguments = [
+            PYTHON, "-m", "workflow.scripts.solve_rolling_horizon",
+            "--network", input.network,
+            "--output-root", ROLLING_DIR,
+            "--summary", output.summary,
+            "--window-hours", str(params.cfg["window_hours"]),
+            "--lookahead-hours", str(params.cfg["lookahead_hours"]),
+            "--initial-storage-fraction", str(params.cfg["initial_storage_fraction"]),
+            "--time-limit-seconds", str(params.cfg["time_limit_seconds"]),
+            "--max-windows", str(params.cfg["max_windows"]),
+            "--closure-window-hours", str(params.cfg["closure_window_hours"]),
+        ]
+        if params.cfg["enforce_annual_closure"]:
+            arguments.append("--enforce-annual-closure")
+        run_logged(arguments, log[0])
+
+
+rule rolling_horizon_diagnostics:
+    """Audit scientific credibility of committed rolling-horizon hours."""
+    input:
+        source_network=PREPARED_BASE_MODEL,
+        rolling_summary=ROLLING_SUMMARY,
+        rolling_audit=ROLLING_AUDIT,
+        windows=ROLLING_WINDOW_FILES,
+        script="workflow/scripts/studies/chapter2/audit_rolling_results.py",
+        diagnostics="src/pypsa_bc/studies/rolling_diagnostics.py",
+    output:
+        summary=ROLLING_DIAGNOSTIC_SUMMARY,
+        report=ROLLING_DIAGNOSTIC_REPORT,
+        dispatch=f"{ROLLING_DIAGNOSTIC_DIR}/committed_dispatch.csv",
+        external=f"{ROLLING_DIAGNOSTIC_DIR}/external_interchange_fidelity.csv",
+        backstop=f"{ROLLING_DIAGNOSTIC_DIR}/backstop_by_region.csv",
+        lines=f"{ROLLING_DIAGNOSTIC_DIR}/line_utilization.csv",
+        storage=f"{ROLLING_DIAGNOSTIC_DIR}/reservoir_storage_trajectory.csv",
+        storage_bounds=f"{ROLLING_DIAGNOSTIC_DIR}/reservoir_storage_bounds.csv",
+        releases=f"{ROLLING_DIAGNOSTIC_DIR}/release_compliance.csv",
+        dispatch_svg=f"{ROLLING_DIAGNOSTIC_DIR}/figure_committed_dispatch.svg",
+        dispatch_png=f"{ROLLING_DIAGNOSTIC_DIR}/figure_committed_dispatch.png",
+        storage_svg=f"{ROLLING_DIAGNOSTIC_DIR}/figure_reservoir_storage.svg",
+        storage_png=f"{ROLLING_DIAGNOSTIC_DIR}/figure_reservoir_storage.png",
+        lines_svg=f"{ROLLING_DIAGNOSTIC_DIR}/figure_line_utilization.svg",
+        lines_png=f"{ROLLING_DIAGNOSTIC_DIR}/figure_line_utilization.png",
+    params:
+        backstop_tolerance=config["rolling_horizon"]["publication_backstop_share_tolerance"],
+    log:
+        "logs/snakemake/07_rolling_horizon_diagnostics.log"
+    run:
+        run_logged(
+            [
+                PYTHON, "-m",
+                "workflow.scripts.studies.chapter2.audit_rolling_results",
+                "--result-directory", ROLLING_DIR,
+                "--source-network", input.source_network,
+                "--output-directory", ROLLING_DIAGNOSTIC_DIR,
+                "--backstop-share-tolerance", str(params.backstop_tolerance),
+            ],
+            log[0],
+        )
 
 
 rule gate_2_release_uncertainty:
@@ -373,14 +493,64 @@ rule gate_2_release_uncertainty:
         )
 
 
+rule gate_2_storage_uncertainty:
+    input:
+        reservoirs="data/pypsa_data/hydro_reservoirs.pickle",
+        ror_water="data/pypsa_data/hydro_ror_water.pickle",
+        topology="studies/chapter2/inputs/cascade_evidence_register.csv",
+        schedules="studies/chapter2/inputs/release_schedules.csv",
+        protocol="data/validation/chapter2/storage_uncertainty_protocol.yaml",
+        uncertainty="src/pypsa_bc/studies/cascade/storage_uncertainty.py",
+        script="workflow/scripts/studies/chapter2/audit_storage_uncertainty.py",
+    output:
+        summary="studies/chapter2/gate2/storage_uncertainty_verification.json",
+        report="studies/chapter2/gate2/storage_uncertainty_verification.md",
+        cases="studies/chapter2/gate2/storage_uncertainty_verification.csv",
+    log:
+        "logs/snakemake/gate2_storage_uncertainty.log"
+    run:
+        run_logged(
+            [PYTHON, "-m",
+             "workflow.scripts.studies.chapter2.audit_storage_uncertainty"],
+            log[0],
+        )
+
+
+rule gate_2_external_boundary:
+    input:
+        network=PREPARED_BASE_MODEL,
+        data=EXTERNAL_BOUNDARY_DATA,
+        module="src/pypsa_bc/studies/external_boundary.py",
+        script="workflow/scripts/studies/chapter2/audit_external_boundary.py",
+    output:
+        summary="studies/chapter2/gate2/external_boundary_verification.json",
+        report="studies/chapter2/gate2/external_boundary_verification.md",
+        cases="studies/chapter2/gate2/external_boundary_verification.csv",
+    log:
+        "logs/snakemake/gate2_external_boundary.log"
+    run:
+        run_logged(
+            [PYTHON, "-m",
+             "workflow.scripts.studies.chapter2.audit_external_boundary",
+             "--network", input.network,
+             "--year", str(config["execution"]["year"]),
+             "--summary", output.summary,
+             "--table", output.cases,
+             "--report", output.report],
+            log[0],
+        )
+
+
 rule solve_scenario:
     input:
         case=f"{SCENARIO_DIR}/{{case}}.yaml",
-        data=BASE_NETWORK + LOADS + MODEL_DATA,
+        data=BASE_NETWORK + LOADS + MODEL_DATA + EXTERNAL_BOUNDARY_DATA,
         gate1="studies/chapter2/gate1/summary.json",
         gate2="studies/chapter2/gate2/summary.json",
         representation_gate="studies/chapter2/gate2/representation_verification.json",
         release_uncertainty_gate="studies/chapter2/gate2/release_uncertainty_verification.json",
+        storage_uncertainty_gate="studies/chapter2/gate2/storage_uncertainty_verification.json",
+        external_boundary_gate="studies/chapter2/gate2/external_boundary_verification.json",
         script="workflow/scripts/run_scenario.py",
     output:
         network=f"{RUN_DIR}/{{case}}/network.nc",
@@ -398,6 +568,8 @@ rule solve_scenario:
             input.gate2,
             input.representation_gate,
             input.release_uncertainty_gate,
+            input.storage_uncertainty_gate,
+            input.external_boundary_gate,
             log[0],
         )
 

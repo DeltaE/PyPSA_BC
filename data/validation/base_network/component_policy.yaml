@@ -1,0 +1,34 @@
+version: 1
+strict_membership: true
+
+main_component:
+  minimum_bus_fraction: 0.98
+  rationale: >-
+    The interconnected BC network must remain the unique largest component.
+    The fraction threshold detects major fragmentation without encoding every
+    main-network bus in the policy.
+
+expected_islands:
+  fort_nelson_remote_system:
+    buses:
+      - 138_ABBC04_IPT
+      - 138_FNC_ISS
+      - 138_FNC_JCT
+      - 138_FNG_GSS
+      - 138_KLC_DSS
+      - 138_KLC_JCT
+      - 138_WSP_DSS
+    rationale: >-
+      Documented remote Fort Nelson-area component connected to the Alberta
+      boundary rather than the main BC electrical component in the CODERS
+      representation.
+    treatment: Retain as an explicitly approved island and validate its balance separately.
+
+  winchie_creek_remote_system:
+    buses:
+      - 69_WCH_GSS
+      - 69_WCH_JCT
+    rationale: >-
+      CODERS represents the Winchie Creek generation connection as a two-bus
+      remote component with no documented connection to the main network.
+    treatment: Retain provisionally; revisit if an authoritative connecting line is found.

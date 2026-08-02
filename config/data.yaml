@@ -24,7 +24,13 @@ inventory:
   res_wup: data/inventory/custom/hydro_res_wup_features.csv
   inflow_tables: data/inventory/custom/inflow_stats # dir of {reservoir_id}.csv
   line_table: data/inventory/custom/electric_power_generation_table_13_3a.xlsx
-  cascade_reference: data/inventory/custom/cascade_reference.csv
+  cascade_reference: data/inventory/cascade_reference.csv
+  cascade_evidence_register: studies/chapter2/inputs/cascade_evidence_register.csv
+  release_schedules: studies/chapter2/inputs/release_schedules.csv
+  hydraulic_route_overrides: data/validation/chapter2/hydraulic_route_overrides.csv
+  base_network_node_corrections: data/validation/base_network/node_corrections.csv
+  base_network_line_corrections: data/validation/base_network/line_corrections.csv
+  base_network_component_policy: data/validation/base_network/component_policy.yaml
 data:
   # CODERS API pulls. Locations mirror coders.yaml (root + tables); keep in sync.
   coders:
@@ -48,6 +54,10 @@ data:
 # ---- remote inputs to fetch (workflow/scripts/fetch_inputs.py) ----
 # dest mirrors the local path above; url is the authoritative public source.
 remote:
+  bc_hydro_transmission_map:
+    url: https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/transmission/maps/transmission-system.pdf
+    dest: data/validation/base_network/bc_hydro_transmission_system_2025.pdf
+    metadata: data/validation/base_network/bc_hydro_transmission_system_2025.metadata.json
   can_turbines:
     url: https://ftp.cartes.canada.ca/pub/nrcan_rncan/Wind-energy_Energie-eolienne/wind_turbines_database/Wind_Turbine_Database_FGP.xlsx
     dest: data/downloaded_data/wind/canada_turbines.xlsx # Canadian Wind Turbine Database (NRCan, OGL-Canada)

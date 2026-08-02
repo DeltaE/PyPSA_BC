@@ -40,6 +40,8 @@ def run_configured_scenario(
     gate2_file,
     representation_gate_file,
     release_uncertainty_gate_file,
+    storage_uncertainty_gate_file,
+    external_boundary_gate_file,
     logfile,
 ):
     """Apply the solve authorization and invoke the scenario adapter."""
@@ -53,6 +55,8 @@ def run_configured_scenario(
         gate2_file,
         representation_gate_file,
         release_uncertainty_gate_file,
+        storage_uncertainty_gate_file,
+        external_boundary_gate_file,
     ):
         gate = json.loads(Path(str(gate_path)).read_text(encoding="utf-8"))
         if gate.get("status") != "PASS":
@@ -67,6 +71,7 @@ def run_configured_scenario(
         "--report", report_file,
         "--year", str(config["execution"]["year"]),
         "--capacity-choice", config["execution"]["capacity_choice"],
+        "--external-boundary-policy", config["base_model"]["external_boundary_policy"],
     ]
     if config["execution"]["include_vre_investments"]:
         arguments.append("--include-vre-investments")
@@ -96,6 +101,8 @@ def run_base_model_solve(prepared_network, solved_network, summary, gates, logfi
 
 
 def run_base_model_preparation(network, report, representation, water_policy,
+                               storage_policy, external_boundary_policy,
+                               network_flow_formulation,
                                release_multiplier, logfile):
     """Invoke the build-only adapter with the reviewed base-model settings."""
     arguments = [
@@ -106,6 +113,9 @@ def run_base_model_preparation(network, report, representation, water_policy,
         "--capacity-choice", config["execution"]["capacity_choice"],
         "--reservoir-representation", representation,
         "--water-policy", water_policy,
+        "--storage-policy", storage_policy,
+        "--external-boundary-policy", external_boundary_policy,
+        "--network-flow-formulation", network_flow_formulation,
         "--release-multiplier", str(release_multiplier),
     ]
     if config["execution"]["include_vre_investments"]:

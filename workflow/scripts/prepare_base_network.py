@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 
 from pypsa_bc.attributes_parser import AttributesParser
-from pypsa_bc.network import buses, lines, transformers
+from pypsa_bc.network import buses, corrections, lines, transformers
 from pypsa_bc.reporting.logger import Pipeline
 
 
@@ -38,6 +38,20 @@ def main() -> dict[str, pd.DataFrame]:
             pipe.deliver("transformers.csv", out / "transformers.csv", len(r["transformers"]))
             pipe.deliver("transformer_types.csv", out / "transformer_types.csv",
                          len(r["transformer_types"]))
+
+    node_register = corrections.load_node_corrections(
+        aparser.data_cfg["inventory"]["base_network_node_corrections"]
+    )
+    line_register = corrections.load_line_corrections(
+        aparser.data_cfg["inventory"]["base_network_line_corrections"]
+    )
+    r["correction_audit"] = corrections.write_correction_audit(
+        node_register,
+        line_register,
+        r["buses"],
+        r["lines"],
+        out / "correction_audit.csv",
+    )
 
     return r
 

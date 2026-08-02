@@ -1,0 +1,82 @@
+{
+  "datasets": [
+    {
+      "dataset_id": "load",
+      "dataset": "BC Hydro balancing authority hourly load",
+      "year": 2021,
+      "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/BalancingAuthorityLoad2021.xls",
+      "local_path": "data/validation/bc_hydro/BalancingAuthorityLoad2021.xls",
+      "retrieved_utc": "2026-08-01T23:39:12.928343+00:00",
+      "bytes": 603648,
+      "sha256": "c28a6a86c06913d7a6d06b22c176fdb37e670b9d24e26b3de6641a7cb01eb43f",
+      "use": "Independent comparison of model system-load shape and magnitude",
+      "evidence_class": "observed",
+      "claim_boundary": "Gross telemetered provincial load is not regional demand."
+    },
+    {
+      "dataset_id": "bc_ab_ttc",
+      "dataset": "BC Hydro hourly TTC: British Columbia to Alberta",
+      "year": 2021,
+      "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/BCABTTC2021.xls",
+      "local_path": "data/validation/bc_hydro/BCABTTC2021.xls",
+      "retrieved_utc": "2026-08-01T23:39:12.931542+00:00",
+      "bytes": 1082368,
+      "sha256": "87632fbfa1efc60ee0e42a5de57bd7e4551a079da29f46bdfb7c22ecf718300b",
+      "use": "Observed study-year upper bound for the BC-to-Alberta interface",
+      "evidence_class": "observed",
+      "claim_boundary": "Directional TTC is a path limit, not realized flow or an internal line rating."
+    },
+    {
+      "dataset_id": "ab_bc_ttc",
+      "dataset": "BC Hydro hourly TTC: Alberta to British Columbia",
+      "year": 2021,
+      "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/ABBCTTC2021.xls",
+      "local_path": "data/validation/bc_hydro/ABBCTTC2021.xls",
+      "retrieved_utc": "2026-08-01T23:39:12.938462+00:00",
+      "bytes": 1082880,
+      "sha256": "9785fbe305645292eb2b45cc03583fa624e8cbffac2da85af04e07bfa6d202e9",
+      "use": "Observed study-year upper bound for the Alberta-to-BC interface",
+      "evidence_class": "observed",
+      "claim_boundary": "Directional TTC is a path limit, not realized flow or an internal line rating."
+    },
+    {
+      "dataset_id": "bc_us_ttc",
+      "dataset": "BC Hydro hourly TTC: British Columbia to United States",
+      "year": 2021,
+      "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/BCUSTTC2021.xls",
+      "local_path": "data/validation/bc_hydro/BCUSTTC2021.xls",
+      "retrieved_utc": "2026-08-01T23:39:12.943337+00:00",
+      "bytes": 1073664,
+      "sha256": "c27e42cf7c99d65e89f79b52f0b6b6aadbd8899d0e6fdf5eda875e44d850b308",
+      "use": "Observed study-year upper bound for the BC-to-US interface",
+      "evidence_class": "observed",
+      "claim_boundary": "Directional TTC is a path limit, not realized flow or an internal line rating."
+    },
+    {
+      "dataset_id": "us_bc_ttc",
+      "dataset": "BC Hydro hourly TTC: United States to British Columbia",
+      "year": 2021,
+      "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/balancing_authority_load_data/Historical%20Transmission%20Data/USBCTTC2021.xls",
+      "local_path": "data/validation/bc_hydro/USBCTTC2021.xls",
+      "retrieved_utc": "2026-08-01T23:39:12.946648+00:00",
+      "bytes": 1073664,
+      "sha256": "d1d3cbff01ddfccc1fcee44ea19953bc78e1489a686de9ab28acc468b8eb0bb5",
+      "use": "Observed study-year upper bound for the US-to-BC interface",
+      "evidence_class": "observed",
+      "claim_boundary": "Directional TTC is a path limit, not realized flow or an internal line rating."
+    },
+    {
+      "dataset_id": "net_actual_flow",
+      "dataset": "BC Hydro hourly net actual tie-line flow",
+      "year": 2021,
+      "source_url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/suppliers/transmission-system/actual_flow_data/historical_data/HourlyTielineData2021.xls",
+      "local_path": "data/validation/bc_hydro/HourlyTielineData2021.xls",
+      "retrieved_utc": "2026-08-01T23:39:12.949416+00:00",
+      "bytes": 611840,
+      "sha256": "7992a2fbd65c20ca3aed11a728f75ce1e9a23cdce44d255e8958ce2f953b1605",
+      "use": "Independent validation of model import-export chronology and magnitude",
+      "evidence_class": "observed",
+      "claim_boundary": "Net actual flow requires an inspected and documented sign convention."
+    }
+  ]
+}

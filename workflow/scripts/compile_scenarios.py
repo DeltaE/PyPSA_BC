@@ -31,10 +31,12 @@ def compile_scenarios(config_path: Path, output_directory: Path) -> list[dict]:
                 "case_id",
                 "reservoir_representation",
                 "water_use_policy",
+                "storage_policy",
                 "runnable",
                 "representation_status",
                 "policy_constraint_mode",
                 "release_multiplier",
+                "storage_constraint_mode",
             ],
         )
         writer.writeheader()
@@ -44,10 +46,14 @@ def compile_scenarios(config_path: Path, output_directory: Path) -> list[dict]:
                     "case_id": case["case_id"],
                     "reservoir_representation": case["reservoir_representation"],
                     "water_use_policy": case["water_use_policy"],
+                    "storage_policy": case["storage_policy"],
                     "runnable": case["runnable"],
                     "representation_status": case["representation"].get("status", ""),
                     "policy_constraint_mode": case["policy"].get("constraint_mode", ""),
                     "release_multiplier": case["policy"].get("release_multiplier", 1.0),
+                    "storage_constraint_mode": case["storage"].get(
+                        "constraint_mode", ""
+                    ),
                 }
             )
     return cases
@@ -70,4 +76,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

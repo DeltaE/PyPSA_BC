@@ -18,23 +18,49 @@ base_model:
   scientific_reference_resolution: regional_district
   executable_resolution: regional_district
   reservoir_representation: A_full_cascade
-  water_policy: evidence_based
+  water_policy: release_uncertainty_lower_bound
+  storage_policy: zero_pondage
+  external_boundary_policy: observed_interchange
+  network_flow_formulation: transport
+  transport_flow_reporting: lexicographic_minimum_transfer_postprocessing
   release_multiplier: 1.0
+
+# Hydro-first execution path. This pilot is intentionally separate from the
+# production scenario matrix controlled by execution.allow_solve.
+rolling_horizon:
+  enabled: true
+  window_hours: 168
+  lookahead_hours: 24
+  initial_storage_fraction: 0.5
+  initial_state_evidence_class: scenario
+  time_limit_seconds: 180
+  max_windows: 2
+  enforce_annual_closure: false
+  closure_window_hours: 672
+  publication_backstop_share_tolerance: 0.001
+  ttc_priority: deferred_secondary_sensitivity
 
 preflight:
   required_paths:
-  - config/data.yaml
-  - config/base_network.yaml
-  - config/params.yaml
-  # - config/studies/chapter2_cascade.yaml
-  - workflow/scripts/build_model.py
-  # - src/pypsa_bc/studies/cascade/constraints.py
-  # - data/validation/chapter2/release_rule_definitions.yaml
-  # - data/validation/chapter2/release_uncertainty_protocol.yaml
-  # - studies/chapter2/inputs/cascade_evidence_register.csv
+    - config/data.yaml
+    - config/base_network.yaml
+    - config/params.yaml
+    - config/studies/chapter2_cascade.yaml
+    - workflow/scripts/build_model.py
+    - src/pypsa_bc/studies/cascade/constraints.py
+    - data/validation/chapter2/release_rule_definitions.yaml
+    - data/validation/chapter2/release_uncertainty_protocol.yaml
+    - data/validation/chapter2/storage_uncertainty_protocol.yaml
+    - data/validation/bc_hydro/BalancingAuthorityLoad2021.xls
+    - data/validation/bc_hydro/BCABTTC2021.xls
+    - data/validation/bc_hydro/ABBCTTC2021.xls
+    - data/validation/bc_hydro/BCUSTTC2021.xls
+    - data/validation/bc_hydro/USBCTTC2021.xls
+    - data/validation/bc_hydro/HourlyTielineData2021.xls
+    - studies/chapter2/inputs/cascade_evidence_register.csv
 
-  # These are the primary experimental axes. "implemented" is an execution
-  # contract, not a statement of scientific preference.
+# These are the primary experimental axes. "implemented" is an execution
+# contract, not a statement of scientific preference.
 scenario_axes:
   reservoir_representations:
     A_full_cascade:
@@ -45,12 +71,15 @@ scenario_axes:
       implemented: true
       status: production_builder_available
       description: >-
-        Non-terminal reservoir levels pooled into an upper bucket and the terminal level into a lower bucket, with matched storage, inflow, turbine capacity, electrical buses, and external release routes.
+        Non-terminal reservoir levels pooled into an upper bucket and the
+        terminal level into a lower bucket, with matched storage, inflow,
+        turbine capacity, electrical buses, and external release routes.
     C_single_bucket:
       implemented: true
       status: production_builder_available
       description: >-
-        One water-storage bucket per basin with matched storage, inflow, turbine capacity, electrical buses, and external release routes.
+        One water-storage bucket per basin with matched storage, inflow,
+        turbine capacity, electrical buses, and external release routes.
 
   water_use_policies:
     evidence_based:
@@ -59,21 +88,24 @@ scenario_axes:
       release_multiplier: 1.0
       scientific_role: blocked_reference
       description: >-
-        Apply verified static and route-specific scheduled minimum releases. Not runnable until all seven unresolved facility rules are resolved.
+        Apply verified static and route-specific scheduled minimum releases.
+        Not runnable until all seven unresolved facility rules are resolved.
     release_uncertainty_lower_bound:
       implemented: true
       constraint_mode: release_uncertainty_lower_bound
       release_multiplier: 1.0
       scientific_role: primary_uncertainty_bound
       description: >-
-        Preserve verified releases and apply the least-constraining, explicitly scenario-labelled bound at seven unresolved facilities.
+        Preserve verified releases and apply the least-constraining, explicitly
+        scenario-labelled bound at seven unresolved facilities.
     release_uncertainty_upper_bound:
       implemented: true
       constraint_mode: release_uncertainty_upper_bound
       release_multiplier: 1.0
       scientific_role: primary_uncertainty_bound
       description: >-
-        Preserve verified releases and apply the conservative structural-stress bound at seven unresolved facilities; this is not an observed/legal rule.
+        Preserve verified releases and apply the conservative structural-stress
+        bound at seven unresolved facilities; this is not an observed/legal rule.
     static_minimum_only:
       implemented: true
       constraint_mode: static_minimum_only
@@ -86,3 +118,19 @@ scenario_axes:
       release_multiplier: 0.0
       scientific_role: counterfactual_only
       description: Remove minimum-release constraints to isolate their operational effect.
+
+  storage_policies:
+    zero_pondage:
+      implemented: true
+      constraint_mode: zero_pondage
+      scientific_role: primary_uncertainty_bound
+      description: >-
+        Retain Waneta as run-of-river without controllable storage, consistent
+        with the current model and official low-storage classification.
+    upper_pondage:
+      implemented: true
+      constraint_mode: upper_pondage
+      scientific_role: primary_uncertainty_bound
+      description: >-
+        Add one day of mean natural inflow as dispatchable Waneta pondage. This
+        is a conservative structural sensitivity, not a measured active volume.

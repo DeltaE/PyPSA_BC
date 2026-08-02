@@ -1,8 +1,13 @@
-from pypsa_bc import utils
+import sys
+
+import numpy as np
 import pandas as pd
+
+from pypsa_bc import utils
 
 # handles the config loading centrally
 from pypsa_bc.attributes_parser import AttributesParser
+
 pypsa_aparser=AttributesParser()
 
 def get_vre_params(gen_generic:dict, 
@@ -19,7 +24,7 @@ def get_vre_params(gen_generic:dict,
     else:
         vre_type = vre_selection
         print(f"error: {vre_type} is not implemented yet!")
-        exit(1) 
+        sys.exit(1)
 
 
 def get_vre_dict(site, site_ts, bus_dict, vre_selection): # site, site_ts, vre_params, bus_dict, cfg
@@ -56,6 +61,14 @@ def write_vre_dict(vre_assets, vre_ts, bus_dict, vre_selection, vre_path):
     existing vre facilities in PyPSA.
     '''
     vre_dict = {}
+    numeric_ts = vre_ts.apply(pd.to_numeric, errors="coerce")
+    invalid = ~np.isfinite(numeric_ts.to_numpy())
+    if invalid.any():
+        bad_columns = numeric_ts.columns[invalid.any(axis=0)].astype(str).tolist()
+        raise ValueError(
+            f"{vre_selection.title()} time series contain non-finite values for: "
+            + ", ".join(bad_columns)
+        )
     # reduce to single assets
     # NOTE: 2023-10-05 Updated this to aggregate common asset_id rather than retain first
     # Retaining the first was not the correct approach since capacity was lost and unaccounted for.

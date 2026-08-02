@@ -9,8 +9,8 @@ geography:
   latitude_max: 60.1
 
 connectivity:
-  max_components: 1
   allow_isolated_buses: false
+  component_policy: data/validation/base_network/component_policy.yaml
 
 parameters:
   line_length_km:

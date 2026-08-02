@@ -24,3 +24,5 @@ workflow/scripts/__pycache__/
 workflow/scripts/studies/*
 src/pypsa_bc/studies/
 .gitignore
+data/processed_data/*
+data/processed_data/network/*.csv

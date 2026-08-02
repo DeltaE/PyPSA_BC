@@ -4,15 +4,6 @@ This workflow wraps the existing PyPSA-BC scripts in a dependency-aware base
 model chain. Network construction, validation, and optimization are separate
 operations; production solving remains opt-in.
 
-## Contents
-
-- [Safety model](#safety-model)
-- [Major base-model rules](#major-base-model-rules)
-- [Scenario-independent Rule 1 module](#scenario-independent-rule-1-module)
-- [Running safely](#running-safely)
-- [Learning Rule 1: base network preparation](#learning-rule-1-base-network-preparation)
-- [Spatial-resolution contract](#spatial-resolution-contract)
-
 ## Safety model
 
 The default target is a read-only preflight. It validates configuration and
@@ -50,7 +41,8 @@ with:
 include: "rules/base_network.smk"
 ```
 
-The included file owns the five-table `BASE_NETWORK` output contract, the
+The included file owns the five-table `BASE_NETWORK` output contract, its
+correction-audit artifact, the
 validation-output paths, `base_network_preparation`, and
 `validate_base_network`. Downstream rules consume those outputs but do not
 redefine Rule 1. Consequently, changing or adding scenario definitions does not
@@ -68,7 +60,7 @@ sequenceDiagram
 
     M->>R: Include scenario-independent rules
     R->>P: Request base_network_preparation
-    P->>N: Write five prepared network tables
+    P->>N: Write five prepared tables and correction audit
     N->>V: Submit topology and parameters
     V->>R: Write PASS/FAIL evidence
 
@@ -135,7 +127,7 @@ uv run snakemake --profile workflow/profiles/default base_model_workflow
 ## Learning Rule 1: base network preparation
 
 First preview Rule 1. This reads the DAG and timestamps but does not rewrite the
-five network CSV files:
+five network tables or their correction audit:
 
 ```powershell
 uv run snakemake --profile workflow/profiles/default --dry-run base_network_preparation
@@ -151,9 +143,10 @@ The rule has four readable parts:
 
 1. **Inputs** declare every file that can change the result: `config/data.yaml`,
    the electrical assumptions in `config/base_network.yaml`, CODERS lines,
-   substations and generators, the line-rating table, and the Python adapter.
+   substations and generators, the line-rating table, correction registers,
+   BC Hydro map evidence and metadata, and the Python adapter.
 2. **Outputs** define the contract: `buses.csv`, `lines.csv`, `line_types.csv`,
-   `transformers.csv`, and `transformer_types.csv` in
+   `transformers.csv`, `transformer_types.csv`, and `correction_audit.csv` in
    `data/processed_data/network/`.
 3. **Log** records execution in
    `logs/snakemake/01_base_network_preparation.log`.
@@ -167,6 +160,7 @@ sequenceDiagram
     participant G as Grid data
     participant A as Electrical assumptions
     participant S as Snakemake Rule 1
+    participant C as Correction registers
     participant P as prepare_base_network.py
     participant L as network/lines.py
     participant B as network/buses.py
@@ -178,23 +172,27 @@ sequenceDiagram
 
     G->>S: Declare tracked source files
     A->>S: Declare tracked assumptions
+    C->>S: Declare traceable node and line patches
     S->>P: Run base-network adapter
+    C->>P: Apply active registered corrections
     P->>L: Prepare lines and conductor inventory
     L->>O: Write lines.csv and line_types.csv
     P->>B: Resolve internal line endpoints
     B->>O: Write buses.csv
     P->>T: Connect voltage levels at physical nodes
     T->>O: Write transformers.csv and transformer_types.csv
+    P->>O: Verify correction_audit.csv
 
-    Note over B,O: External and unresolved endpoints are not invented;<br/>validation preserves their affected line references
+    Note over C,O: Map-derived coordinates are representative,<br/>manual, and explicitly registered
 ```
 
 The adapter is intentionally thin. Scientific transformations belong to the
-three package modules, while Snakemake owns file dependencies, execution, and
-logging. Bus preparation never creates a blank placeholder bus: unresolved
-internal endpoints and external interties remain visible as missing-endpoint
-evidence in `validate_base_network` until an explicit modelling decision is
-implemented.
+package modules, while Snakemake owns file dependencies, execution, and
+logging. Raw CODERS tables are never modified. Special treatments are applied
+from `data/validation/base_network/`, and preparation fails if the declared
+source value has drifted or the correction audit cannot verify a treatment.
+Boundary buses support exogenous historical exchange; the base study does not
+optimize trade.
 
 Snakemake reruns this rule when an output is missing, an input is newer, or the
 rule/code signature changes. Before accepting Rule 1 scientifically, inspect
@@ -249,11 +247,16 @@ This decision is recorded in `config/workflow.yaml` with both
 
 ## Hydro-policy scenarios (later phase)
 
-`scenario_plan` compiles the reservoir-representation and water-policy matrix.
+`scenario_plan` compiles the reservoir-representation, water-policy, and
+Waneta-storage-policy matrix. It declares 30 cases: 24 runnable sensitivity
+cases and six blocked evidence-only cases.
 Exact scenario solves remain separate targets under `results/workflow/runs/`.
 The evidence-based policy is declared but blocked until unresolved facility
 release rules are resolved; uncertainty cases remain labelled sensitivities,
-not observed or legal flows.
+not observed or legal flows. The storage axis brackets Waneta pondage between
+zero and 24 hours of mean natural inflow; the upper value is not a measured
+active-storage volume. Gates 2C and 2D verify both uncertainty layers against
+the prepared A/B/C hydro networks.
 
 Use Snakemake's `--dag` or `--rulegraph dot` option to generate a graph for any
 named target.

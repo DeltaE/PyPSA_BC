@@ -1,0 +1,108 @@
+{
+  "year": 2021,
+  "claim_boundaries": {
+    "load": "Gross telemetered provincial load is not regional demand.",
+    "ttc": "Directional TTC is a path limit, not realized flow or an internal line rating.",
+    "actual_flow": "Signed interchange is reported without assigning import/export meaning until the publisher sign convention is documented."
+  },
+  "load": {
+    "rows": 8760,
+    "valid_rows": 8760,
+    "missing_rows": 0,
+    "minimum_mw": 5198.0,
+    "p05_mw": 5562.0,
+    "median_mw": 7318.0,
+    "mean_mw": 7426.278767123287,
+    "p95_mw": 9457.0,
+    "maximum_mw": 11792.0,
+    "annual_energy_twh": 65.054202,
+    "peak_date": "12/27/2021",
+    "peak_hour_ending": 18,
+    "path": "data/validation/bc_hydro/BalancingAuthorityLoad2021.xls",
+    "sha256": "c28a6a86c06913d7a6d06b22c176fdb37e670b9d24e26b3de6641a7cb01eb43f"
+  },
+  "directional_ttc": {
+    "bc_to_ab": {
+      "rows": 8760,
+      "valid_rows": 8760,
+      "missing_rows": 0,
+      "minimum_mw": 0.0,
+      "p05_mw": 110.0,
+      "median_mw": 800.0,
+      "mean_mw": 735.5985159817352,
+      "p95_mw": 800.0,
+      "maximum_mw": 850.0,
+      "path": "data/validation/bc_hydro/BCABTTC2021.xls",
+      "sha256": "87632fbfa1efc60ee0e42a5de57bd7e4551a079da29f46bdfb7c22ecf718300b"
+    },
+    "ab_to_bc": {
+      "rows": 8760,
+      "valid_rows": 8760,
+      "missing_rows": 0,
+      "minimum_mw": 0.0,
+      "p05_mw": 300.0,
+      "median_mw": 1000.0,
+      "mean_mw": 873.4834474885845,
+      "p95_mw": 1000.0,
+      "maximum_mw": 1000.0,
+      "path": "data/validation/bc_hydro/ABBCTTC2021.xls",
+      "sha256": "9785fbe305645292eb2b45cc03583fa624e8cbffac2da85af04e07bfa6d202e9"
+    },
+    "bc_to_us": {
+      "rows": 8760,
+      "valid_rows": 8760,
+      "missing_rows": 0,
+      "minimum_mw": 1100.0,
+      "p05_mw": 2000.0,
+      "median_mw": 2400.0,
+      "mean_mw": 2431.777397260274,
+      "p95_mw": 3150.0,
+      "maximum_mw": 3150.0,
+      "path": "data/validation/bc_hydro/BCUSTTC2021.xls",
+      "sha256": "c27e42cf7c99d65e89f79b52f0b6b6aadbd8899d0e6fdf5eda875e44d850b308"
+    },
+    "us_to_bc": {
+      "rows": 8760,
+      "valid_rows": 8760,
+      "missing_rows": 0,
+      "minimum_mw": 400.0,
+      "p05_mw": 2000.0,
+      "median_mw": 2500.0,
+      "mean_mw": 2277.6198630136987,
+      "p95_mw": 2500.0,
+      "maximum_mw": 2500.0,
+      "path": "data/validation/bc_hydro/USBCTTC2021.xls",
+      "sha256": "d1d3cbff01ddfccc1fcee44ea19953bc78e1489a686de9ab28acc468b8eb0bb5"
+    }
+  },
+  "actual_interchange": {
+    "path": "data/validation/bc_hydro/HourlyTielineData2021.xls",
+    "sha256": "7992a2fbd65c20ca3aed11a728f75ce1e9a23cdce44d255e8958ce2f953b1605",
+    "series": {
+      "US Tielines": {
+        "rows": 8760,
+        "valid_rows": 8760,
+        "missing_rows": 0,
+        "minimum_mw": -2056.0,
+        "p05_mw": -908.05,
+        "median_mw": 471.0,
+        "mean_mw": 448.3691780821918,
+        "p95_mw": 1769.0,
+        "maximum_mw": 2311.0,
+        "signed_sum_gwh": 3927.714
+      },
+      "AB Tielines": {
+        "rows": 8760,
+        "valid_rows": 8760,
+        "missing_rows": 0,
+        "minimum_mw": -555.0,
+        "p05_mw": -18.0,
+        "median_mw": 242.0,
+        "mean_mw": 253.87157534246575,
+        "p95_mw": 571.0,
+        "maximum_mw": 744.0,
+        "signed_sum_gwh": 2223.915
+      }
+    }
+  }
+}

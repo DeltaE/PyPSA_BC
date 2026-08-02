@@ -10,7 +10,19 @@ from pypsa_bc.studies.cascade.constraints import (
     attach_route_release_schedules,
 )
 from pypsa_bc.studies.cascade.representation import aggregate_cascade_representation
+from pypsa_bc.studies.cascade.scaling import (
+    bound_fuel_stores,
+    bound_terminal_water_stores,
+    scale_fuel_domain,
+    scale_water_domain,
+)
+from pypsa_bc.studies.cascade.storage_uncertainty import apply_storage_uncertainty_case
 from pypsa_bc.studies.cascade.uncertainty import apply_release_uncertainty_case
+from pypsa_bc.studies.external_boundary import apply_external_boundary
+from pypsa_bc.studies.network_formulation import (
+    VALID_NETWORK_FLOW_FORMULATIONS,
+    apply_network_flow_formulation,
+)
 from pathlib import Path
 import shutil
 # handles the config loading centrally
@@ -32,7 +44,12 @@ def _choose_solver_name() -> str:
             except Exception:
                 continue
             return solver_name
-        if solver_name == "highs" and shutil.which("highs"):
+        if solver_name == "highs":
+            try:
+                import highspy  # noqa: F401
+            except Exception:
+                if not shutil.which("highs"):
+                    continue
             return solver_name
         if solver_name == "glpk" and shutil.which("glpsol"):
             return solver_name
@@ -883,10 +900,16 @@ def main(copperplate:bool=False,
          include_vre_investments:bool=True,
          reservoir_representation:str="A_full_cascade",
          water_policy:str="evidence_based",
+         storage_policy:str="zero_pondage",
          release_multiplier:float=1.0,
          release_schedule_path:Path | None=None,
          release_uncertainty_protocol_path:Path | None=None,
+         storage_uncertainty_protocol_path:Path | None=None,
          cascade_topology_path:Path | None=None,
+         external_boundary_policy:str="observed_interchange",
+         network_flow_formulation:str="transport",
+         external_boundary_validation_root:Path | None=None,
+         external_market_marginal_cost_cad_per_mwh:float=0.0,
          build_report_save_to:Path | None=None,
          solve_network:bool=True):
     '''
@@ -922,6 +945,9 @@ def main(copperplate:bool=False,
     utils.print_update(level=3, message=f"Include VRE investments: {include_vre_investments}")
     utils.print_update(level=3, message=f"Reservoir representation: {reservoir_representation}")
     utils.print_update(level=3, message=f"Water-use policy: {water_policy}")
+    utils.print_update(level=3, message=f"Storage policy: {storage_policy}")
+    utils.print_update(level=3, message=f"External boundary policy: {external_boundary_policy}")
+    utils.print_update(level=3, message=f"Network flow formulation: {network_flow_formulation}")
     utils.print_update(level=3, message=f"Release multiplier: {release_multiplier}")
     utils.print_update(level=3, message=f"Solve network: {solve_network}")
     utils.print_update(level=3, message=f"Output File: {solved_network_save_to if solved_network_save_to else 'Default from config'}")
@@ -943,6 +969,27 @@ def main(copperplate:bool=False,
         raise ValueError(
             f"Unsupported water_policy={water_policy!r}; expected one of "
             f"{sorted(valid_water_policies)}"
+        )
+    valid_storage_policies = {"zero_pondage", "upper_pondage"}
+    if storage_policy not in valid_storage_policies:
+        raise ValueError(
+            f"Unsupported storage_policy={storage_policy!r}; expected one of "
+            f"{sorted(valid_storage_policies)}"
+        )
+    valid_external_boundary_policies = {
+        "closed",
+        "observed_interchange",
+        "hourly_ttc",
+    }
+    if external_boundary_policy not in valid_external_boundary_policies:
+        raise ValueError(
+            f"Unsupported external_boundary_policy={external_boundary_policy!r}; "
+            f"expected one of {sorted(valid_external_boundary_policies)}"
+        )
+    if network_flow_formulation not in VALID_NETWORK_FLOW_FORMULATIONS:
+        raise ValueError(
+            f"Unsupported network_flow_formulation={network_flow_formulation!r}; "
+            f"expected one of {sorted(VALID_NETWORK_FLOW_FORMULATIONS)}"
         )
     if not np.isfinite(release_multiplier) or release_multiplier < 0:
         raise ValueError("release_multiplier must be finite and non-negative")
@@ -1072,6 +1119,27 @@ def main(copperplate:bool=False,
                     f"release schedule(s) from {release_schedule_path}"
                 ),
             )
+    storage_uncertainty_path = Path(
+        storage_uncertainty_protocol_path
+        or "data/validation/chapter2/storage_uncertainty_protocol.yaml"
+    )
+    if not storage_uncertainty_path.exists():
+        raise FileNotFoundError(
+            f"Storage uncertainty protocol is missing: {storage_uncertainty_path}"
+        )
+    storage_uncertainty_audit = apply_storage_uncertainty_case(
+        network,
+        storage_uncertainty_path,
+        storage_policy,
+    )
+    utils.print_update(
+        level=2,
+        message=(
+            f"Applied scenario-labelled {storage_policy} storage treatment to "
+            f"{len(storage_uncertainty_audit)} unresolved station(s); this is not "
+            "a measured active-storage volume."
+        ),
+    )
     representation_summary = pd.DataFrame()
     if reservoir_representation != "A_full_cascade":
         topology_path = Path(
@@ -1292,6 +1360,21 @@ def main(copperplate:bool=False,
     utils.print_update(level=2,message="Cleaning the non-aggregated lines and buses that are not required for solving the network...")
     remove_old_components(network, busmap_dict)
 
+    external_boundary_audit = apply_external_boundary(
+        network,
+        external_boundary_validation_root or Path("data/validation/bc_hydro"),
+        year,
+        external_boundary_policy,
+        marginal_cost_cad_per_mwh=external_market_marginal_cost_cad_per_mwh,
+    )
+    utils.print_update(
+        level=2,
+        message=(
+            f"Applied {external_boundary_policy} external boundary treatment "
+            f"to {len(external_boundary_audit)} interface record(s)."
+        ),
+    )
+
     #################### ADDING ALL NEW ASSETS BEGINS HERE ##############
     # (11) Add VRE Expansion
     # capex: $M-CAD / (potential capacity)
@@ -1382,13 +1465,24 @@ def main(copperplate:bool=False,
     # Aggregate lines
     utils.print_update(level=2,message="Aggregating inter-zones lines...")
     aggregate_lines(network)
+    prepare_and_validate_line_parameters(network)
+    network_formulation_audit = apply_network_flow_formulation(
+        network, network_flow_formulation
+    )
+    fuel_store_audit = bound_fuel_stores(network)
+    fuel_scaling_audit = scale_fuel_domain(network)
+    terminal_store_audit = bound_terminal_water_stores(network)
+    water_scaling_audit = scale_water_domain(network)
     repair_bus_references(network)
     network.sanitize()
     coerce_network_string_labels(network)
-    prepare_and_validate_line_parameters(network)
     
     if tx_line_infinity:
-        network=make_unlimited_line_capacity(network)
+        if network_flow_formulation == "transport":
+            transport = network.links["carrier"].eq("electricity_transport")
+            network.links.loc[transport, "p_nom"] = 99999
+        else:
+            network=make_unlimited_line_capacity(network)
     
     # Model construction and optimization are separate workflow stages.  Keep
     # the legacy default (solve_network=True) for direct callers, while the
@@ -1448,6 +1542,31 @@ def main(copperplate:bool=False,
             report_path.with_name(f"{report_path.stem}_release_uncertainty.csv"),
             index=False,
         )
+    if not storage_uncertainty_audit.empty:
+        storage_uncertainty_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_storage_uncertainty.csv"),
+            index=False,
+        )
+    if not external_boundary_audit.empty:
+        external_boundary_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_external_boundary.csv"),
+            index=False,
+        )
+    if not network_formulation_audit.empty:
+        network_formulation_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_network_formulation.csv"),
+            index=False,
+        )
+    if not terminal_store_audit.empty:
+        terminal_store_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_terminal_store_bounds.csv"),
+            index=False,
+        )
+    if not fuel_store_audit.empty:
+        fuel_store_audit.to_csv(
+            report_path.with_name(f"{report_path.stem}_fuel_store_bounds.csv"),
+            index=False,
+        )
     
     report_content = f"""# PyPSA-BC Build Model Report
     
@@ -1463,9 +1582,19 @@ def main(copperplate:bool=False,
 | TX Line Infinity | {tx_line_infinity} |
 | Reservoir Representation | {reservoir_representation} |
 | Water-use Policy | {water_policy} |
+| Storage Policy | {storage_policy} |
+| External Boundary Policy | {external_boundary_policy} |
+| Network Flow Formulation | {network_flow_formulation} |
+| Kirchhoff Voltage Law | {'Enforced' if network_flow_formulation == 'dc_load_flow' else 'Not enforced; capacity-constrained regional transport'} |
+| Transport Flow Reporting | Lexicographic minimum-transfer postprocessing; raw zero-cost flows are non-unique |
+| External Market Marginal Cost | {external_market_marginal_cost_cad_per_mwh} CAD/MWh |
 | Release Multiplier | {release_multiplier} |
 | Optimization requested | {solve_network} |
 | Release Evidence Boundary | {'Scenario sensitivity; not observed/legal' if not release_uncertainty_audit.empty else 'No uncertainty envelope applied'} |
+| Terminal Water Sink Bound | {'Total modeled horizon inflow + 1% margin' if not terminal_store_audit.empty else 'No placeholder sinks detected'} |
+| Fuel Inventory Bound | {'Maximum possible horizon throughput + 1% margin' if not fuel_store_audit.empty else 'No placeholder fuel inventories detected'} |
+| Internal Fuel Unit | {fuel_scaling_audit['fuel_energy_unit_mwh']:g} MWh_fuel per model unit |
+| Internal Water Unit | {water_scaling_audit['water_flow_unit'] if 'water_flow_unit' in water_scaling_audit else '1e6 m3/hour per model flow unit'} |
 | Output File | {solved_network_save_to} |
 
 ## Network Summary

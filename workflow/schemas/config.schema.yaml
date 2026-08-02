@@ -1,66 +1,98 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
 type: object
-required: [workflow, execution, base_model, preflight, scenario_axes]
+required: [ workflow, execution, base_model, rolling_horizon, preflight, scenario_axes ]
 properties:
   workflow:
     type: object
-    required: [id, run_id, output_root]
+    required: [ id, run_id, output_root ]
     properties:
-      id: {type: string, minLength: 1}
-      run_id: {type: string, pattern: "^[A-Za-z0-9_.-]+$"}
-      output_root: {type: string, minLength: 1}
+      id: { type: string, minLength: 1 }
+      run_id: { type: string, pattern: "^[A-Za-z0-9_.-]+$" }
+      output_root: { type: string, minLength: 1 }
   execution:
     type: object
-    required: [allow_solve, year, capacity_choice, include_vre_investments]
+    required: [ allow_solve, year, capacity_choice, include_vre_investments ]
     properties:
-      allow_solve: {type: boolean}
-      year: {type: integer, minimum: 2000, maximum: 2100}
-      capacity_choice: {type: string, enum: [investment, full_potential]}
-      include_vre_investments: {type: boolean}
+      allow_solve: { type: boolean }
+      year: { type: integer, minimum: 2000, maximum: 2100 }
+      capacity_choice: { type: string, enum: [ investment, full_potential ] }
+      include_vre_investments: { type: boolean }
   base_model:
     type: object
-    required: [scientific_reference_resolution, executable_resolution, reservoir_representation, water_policy, release_multiplier]
+    required: [ scientific_reference_resolution, executable_resolution, reservoir_representation, water_policy, storage_policy, external_boundary_policy, network_flow_formulation, transport_flow_reporting, release_multiplier ]
     properties:
-      scientific_reference_resolution: {type: string, enum: [regional_district, substation]}
-      executable_resolution: {type: string, enum: [regional_district, substation]}
-      reservoir_representation: {type: string, enum: [A_full_cascade, B_two_store, C_single_bucket]}
+      scientific_reference_resolution: { type: string, enum: [ regional_district, substation ] }
+      executable_resolution: { type: string, enum: [ regional_district, substation ] }
+      reservoir_representation: { type: string, enum: [ A_full_cascade, B_two_store, C_single_bucket ] }
       water_policy:
         type: string
-        enum: [evidence_based, static_minimum_only, no_minimum_release, release_uncertainty_lower_bound, release_uncertainty_upper_bound]
-      release_multiplier: {type: number, minimum: 0}
+        enum: [ evidence_based, static_minimum_only, no_minimum_release, release_uncertainty_lower_bound, release_uncertainty_upper_bound ]
+      storage_policy: { type: string, enum: [ zero_pondage, upper_pondage ] }
+      external_boundary_policy: { type: string, enum: [ closed, observed_interchange, hourly_ttc ] }
+      network_flow_formulation: { type: string, enum: [ transport, dc_load_flow ] }
+      transport_flow_reporting: { type: string, enum: [ lexicographic_minimum_transfer_postprocessing, raw_solver_flow ] }
+      release_multiplier: { type: number, minimum: 0 }
+  rolling_horizon:
+    type: object
+    required: [ enabled, window_hours, lookahead_hours, initial_storage_fraction, initial_state_evidence_class, time_limit_seconds, max_windows, enforce_annual_closure, closure_window_hours, publication_backstop_share_tolerance, ttc_priority ]
+    properties:
+      enabled: { type: boolean }
+      window_hours: { type: integer, minimum: 24 }
+      lookahead_hours: { type: integer, minimum: 0 }
+      initial_storage_fraction: { type: number, minimum: 0, maximum: 1 }
+      initial_state_evidence_class: { type: string, enum: [ scenario, observed, calibrated ] }
+      time_limit_seconds: { type: number, exclusiveMinimum: 0 }
+      max_windows: { type: integer, minimum: 1 }
+      enforce_annual_closure: { type: boolean }
+      closure_window_hours: { type: integer, minimum: 24 }
+      publication_backstop_share_tolerance: { type: number, minimum: 0, maximum: 1 }
+      ttc_priority: { type: string, enum: [ deferred_secondary_sensitivity, primary ] }
   preflight:
     type: object
-    required: [required_paths]
+    required: [ required_paths ]
     properties:
       required_paths:
         type: array
         minItems: 1
-        items: {type: string, minLength: 1}
+        items: { type: string, minLength: 1 }
   scenario_axes:
     type: object
-    required: [reservoir_representations, water_use_policies]
+    required: [ reservoir_representations, water_use_policies, storage_policies ]
     properties:
       reservoir_representations:
         type: object
         minProperties: 1
         additionalProperties:
           type: object
-          required: [implemented, status, description]
+          required: [ implemented, status, description ]
           properties:
-            implemented: {type: boolean}
-            status: {type: string}
-            description: {type: string}
+            implemented: { type: boolean }
+            status: { type: string }
+            description: { type: string }
       water_use_policies:
         type: object
         minProperties: 1
         additionalProperties:
           type: object
-          required: [implemented, constraint_mode, release_multiplier, scientific_role, description]
+          required: [ implemented, constraint_mode, release_multiplier, scientific_role, description ]
           properties:
-            implemented: {type: boolean}
+            implemented: { type: boolean }
             constraint_mode:
               type: string
-              enum: [evidence_based, static_minimum_only, no_minimum_release, release_uncertainty_lower_bound, release_uncertainty_upper_bound]
-            release_multiplier: {type: number, minimum: 0}
-            scientific_role: {type: string}
-            description: {type: string}
+              enum: [ evidence_based, static_minimum_only, no_minimum_release, release_uncertainty_lower_bound, release_uncertainty_upper_bound ]
+            release_multiplier: { type: number, minimum: 0 }
+            scientific_role: { type: string }
+            description: { type: string }
+      storage_policies:
+        type: object
+        minProperties: 1
+        additionalProperties:
+          type: object
+          required: [ implemented, constraint_mode, scientific_role, description ]
+          properties:
+            implemented: { type: boolean }
+            constraint_mode:
+              type: string
+              enum: [ zero_pondage, upper_pondage ]
+            scientific_role: { type: string }
+            description: { type: string }

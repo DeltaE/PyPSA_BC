@@ -1,0 +1,242 @@
+study:
+  id: chapter2_cascade
+  title: How Hydropower Cascade Aggregation Affects Operational Feasibility Estimates
+  case: British Columbia
+  protocol_version: 0.1.0
+  protocol_date: 2026-07-29
+  status: pre-analysis
+  primary_question: >-
+    How much does hydropower cascade aggregation alter estimates of operational
+    feasibility in a hydro-dominant electricity system under electrification,
+    variable renewable energy integration, and hydrological stress?
+  reference_configuration: A_full_cascade
+
+analysis:
+  time_resolution: 1h
+  timezone: America/Vancouver
+  horizon:
+    start: "2021-01-01 00:00:00"
+    end: "2021-12-31 23:00:00"
+  perfect_foresight: true
+  primary_outcomes:
+    - unserved_energy_mwh
+    - loss_of_load_hours
+    - peak_shortfall_mw
+    - vre_curtailment_ratio
+    - corridor_congestion_hours
+  secondary_outcomes:
+    - operating_cost_cad
+    - hydro_generation_mwh
+    - spill_m3
+    - reservoir_storage_range_m3
+    - net_imports_mwh
+    - solver_runtime_seconds
+  comparison:
+    matched_pairs: true
+    reference: A_full_cascade
+    effects:
+      - B_two_store_minus_A
+      - C_single_bucket_minus_A
+  deterministic_inference:
+    report_effect_sizes: true
+    report_scenario_ranges: true
+    p_values_without_probability_model: false
+    call_backstop_dispatch_eens: false
+
+configurations:
+  A_full_cascade:
+    stores: one_per_modelled_reservoir
+    station_electrical_buses: preserved
+    turbine_paths: station_resolved
+    spill_paths: station_resolved
+    station_travel_delay: required
+    delay_boundary: cyclic_core_noncyclic_sensitivity
+    minimum_combined_release: required_where_supported
+    terminal_storage: cyclic_core_observed_sensitivity
+  B_two_store:
+    stores: upper_and_lower_per_basin
+    station_electrical_buses: preserved_where_feasible
+    turbine_paths: aggregated
+    spill_paths: aggregated
+    station_travel_delay: false
+    minimum_combined_release: false_unless_valid_aggregate_exists
+    terminal_storage: matched_to_A
+  C_single_bucket:
+    stores: one_per_basin
+    station_electrical_buses: preserved
+    turbine_paths: station_output_links_from_common_store
+    spill_paths: aggregate_terminal
+    station_travel_delay: false
+    minimum_combined_release: false
+    terminal_storage: matched_to_A
+  C_single_bucket_one_bus:
+    role: sensitivity_only
+    changes_hydraulic_and_electrical_geography: true
+
+scenario_matrix:
+  demand:
+    - baseline
+    - electrification_medium
+    - electrification_high
+  vre:
+    - low
+    - medium
+    - high
+  hydrology:
+    - dry
+    - median
+    - wet
+  core_solve_count: 81
+  probability_weights_assigned: false
+
+unit_contract:
+  snapshot_duration_hours: 1
+  natural_inflow: m3_per_hour
+  turbine_discharge: m3_per_hour
+  spill: m3_per_hour
+  reservoir_store: m3
+  water_link_nominal_power: m3_per_hour
+  water_to_power_efficiency: mwh_per_m3
+  electric_dispatch: mw
+  travel_delay: integer_hours
+  source_monthly_flow_statistics: m3_per_second
+  conversion:
+    m3_per_second_to_m3_per_hour: 3600
+  audit_tolerances:
+    unit_scale_max_relative_difference: 0.10
+    monthly_calibration_max_relative_difference: 0.01
+  tolerance_interpretation:
+    unit_scale: >-
+      A ten-percent bound is used only to distinguish the intended 3600-fold
+      unit conversion from a dimensional error. It is not a calibration target.
+    monthly_calibration: >-
+      A one-percent bound is used to flag drift introduced by time-index
+      reassignment, boundary hours, or rounding after calibration.
+
+inputs:
+  hydro_generation: data/processed_data/hydro/existing/hydro_generation.csv
+  hydro_reservoirs: data/processed_data/hydro/existing/hydro_reservoirs.csv
+  reservoir_inflows: data/processed_data/hydro/existing/bc_ext_reservoir_inflows.csv
+  ror_profiles: data/processed_data/hydro/existing/bc_ext_ror_ts.csv
+  generator_wup: data/inventory/custom/hydro_gen_wup_features.csv
+  reservoir_wup: data/inventory/custom/hydro_res_wup_features.csv
+  inflow_statistics_directory: data/inventory/custom/inflow_stats
+  legacy_cascade_reference: data/inventory/cascade_reference.csv
+  cascade_evidence_register: studies/chapter2/inputs/cascade_evidence_register.csv
+  release_schedules: studies/chapter2/inputs/release_schedules.csv
+  release_rule_definitions: data/validation/chapter2/release_rule_definitions.yaml
+  release_uncertainty_protocol: data/validation/chapter2/release_uncertainty_protocol.yaml
+  storage_uncertainty_protocol: data/validation/chapter2/storage_uncertainty_protocol.yaml
+  cascade_parameter_decisions: data/validation/chapter2/cascade_parameter_decisions.yaml
+  reservoir_role_decisions: data/validation/chapter2/reservoir_role_decisions.csv
+  storage_representation_decisions: data/validation/chapter2/storage_representation_decisions.csv
+  validation_source_registry: data/validation/chapter2/source_registry.yaml
+  validation_source_manifest: data/validation/chapter2/source_manifest.csv
+  bc_boundary: data/downloaded_data/GADM/gadm41_CAN_1.geojson
+  hydro_builder: workflow/scripts/enrich_format_hydro.py
+  hydro_constraints: src/pypsa_bc/studies/cascade/constraints.py
+  hydro_representation: src/pypsa_bc/studies/cascade/representation.py
+  model_builder: workflow/scripts/build_model.py
+
+missing_values:
+  tokens:
+    - ""
+    - DEFAULT
+    - null
+  unknown_core_parameter_policy: fail_gate
+  imputation_requires:
+    - explicit_method
+    - evidence_class
+    - sensitivity_case
+
+evidence_classes:
+  - observed
+  - derived
+  - calibrated
+  - imputed
+  - scenario
+  - not_applicable
+  - unknown
+
+gate_1:
+  name: input_unit_topology_integrity
+  required:
+    - required_files_exist
+    - required_columns_exist
+    - component_ids_unique
+    - station_asset_ids_unique
+    - referenced_reservoirs_exist
+    - cascade_graph_acyclic
+    - core_coordinates_inside_bc
+    - positive_station_capacity
+    - positive_usable_storage_for_modelled_stores
+    - hourly_inflow_index_complete
+    - monthly_inflow_unit_reconciliation
+    - parameter_evidence_coverage_reported
+  publication_critical_parameters:
+    - travel_time_h
+    - minimum_release_m3_per_hour
+    - max_discharge_m3_per_hour
+    - spill_capacity_m3_per_hour
+    - usable_storage_m3
+    - water_to_power_efficiency_mwh_per_m3
+  travel_time_interpretation:
+    reference_case: 0
+    evidence_class: scenario
+    sensitivity_hours:
+      - 0
+      - 1
+      - 3
+      - 6
+      - 12
+    claim_boundary: >-
+      Travel-time mechanics are verified, but station-specific BC delay
+      measurements are unavailable. Results must be described as structural
+      sensitivity, not calibrated routing.
+  pass_policy: no_errors
+
+gate_2:
+  name: physical_verification
+  required:
+    - two_reservoir_analytic_test
+    - three_reservoir_delay_test
+    - minimum_release_test
+    - scheduled_route_release_test
+    - turbine_spill_mass_balance_test
+    - delay_boundary_test
+    - terminal_storage_test
+
+gate_2b:
+  name: matched_hydraulic_representation_verification
+  required:
+    - storage_volume_conserved_by_cascade
+    - inflow_timeseries_conserved_by_cascade
+    - turbine_water_capacity_conserved_by_cascade
+    - electrical_connection_buses_preserved
+    - explicit_external_release_routes_preserved
+    - obsolete_storage_coupling_links_removed
+    - no_artificial_water_self_loops
+
+validation:
+  minimum_scope:
+    cascades:
+      - Peace
+      - Mica/Columbia
+    major_facility_or_group_count: 5
+  roles_must_be_separate:
+    - calibration
+    - independent_validation
+  thresholds_status: predeclare_after_observation_resolution_audit
+
+outputs:
+  gate_1_directory: studies/chapter2/gate1
+  input_manifest: studies/chapter2/gate1/input_manifest.csv
+  topology_edges: studies/chapter2/gate1/topology_edges.csv
+  reservoir_roles: studies/chapter2/gate1/reservoir_roles.csv
+  cascade_summary: studies/chapter2/gate1/cascade_summary.csv
+  parameter_coverage: studies/chapter2/gate1/parameter_coverage.csv
+  unit_checks: studies/chapter2/gate1/unit_checks.csv
+  implementation_coverage: studies/chapter2/gate1/implementation_coverage.csv
+  issues: studies/chapter2/gate1/issues.csv
+  summary: studies/chapter2/gate1/summary.json
+  report: studies/chapter2/gate1/gate1_report.md

@@ -16,6 +16,7 @@ def main() -> int:
     parser.add_argument("--year", type=int, default=2021)
     parser.add_argument("--capacity-choice", default="investment")
     parser.add_argument("--include-vre-investments", action="store_true")
+    parser.add_argument("--external-boundary-policy", default="observed_interchange")
     args = parser.parse_args()
 
     case = yaml.safe_load(args.scenario.read_text(encoding="utf-8"))
@@ -26,6 +27,7 @@ def main() -> int:
         )
     representation = case["reservoir_representation"]
     policy = case["policy"]
+    storage = case["storage"]
 
     # Import after validation because build_model imports the full scientific stack.
     from workflow.scripts import build_model
@@ -36,6 +38,8 @@ def main() -> int:
         include_vre_investments=args.include_vre_investments,
         reservoir_representation=representation,
         water_policy=policy["constraint_mode"],
+        storage_policy=storage["constraint_mode"],
+        external_boundary_policy=args.external_boundary_policy,
         release_multiplier=float(policy.get("release_multiplier", 1.0)),
         solved_network_save_to=args.network,
         build_report_save_to=args.report,
@@ -45,4 +49,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
